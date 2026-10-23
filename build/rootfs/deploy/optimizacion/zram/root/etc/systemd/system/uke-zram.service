@@ -1,0 +1,12 @@
+[Unit]
+Description=uke: swap zram (zstd)
+After=local-fs.target
+Before=swap.target
+ConditionPathExists=!/etc/uke/no-zram
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/uke-zram-up
+ExecStop=/bin/sh -c 'swapoff /dev/zram0 2>/dev/null; echo 1 > /sys/block/zram0/reset 2>/dev/null; true'
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=uke: revisa la bateria cada 2 min (guardia de bateria baja)
+Documentation=file:///usr/local/share/uke/P5-energia.md
+
+[Timer]
+# 3 min tras el arranque (da tiempo a uke-adsp.service) y luego cada 2 min.
+OnBootSec=3min
+OnUnitActiveSec=2min
+AccuracySec=15s
+Persistent=true
+Unit=uke-bateria-baja.service
+
+[Install]
+WantedBy=timers.target

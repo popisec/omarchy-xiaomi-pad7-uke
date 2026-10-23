@@ -1,0 +1,27 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -2355,9 +2355,21 @@
+ 	uke_poke("H2-cxvoto");
+
+ 	/* Use a known rate to bring up the GMU */
+-	clk_set_rate(gmu->core_clk, 200000000);
+-	clk_set_rate(gmu->hub_clk, adreno_is_a740_family(adreno_gpu) ?
+-		     200000000 : 150000000);
++	/* UKE-K70 (9-oct-2026, PLAN-C C2): D1-SOLO tras el voto C1, SIN D2 NI D3.
++	 * Extraido del hunk D1 de k67-d1solo.diff (@@ -2306,21 +2346,17 @@);
++	 * hunks G10/G8 (chipid/log) y poll-vendor DESCARTADOS (revertidos).
++	 * Replica del orden vendor (adreno_gen7_gmu.c:1868-1885): voto CX (C1,
++	 * arriba) -> set_rate core 220M (aqui) -> clk_bulk_prepare_enable.
++	 * D3 eliminado (W3: no votaba y mataba en resume; k66 en silencio sin
++	 * el lo exonero como asesino unico, ledger #555). D2 eliminado
++	 * (W4-K67: su RCG hub_clk_src deriva del GPLL0 compartido con USB y
++	 * arrastra el AHB de registros a 200M sin voto CX; el hub queda en su
++	 * rate heredado XBL). Los rc NO abortan. */
++	ret = clk_set_rate(gmu->core_clk, 220000000);
++	pr_err("UKE-K70: D1 gmu clk_set 220M rc=%d\n", ret);
++	pr_err("UKE-K70: SIN-D2 (hub en rate XBL: RCG GPLL0/AHB intactos)\n");
++	pr_err("UKE-K70: SIN-D3 (voto CX eliminado: no votaba y mataba en resume)\n");
++	pr_flush(120, false);
+ 	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
+ 	if (ret) {
+ 		uke_poke("H3-clkFAIL");

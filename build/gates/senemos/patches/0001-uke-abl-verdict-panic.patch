@@ -1,0 +1,67 @@
+# 0001-uke-abl-verdict-panic.patch — omarchy-uke (17-oct-2026)
+#
+# Delta PROPIO del proyecto sobre el árbol «senemos» de MCC45TR.
+#
+# QUÉ HACE. En el upstream, si el bootloader entrega un device tree que no es
+# el de la tablet (un grafo rechazado o ajeno), uke_abl_prepare_fdt() se queda
+# en un bucle infinito de cpu_relax() ANTES de que exista consola: cuelgue
+# mudo que solo se sale con un reset fisico.
+#
+# Este parche deja el DT del bootloader intacto, registra el veredicto y hace
+# panic() desde un early_initcall: para entonces PSCI reset y el "panic=" de la
+# linea de comandos ya estan vivos, asi que la tablet reinicia (y el contador
+# de reintentos del slot registra el fallo) en vez de quedarse muda.
+#
+# CONTEXTO: build/gates/revision/SENEMOS-PRUEBA-PREP-20261017.md y las sesiones
+# del 17-oct. Es el MISMO parche que se aplico a mano en el arbol local del
+# port; aqui queda por fin versionado, de modo que el arbol se reproduce igual.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+diff --git a/arch/arm64/kernel/uke-abl.c b/arch/arm64/kernel/uke-abl.c
+index 66ed57e..faf8c48 100644
+--- a/arch/arm64/kernel/uke-abl.c
++++ b/arch/arm64/kernel/uke-abl.c
+@@ -813,6 +813,25 @@ static unsigned char uke_fdt[UKE_FDT_CAPACITY] __ro_after_init __aligned(8);
+ #include "uke-abl-native.h"
+ #include "uke-native-display.h"
+ 
++/*
++ * omarchy-uke (17-oct-2026): a rejected or foreign graph used to spin forever in
++ * cpu_relax() before any console existed (mute hang, physical reset required).
++ * Keep the bootloader FDT untouched, record the verdict and panic from an early
++ * initcall instead: by then PSCI reset and the "panic=" command line are live, so
++ * the board reboots (and the slot retry counter records the failure).
++ */
++static int uke_abl_verdict __initdata;
++
++static int __init uke_abl_verdict_check(void)
++{
++	if (uke_abl_verdict)
++		panic("UKE-SENEMOS: Uke ABL DT adaptation %s (%d); stock vendor_boot DTB + stock dtbo required\n",
++		      uke_abl_verdict == 1 ? "found a foreign graph" : "rejected the graph",
++		      uke_abl_verdict);
++	return 0;
++}
++early_initcall(uke_abl_verdict_check);
++
+ void *__init uke_abl_prepare_fdt(void *input, int size, phys_addr_t *physical)
+ {
+ 	int ret;
+@@ -833,11 +852,14 @@ void *__init uke_abl_prepare_fdt(void *input, int size, phys_addr_t *physical)
+ 	}
+ 	if (ret < 0) {
+ 		pr_crit("Uke ABL DT adaptation rejected (%d); refusing incomplete board graph\n", ret);
+-		while (true)
+-			cpu_relax();
++		uke_abl_verdict = ret;
++		return input;
+ 	}
+-	if (!ret)
++	if (!ret) {
++		pr_crit("Uke ABL DT: foreign graph (model mismatch); this build only boots Uke\n");
++		uke_abl_verdict = 1;
+ 		return input;
++	}
+ 	*physical = __pa_symbol(uke_fdt);
+ 	pr_info("Uke ABL DT: selected RAM preserved; isolated native display graph prepared\n");
+ 	return uke_fdt;

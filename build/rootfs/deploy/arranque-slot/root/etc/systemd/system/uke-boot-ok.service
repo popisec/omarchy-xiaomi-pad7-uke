@@ -1,0 +1,22 @@
+[Unit]
+Description=uke: marcar el slot A/B actual como arranque correcto (qbootctl -m) tras 90 s sanos
+# 22-oct-2026: sin esto el ABL resta un intento por arranque (slot-retry-count) y a los 7 marca el slot
+# unbootable y salta al slot b (Android) -> recovery. Android lo hace en cada arranque; Linux no lo hacia.
+#
+# RIESGO CONOCIDO: qbootctl -m escribe los atributos GPT de 12 particiones de dos discos, incluida
+# vbmeta_system en /dev/sda (el disco del rootfs vivo). No toca misc/BCB. El riesgo esta asumido y
+# documentado en build/slot/PROCEDIMIENTO-SLOT.md §3, que hasta el 22-oct decía "no ejecutar":
+# esa linea estaba desactualizada, la decision ya esta tomada.
+# NOTA: esta unidad esta desplegada en la tablet pero arranque-slot/ NO tiene deploy.sh: no es
+# instalable de forma reproducible desde este repo.
+After=multi-user.target uke-bootguard.service
+Wants=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStartPre=/usr/bin/sleep 90
+# el kernel no pasa androidboot.slot_suffix: se nombra el slot explicito leyendo el actual
+ExecStart=/bin/sh -c 's=$(qbootctl 2>/dev/null | sed -n "s/^Current slot: _\\([ab]\\)$/\\1/p"); [ -n "$s" ] && /usr/local/bin/qbootctl -m "$s" && qbootctl | grep -A3 "SLOT _$s"'
+
+[Install]
+WantedBy=multi-user.target

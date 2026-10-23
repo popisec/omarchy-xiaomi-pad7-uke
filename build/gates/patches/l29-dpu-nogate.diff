@@ -1,0 +1,83 @@
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -21,6 +21,7 @@
+ #include <drm/drm_writeback.h>
+ 
+ #include <linux/soc/qcom/ubwc.h>
++#include <linux/uke-poke.h>  /* L29: uke_dpu_nogate + uke_poke */
+ 
+ #include "msm_drv.h"
+ #include "msm_mmu.h"
+@@ -55,6 +56,22 @@
+ bool dpu_use_virtual_planes = true;
+ module_param(dpu_use_virtual_planes, bool, 0);
+ 
++/* L29: gate unico de diagnostico (param msm.uke_dpu_nogate=1, ON por
++ * defecto: la cmdline L29 no lo lleva y el gate debe disparar igual).
++ * KBUILD_MODNAME de este objeto es "msm" (composite msm.o, igual que
++ * msm_drv.c donde vive msm.uke_skip_mdss_reset — verificado en el Image
++ * L27: "msm.uke_skip_mdss_reset" x2, "msm_drv.uke_skip_mdss_reset" x0).
++ * Para re-habilitar clocks/vbif: msm.uke_dpu_nogate=0. */
++static bool uke_dpu_nogate_val = true;
++module_param_named(uke_dpu_nogate, uke_dpu_nogate_val, bool, 0644);
++MODULE_PARM_DESC(uke_dpu_nogate,
++		 "saltar clk_bulk_prepare_enable + vbif memtypes del DPU (diagnostico L29)");
++bool uke_dpu_nogate(void)
++{
++	return uke_dpu_nogate_val;
++}
++EXPORT_SYMBOL_GPL(uke_dpu_nogate);
++
+ static int dpu_kms_hw_init(struct msm_kms *kms);
+ static void _dpu_kms_mmu_destroy(struct dpu_kms *dpu_kms);
+ 
+@@ -1277,7 +1294,16 @@
+ 		goto err_pm_put;
+ 	}
+ 
+-	dpu_vbif_init_memtypes(dpu_kms);
++	/* L29: gate del DPU (param msm.uke_dpu_nogate=1, ON por defecto).
++	 * L28 murio en dpu_kms_hw_init (~4,038 s) tras el bind con el
++	 * conector habilitado; se salta la programacion de memtypes del
++	 * VBIF para ver si ese MMIO es lo que mata. */
++	if (uke_dpu_nogate()) {
++		pr_info("UKE-L29: vbif-memtypes OFF (gate msm.uke_dpu_nogate)\n");
++		uke_poke("L29-vbif-off");
++	} else {
++		dpu_vbif_init_memtypes(dpu_kms);
++	}
+ 
+ 	pm_runtime_put_sync(&dpu_kms->pdev->dev);
+ 
+@@ -1457,6 +1483,15 @@
+ 
+ 	ddev = dpu_kms->dev;
+ 
++	/* L29: gate del DPU (param msm.uke_dpu_nogate=1, ON por defecto).
++	 * L28 murio en dpu_kms_hw_init (~4,038 s): se vuelve sin habilitar
++	 * los clocks del DPU para ver si el clk_bulk es lo que mata. */
++	if (uke_dpu_nogate()) {
++		pr_info("UKE-L29: resume SIN clk_bulk (gate msm.uke_dpu_nogate)\n");
++		uke_poke("L29-clkbulk-off");
++		return 0;
++	}
++
+ 	rc = clk_bulk_prepare_enable(dpu_kms->num_clocks, dpu_kms->clocks);
+ 	if (rc) {
+ 		DPU_ERROR("clock enable failed rc:%d\n", rc);
+--- a/include/linux/uke-poke.h
++++ b/include/linux/uke-poke.h
+@@ -22,10 +22,13 @@
+ void uke_lastpoke_set(const char *tag);
+ /* L24: gate unico de diagnostico (param msm.uke_skip_mdss_reset=1). */
+ bool uke_skip_mdss_reset(void);
++/* L29: gate del DPU (param msm.uke_dpu_nogate=1, ON por defecto). */
++bool uke_dpu_nogate(void);
+ #else
+ static inline void uke_poke(const char *tag) { }
+ static inline void uke_lastpoke_set(const char *tag) { }
+ static inline bool uke_skip_mdss_reset(void) { return false; }
++static inline bool uke_dpu_nogate(void) { return false; }
+ #endif
+ 
+ #endif /* _UKE_POKE_H */

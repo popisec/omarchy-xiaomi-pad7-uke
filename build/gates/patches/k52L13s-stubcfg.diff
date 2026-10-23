@@ -1,0 +1,74 @@
+# k52L13s-stubcfg.diff — L13s = L11 + fix RS de RE-STUB (10-oct-2026, SOLO-PC, sin flashear).
+# Generado por `diff -U4` L11->L13s (no escrito a mano). Dos sub-hunks en
+# a6xx_gmu_start(), verbatim de docs/historia/revision/RE-STUB-20261010.md §4,
+# patron save/restore calcado de GENERAL_9 (L10), base k52-L11-tree (NO L12):
+# (a) pre-S1, junto a la lectura de gen9_saved: guardar GENERAL_10/8
+# (valores que fw_start ya dejo; 3 ramas a8xx/a7xx/legacy); (b) tras S1,
+# despues del flush de recfg-ok y antes de L7-pre-rst: reescribirlos + poke
+# RS-recfg2 + pr_err UKE-RS + flush (testigo propio, separado de recfg-ok
+# para atribuir supervivencia a ESTE write). Solo MMIO en la ventana
+# K44-probada: cero structs perseguidos, cero RAM, cero SMMU (regla 3).
+# NO se tocan: L10-recfg, poll vendor, HFI, GENERAL_9, GENERAL_11, logica.
+# Nomenclatura L13s (tag k52L13s, testigos RS-recfg2 / UKE-RS: recfg2-ok).
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -633,9 +633,9 @@
+ {
+ 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+ 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+ 	struct msm_gpu *gpu = &adreno_gpu->base;
+-	u32 mask, reset_val, val, gen9_saved = 0;
++	u32 mask, reset_val, val, gen9_saved = 0, gen10_saved = 0, gen8_saved = 0;
+ 	int ret;
+ 
+ 	uke_poke("S0-dtcmR");
+ 	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
+@@ -679,8 +679,24 @@
+ 	else if (adreno_is_a7xx(adreno_gpu))
+ 		gen9_saved = gmu_read(gmu, REG_A7XX_GMU_GENERAL_9);
+ 	else
+ 		gen9_saved = gmu_read(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP);
++	/* UKE-RS (RE-STUB-20261010): GENERAL_10/8 guardados pre-S1 (valores de
++	 * fw_start). El vendor los programa TRAS afirmar el reset
++	 * (register_config); nosotros solo ANTES de S1 y L10-recfg no los
++	 * reescribe. Si S1 los borra, el fw ve chipid/log=reset -> mudo
++	 * (pollFAIL+HFI-110 con CM3 suelto, firma #575). Mismo patron que
++	 * GENERAL_9 (L10): solo MMIO, ventana K44-probada, cero structs/RAM. */
++	if (adreno_is_a8xx(adreno_gpu)) {
++		gen10_saved = gmu_read(gmu, REG_A8XX_GMU_GENERAL_10);
++		gen8_saved = gmu_read(gmu, REG_A8XX_GMU_GENERAL_8);
++	} else if (adreno_is_a7xx(adreno_gpu)) {
++		gen10_saved = gmu_read(gmu, REG_A7XX_GMU_GENERAL_10);
++		gen8_saved = gmu_read(gmu, REG_A7XX_GMU_GENERAL_8);
++	} else {
++		gen10_saved = gmu_read(gmu, REG_A6XX_GMU_HFI_SFR_ADDR);
++		gen8_saved = gmu_read(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_MSG);
++	}
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 1);
+ 	uke_poke("S1-rst1");
+ 
+ 	/* Set the log wptr index
+@@ -789,8 +805,23 @@
+ 	gmu_write(gmu, REG_A6XX_GMU_HFI_QTBL_INFO, 1);
+ 	uke_poke("L10-recfg");
+ 	pr_err("UKE-L10: recfg-ok\n");
+ 	pr_flush(120, false);
++	/* UKE-RS (RE-STUB-20261010): reescribir GENERAL_10/8 tras S1 (ver
++	 * cabecera pre-S1). Sin esto el body arrancaria con chipid/log a reset. */
++	if (adreno_is_a8xx(adreno_gpu)) {
++		gmu_write(gmu, REG_A8XX_GMU_GENERAL_10, gen10_saved);
++		gmu_write(gmu, REG_A8XX_GMU_GENERAL_8, gen8_saved);
++	} else if (adreno_is_a7xx(adreno_gpu)) {
++		gmu_write(gmu, REG_A7XX_GMU_GENERAL_10, gen10_saved);
++		gmu_write(gmu, REG_A7XX_GMU_GENERAL_8, gen8_saved);
++	} else {
++		gmu_write(gmu, REG_A6XX_GMU_HFI_SFR_ADDR, gen10_saved);
++		gmu_write(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_MSG, gen8_saved);
++	}
++	uke_poke("RS-recfg2");
++	pr_err("UKE-RS: recfg2-ok\n");
++	pr_flush(120, false);
+ 
+ 	/* UKE-L7 (10-oct-2026): ANTES del write SYSRESET=0 (si el write mata,
+ 	 * pre-rst sale y post-rst no). */
+ 	uke_poke("L7-pre-rst");

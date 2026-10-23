@@ -1,0 +1,22 @@
+arranques en el journal: 25
+idx  kernel   setting_up timeouts  result  info
+-19  ouke1    -         -         SIN-BT  
+-18  ouke2    -         -         SIN-BT  
+-17  ouke3    -         -         SIN-BT  
+-16  ouke3    3986.116856 0         VERDE   primer_timeout=-
+-15  ouke3    22.816611 2         VERDE   primer_timeout=24.960031
+-14  ouke3    31.468634 0         VERDE   primer_timeout=-
+-13  ouke4    383.761143 0         VERDE   primer_timeout=-
+-12  ouke4    24.504405 0         VERDE   primer_timeout=-
+-11  ouke4    24.436342 0         VERDE   primer_timeout=-
+-10  ouke4    24.436393 0         VERDE   primer_timeout=-
+-9   ouke4    24.392052 8         MUDO    primer_timeout=26.528024
+-8   ouke4    25.628038 1         VERDE   primer_timeout=27.748155
+-7   ouke4    24.580018 4         MUDO    primer_timeout=26.720013
+-6   ouke4    24.436321 2         VERDE   primer_timeout=26.560307
+-5   ouke4    24.484434 0         VERDE   primer_timeout=-
+-4   ouke4    24.588535 4         MUDO    primer_timeout=26.724434
+-3   ouke4    23.116046 2         VERDE   primer_timeout=25.256205
+-2   ouke4    25.100286 0         VERDE   primer_timeout=-
+-1   ouke4    25.088421 4         MUDO    primer_timeout=27.232141
+0    ouke4    23.999146 4         MUDO    primer_timeout=26.153920

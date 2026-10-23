@@ -1,0 +1,187 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c	2026-10-12 04:34:05.933341745 +0200
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c	2026-10-12 13:10:04.879417370 +0200
+@@ -53,6 +53,10 @@
+ 	struct drm_dsc_config dsc;
+ 	struct regulator_bulk_data *supplies;
+ 	struct gpio_desc *reset_gpio;
++	/* L27 (§E.2 informe 12-oct): rail vci = pmxr2230 L19 (Android
++	 * vci-supply=0x150, init 2.6 V). Opcional: el dtbo vivo aun no
++	 * declara vci-supply; NULL = seguir con los 3 rails. */
++	struct regulator *vci;
+ 	/* K49 (#509): vendor declara mi,esd-err-irq-gpio TLMM 168 y
+ 	 * mi,esd-err-irq-gpio-second TLMM 169 (flags 0x2004); el port no los
+ 	 * tocaba y quedaban en el estado del bootloader mientras el panel TDDI
+@@ -263,6 +267,9 @@
+  */
+ static void o82_reset(struct o82_panel *ctx)
+ {
++	/* L27 (§E.3 informe 12-oct): el gpio llega en Hi-Z desde el probe
++	 * (Android no lo toca hasta power_on); tomar direccion aqui. */
++	gpiod_direction_output(ctx->reset_gpio, 1);
+ 	uke_poke("K48-rst-A");	/* fisico: ASSERT (gpiod1=LOW) */
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+ 	uke_poke("K48-w1-done");
+@@ -281,8 +288,10 @@
+ 	pr_info("UKE-P82: rst: assert2(3ms) OK\n");
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+ 	uke_poke("K48-w4-done");
+-	usleep_range(100000, 101000);	/* r7: 15->100ms, discriminador temporal */
+-	uke_poke("K48-rst-R2-ok");	/* RELEASE final 100ms */
++	/* L27 (§E.5 + §B.3 informe 12-oct): el vendor usa 15 ms finales
++	 * (0/10,1/3,0/3,1/15); los 100 ms eran el discriminador r7. */
++	usleep_range(15000, 15500);
++	uke_poke("K48-rst-R2-ok");	/* RELEASE final 15ms (vendor) */
+ 	pr_info("UKE-P82: rst: release2(15ms) OK — reset COMPLETO\n");
+ }
+ 
+@@ -297,6 +306,25 @@
+ 	unsigned int i;
+ 	int ret;
+ 
++	/* L27 (§E.2 informe 12-oct): rail vci = pmxr2230 L19 (Android
++	 * vci-supply=0x150, init 2.6 V, rango 2.6-3.544 V; vddio=L8 ya lo
++	 * cubre supplies[0]). Sin voto de load: el path vendor
++	 * (dsi_pwr_enable_regulator) no lo pone. Fallo de set_voltage no
++	 * fatal: se habilita con la del DT. */
++	if (ctx->vci) {
++		ret = regulator_set_voltage(ctx->vci, 2600000, 3544000);
++		if (ret < 0)
++			pr_warn("UKE-P82: vci: set_voltage 2.6V fallo %d (sigo con la del DT)\n", ret);
++		ret = regulator_enable(ctx->vci);
++		if (ret < 0) {
++			pr_err("UKE-P82: vci: enable FALLO %d\n", ret);
++			return ret;
++		}
++		usleep_range(2000, 2500);
++		uke_poke("L27-vci-ok");
++		pr_info("UKE-P82: power_on: vci(L19,2.6V) ENABLED\n");
++	}
++
+ 	pr_info("UKE-P82: power_on: inicio (%zu supplies)\n", ARRAY_SIZE(o82_supplies));
+ 	for (i = 0; i < ARRAY_SIZE(o82_supplies); i++) {
+ 		pr_info("UKE-P82: power_on[%u]: %s enable-load\n", i, o82_supplies[i].supply);
+@@ -323,6 +351,8 @@
+ 		regulator_disable(ctx->supplies[i].consumer);
+ 		regulator_set_load(ctx->supplies[i].consumer, 0);
+ 	}
++	if (ctx->vci)
++		regulator_disable(ctx->vci);
+ 	return ret;
+ }
+ 
+@@ -344,8 +374,13 @@
+ 
+ 	uke_poke("K47-pre-rst");
+ 	o82_reset(ctx);
++	/* L27 (§E.5 + §A.2 informe 12-oct): Android resetea DOS veces
++	 * (pre_prepare y prepare). Aproximacion sin KMD: segundo reset
++	 * aqui, justo antes del primer DCS. */
++	o82_reset(ctx);
++	uke_poke("L27-rst-twice");
+ 	uke_poke("K47-pre-rstOK");
+-	pr_info("UKE-P82: prepare: reset OK\n");
++	pr_info("UKE-P82: prepare: reset OK (x2, vendor)\n");
+ 
+ 	uke_poke("K47-pre-init");
+ 	pr_info("UKE-P82: prepare: init cmds INICIO\n");
+@@ -389,15 +424,19 @@
+ 		goto err;
+ 	}
+ 
+-	pr_info("UKE-P82: prepare: backlight_enable...\n");
+-	backlight_enable(ctx->backlight);
+-	pr_info("UKE-P82: prepare: COMPLETO\n");
++	/* L27 (§E.5 + §B.8 informe 12-oct): el vendor saca el 0x51 tras la
++	 * 1a trama + 300 ms; backlight_enable salia en prepare (pre-video).
++	 * Se mueve a o82_enable() (tras modeset, mas cerca del vendor). */
++	pr_info("UKE-P82: prepare: COMPLETO (BL diferido a enable)\n");
+ 
+ 	return 0;
+ 
+ err:
+-	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	/* L27 (§E.3): direction_output vale desde cualquier estado previo. */
++	gpiod_direction_output(ctx->reset_gpio, 1);
+ 	regulator_bulk_disable(ARRAY_SIZE(o82_supplies), ctx->supplies);
++	if (ctx->vci)
++		regulator_disable(ctx->vci);
+ 	return ret;
+ }
+ 
+@@ -431,9 +470,11 @@
+ 	if (ret < 0)
+ 		dev_err(&ctx->dsi[0]->dev, "panel off sequence failed: %d\n", ret);
+ 
+-	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
++	gpiod_direction_output(ctx->reset_gpio, 1);
+ 
+ 	regulator_bulk_disable(ARRAY_SIZE(o82_supplies), ctx->supplies);
++	if (ctx->vci)
++		regulator_disable(ctx->vci);
+ 
+ 	return 0;
+ }
+@@ -473,9 +514,21 @@
+ 	return desc->num_modes;
+ }
+ 
++/* L27 (§E.5 + §B.8 informe 12-oct): backlight tras modeset (el vendor
++ * lo difiere a 1a trama + 300 ms; antes salia al final del prepare =
++ * pre-video). El DRM llama a enable despues de prepare+modeset. */
++static int o82_enable(struct drm_panel *panel)
++{
++	struct o82_panel *ctx = to_o82_panel(panel);
++
++	uke_poke("L27-bl-enable");
++	return backlight_enable(ctx->backlight);
++}
++
+ static const struct drm_panel_funcs o82_panel_funcs = {
+ 	.prepare = o82_prepare,
+ 	.unprepare = o82_unprepare,
++	.enable = o82_enable,
+ 	.get_modes = o82_get_modes,
+ };
+ 
+@@ -665,10 +718,26 @@
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "failed to get regulators\n");
+ 
+-	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
++	/* L27 (§E.2 informe 12-oct): vci/L19 opcional (el dtbo vivo aun no
++	 * lo declara; bulk_get con 4 fallaria el probe). */
++	ctx->vci = devm_regulator_get_optional(dev, "vci");
++	if (IS_ERR(ctx->vci)) {
++		if (PTR_ERR(ctx->vci) == -ENODEV) {
++			ctx->vci = NULL;
++			uke_poke("L27-vci-absent");
++		} else {
++			return dev_err_probe(dev, PTR_ERR(ctx->vci),
++					     "failed to get vci regulator\n");
++		}
++	}
++
++	/* L27 (§E.3 informe 12-oct): Android NO toca el reset hasta power_on;
++	 * pedirlo en Hi-Z (antes GPIOD_OUT_HIGH = panel ~4 s en reset). */
++	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_ASIS);
+ 	if (IS_ERR(ctx->reset_gpio))
+ 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
+ 				     "failed to get reset gpio\n");
++	uke_poke("L27-gpios-hiz");
+ 
+ 	/* K49 (#509): registrar las lineas ESD del TDDI como el vendor y
+ 	 * absorber sus aseveraciones con una irq con dueno. El mux/pull lo
+@@ -740,7 +809,12 @@
+ 	ctx->dsi[0] = dsi;
+ 	mipi_dsi_set_drvdata(dsi, ctx);
+ 
+-	ctx->panel.prepare_prev_first = true;
++	/* L27 (§E.4 informe 12-oct, la estructural): con =true el prepare
++	 * (rails+reset+DCS) corre ANTES del pre_enable del host = orden
++	 * invertido vs Android (LP11+host+clocks primero, rails despues).
++	 * =false => prepare tras el host, como el vendor. */
++	ctx->panel.prepare_prev_first = false;
++	uke_poke("L27-prev-first-off");
+ 
+ 	ctx->backlight = o82_create_backlight(ctx);
+ 	if (IS_ERR(ctx->backlight))

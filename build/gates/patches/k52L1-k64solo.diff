@@ -1,0 +1,57 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1377,7 +1377,44 @@
+ 
+ 	return 0;
+ }
+ 
++/* UKE-L1 (9-oct-2026, BISECT-L1): K64-solo extraido limpio del k52-tree
++ * (estado k70, funcion uke_k64_vendor_config; ver FASE2 §0 y diseno W2).
++ * Replica EXACTA de la logica: constantes vendor-only
++ *   0x1f8f0=1, 0x1f8f1=1, 0x1f984=1, base GMU+0=0x3c45, 0x1f9cd-d0=0xf,
++ * mas wake del RSC (0x3b07=2, poll 0x3b08&2, luego 0) y unlock 0x3b11.
++ * Testigos propios UKE-L1/K64 (x3). Deliberadamente AUSENTE de este hunk:
++ * rates 220M/200M, voto de esquina via OPP, poll con mascara cambiada,
++ * chipid/log programados y voto RDPM (viven en k65-k70, no aqui).
++ * Llamada: tras P3-pwrOK, antes de a6xx_gmu_start (mismo sitio que K64). */
++static void uke_l1_vendor_config(struct a6xx_gmu *gmu)
++{
++	pr_err("UKE-L1/K64: register_config vendor (0x1f8f0=1 0x1f8f1=1 0x1f984=1 base=0x3c45)\n");
++	pr_flush(120, false);
++	gmu_write(gmu, 0x1f8f0, 1);
++	gmu_write(gmu, 0x1f8f1, 1);
++	gmu_write(gmu, 0x1f984, 1);
++	gmu_write(gmu, 0x0, 0x3c45);
++	gmu_write(gmu, 0x1f9cd, 0xf);
++	gmu_write(gmu, 0x1f9ce, 0xf);
++	gmu_write(gmu, 0x1f9cf, 0xf);
++	gmu_write(gmu, 0x1f9d0, 0xf);
++	/* RSC wake del vendor: 0x02003b07=2, dsb, poll 0x02003b08&2 <=100ms, luego 0 */
++	gmu_write_rscc(gmu, 0x3b07, 2);
++	wmb();
++	{
++		u32 v;
++		int rc = gmu_poll_timeout_rscc(gmu, 0x3b08, v, (v & 2), 100, 100000);
++		pr_err("UKE-L1/K64: RSC wake rc=%d status=%#x\n", rc, v);
++		pr_flush(120, false);
++		gmu_write_rscc(gmu, 0x3b07, 0);
++	}
++	/* unlock RSC aperture (vendor: 0x02003b11<-0x80c808a0 = FENCE_RANGE_0) */
++	gmu_write_rscc(gmu, 0x3b11, 0x80c808a0);
++	pr_err("UKE-L1/K64: register_config COMPLETADO\n");
++	pr_flush(120, false);
++}
++
+ static int a6xx_gmu_fw_start(struct a6xx_gmu *gmu, unsigned int state)
+ {
+ 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+@@ -1497,6 +1537,9 @@
+ 	uke_poke("P3-pwr");
+ 	a6xx_gmu_power_config(gmu);
+ 	uke_poke("P3-pwrOK");
++
++	/* UKE-L1: replicar el register_config del VENDOR (K64-solo, sin rates ni votos) */
++	uke_l1_vendor_config(gmu);
+ 
+ 	ret = a6xx_gmu_start(gmu);
+ 	if (ret) {

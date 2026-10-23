@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+//
+// touch-fix.dts — fragmentos para que el TÁCTIL probe en el dtbo s258.
+//
+// DIAGNÓSTICO (medido en K2/K4, build/gates/k4-migas-log.txt:1586-1590):
+//   novatek-nt36xxx-spi spi0.0: no IRQ specified
+//   novatek-nt36xxx-spi spi0.0: probe with driver novatek-nt36xxx-spi failed with error -22
+//   spi spi0.0: chipselect 0 already in use
+// El dtbo s258 lleva DOS nodos "novatek,NVT-ts-spi" con reg=<0> bajo
+// /soc/qcom,qupv3_0_geni_se@ac0000/spi@a90000:
+//   - novatek@0     (fragment@35 vendor): gana el CS 0 => es spi0.0.
+//     NO tiene `interrupts` (solo novatek,irq-gpio = <&tlmm 54 0x2001>) ni
+//     touchscreen-size-*; el driver mainline exige spi->irq => -EINVAL.
+//   - touchscreen@0 (fragment@1200 constructor): sí tiene interrupts=<54 1>,
+//     pero al ser el segundo con reg 0 no llega a registrarse ("chipselect 0
+//     already in use").
+//
+// OPCIÓN A (la de este fichero): completar el nodo VENDOR (que es el que tiene
+// el pinctrl del CS, el panel y las MP tables) y desactivar el constructor.
+// OPCIÓN B (sin tocar el dtbo, preferida para AHORA): .ko ext con fallback a
+// novatek,irq-gpio (build/gates/prepara/novatek/ext/) — no gasta flash.
+//
+// CÓMO SE APLICA: insertar los dos fragmentos en el payload descompilado del
+// dtbo, antes del último `};` (constructor de dtbo del proyecto; ver
+// mk-dtbo-touchfix.py en este directorio, que lo hace y deja un candidato con
+// gates). Phandles literales del payload s258: 0x16b = &tlmm (confirmado por
+// novatek,irq-gpio = <0x16b 0x36 0x2001>).
+//
+// OJO (mux del pin de IRQ): el nodo vendor solo muxea el CS (grupos
+// mi_ts_spi_cs_active/suspend). El pin 54 no queda muxeado como GPIO por el DT;
+// en Android lo hace el .ko vendor con gpio_request. El .ko ext lo hace con
+// devm_gpiod_get(GPIOD_IN) (msm_gpio_template.request = gpiochip_generic_request
+// => pinctrl_gpio_request => mux GPIO). Si se usa el driver BUILT-IN sin el
+// parche, el IRQ puede no disparar si ABL dejó el pin en otra función: en ese
+// caso descomentar `pinctrl-0 = <0x17f>;` abajo (0x17f = sde_dsi1_active, grupo
+// existente que pone gpio54 en function gpio; su dueño, sde_dsi1, está disabled).
+
+fragment@2104 {
+	target-path = "/soc/qcom,qupv3_0_geni_se@ac0000/spi@a90000/novatek@0";
+
+	__overlay__ {
+		/* 54 = 0x36; 1 = IRQ_TYPE_EDGE_RISING (Android: int_trigger_type=1) */
+		interrupt-parent = <0x16b>;
+		interrupts = <0x36 0x01>;
+
+		/* Marco nativo medido en Android (nvt_ts_probe: abs_x_max=2136,
+		 * abs_y_max=3200; rx_num=40 x tx_num=60). Sin esto el driver usa
+		 * 1600x2136 y descarta todo toque con x>=1600 o y>=2136. */
+		touchscreen-size-x = <0x858>;	/* 2136 */
+		touchscreen-size-y = <0xc80>;	/* 3200 */
+
+		/* pinctrl-0 = <0x17f>;  // ver nota del mux arriba */
+	};
+};
+
+fragment@2105 {
+	target-path = "/soc/qcom,qupv3_0_geni_se@ac0000/spi@a90000/touchscreen@0";
+
+	__overlay__ {
+		status = "disabled";
+	};
+};

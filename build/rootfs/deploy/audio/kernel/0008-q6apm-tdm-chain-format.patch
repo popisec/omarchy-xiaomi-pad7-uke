@@ -1,0 +1,43 @@
+BORRADOR (19-oct-2026) — se aplica DESPUES de 0005, 0006 y 0007 a una COPIA al compilar (q6apm-port/build.sh). Parametros uke_tdm_chain_bits (32) y uke_tdm_chain_chan (4), 0644, defecto 0 = sin cambios: para MFC/SAL/TDM_SINK de un subgrafo de dispositivo de reproduccion (direccion TX) fuerzan 32 bit y 4 canales con mapa {1,2,8,9}, como la cadena del ACDB de Android, sin cambiar el PCM (2 canales S16).
+
+--- a/sound/soc/qcom/qdsp6/audioreach.c
++++ b/sound/soc/qcom/qdsp6/audioreach.c
+@@ -1473,12 +1473,38 @@
+ 	return rc;
+ }
+ 
++static unsigned int uke_tdm_chain_bits;
++module_param(uke_tdm_chain_bits, uint, 0644);
++MODULE_PARM_DESC(uke_tdm_chain_bits, "uke: 0 = sin cambios (defecto); 32 = fuerza 32 bit en el MFC/SAL/TDM_SINK del subgrafo de DISPOSITIVO (como la cadena de Android)");
++static unsigned int uke_tdm_chain_chan;
++module_param(uke_tdm_chain_chan, uint, 0644);
++MODULE_PARM_DESC(uke_tdm_chain_chan, "uke: 0 = sin cambios (defecto); 4 = el MFC/SAL/TDM_SINK del subgrafo de dispositivo trabajan con 4 canales mapa {1,2,8,9} (el PCM sigue en 2)");
++
+ int audioreach_set_media_format(struct q6apm_graph *graph,
+ 				const struct audioreach_module *module,
+ 				const struct audioreach_module_config *cfg)
+ {
++	struct audioreach_module_config uke_cfg;
+ 	int rc;
+ 
++	/* uke: solo los modulos MFC/SAL/TDM_SINK de un subgrafo de dispositivo de reproduccion (direccion TX en AudioReach) y solo si se piden los parametros */
++	if ((uke_tdm_chain_bits || uke_tdm_chain_chan) && module->container && module->container->sub_graph &&
++	    module->container->sub_graph->direction == APM_SUB_GRAPH_DIRECTION_TX &&
++	    (module->module_id == MODULE_ID_MFC || module->module_id == MODULE_ID_SAL || module->module_id == MODULE_ID_TDM_SINK)) {
++		uke_cfg = *cfg;
++		if (uke_tdm_chain_bits == 32) {
++			uke_cfg.bit_width = 32;
++			uke_cfg.bits_per_sample = 32;
++		}
++		if (uke_tdm_chain_chan == 4) {
++			static const u8 uke_map[4] = { 1, 2, 8, 9 };
++
++			uke_cfg.num_channels = 4;
++			memcpy(uke_cfg.channel_map, uke_map, sizeof(uke_map));
++		}
++		cfg = &uke_cfg;
++	}
++
+ 	switch (module->module_id) {
+ 	case MODULE_ID_DATA_LOGGING:
+ 		rc = audioreach_module_enable(graph, module, true);

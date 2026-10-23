@@ -1,0 +1,30 @@
+#!/bin/bash
+# uke-desktop-start — arranca sddm (autologin al escritorio Omarchy) en el arranque, aunque el
+# cmdline del boot.img traiga systemd.unit=multi-user.target (graphical.target nunca se alcanza).
+# Lo lanza uke-desktop.service (build/rootfs/deploy/arranque). Idempotente: si sddm ya esta activo
+# (p. ej. 'uke-session start' a mano) no hace nada, y NUNCA reinicia sddm.
+#
+# El primer arranque de sddm abre la GPU (msm_open -> load_gpu -> GMU): es el momento de riesgo
+# historico, asi que se hace un sync antes y la unidad va ordenada DESPUES de uke-carga y uke-wifi
+# (un componente arriesgado cada vez; si cuelga, el diario dice cual fue el ultimo).
+set -u
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+say() {
+	local m="uke-desktop[$(cut -d' ' -f1 /proc/uptime)]: $*"
+	printf '%s\n' "$m"
+	printf '%s\n' "$m" > /dev/kmsg 2>/dev/null
+	return 0
+}
+if systemctl is-active --quiet sddm.service; then
+	say "sddm ya esta activo: nada que hacer"
+	exit 0
+fi
+# 1. cola de eventos de udev vacia (nodos DRM, etiquetas de seat, ACL de logind)
+udevadm settle --timeout=30 2>&1
+# 2. nodo DRM del display presente (hasta 30 s); la GPU (renderD128) solo se registra
+for _ in $(seq 1 30); do ls /dev/dri/card[0-9]* >/dev/null 2>&1 && break; sleep 1; done
+say "DRM: $(ls /dev/dri 2>/dev/null | tr '\n' ' ')| renderD128: $( [ -c /dev/dri/renderD128 ] && echo si || echo NO )"
+ls /dev/dri/card[0-9]* >/dev/null 2>&1 || { say "ABORTA: no hay /dev/dri/card* (sin display no se arranca el escritorio)"; exit 1; }
+say "arrancando sddm (autologin; primer uso de la GPU: GMU carga firmware ahora)"
+sync
+exec systemctl --no-block start sddm.service

@@ -1,0 +1,39 @@
+# k52L12-fwmap.diff — L12 = L11 + hunk PRE-L12-FW solo-estado (10-oct-2026, SOLO-PC, sin flashear).
+# Generado por `diff -U4` L11->L12 (no escrito a mano). Hunk unico en
+# a6xx_gmu_start(), tras `L10-recfg` y ANTES de `L7-pre-rst` (CM3 aun con
+# SYSRESET=1, ventana K44-probada): (1) poke L12-fwmap + pr_err UKE-L12: fwmap
+# (icache.iova esp 0x4000, size esp 0xfff000, estado vm/mmu/obj/virt) +
+# (2) pr_err UKE-L12: fwbody (w0 = primer u32 de la RAM CPU del BO icache,
+# esp 0xbd1fb51f + re-lectura breadcrumb DTCM_START+0xff7, esp 0xffffffff) +
+# flush. CERO cambios de logica, CERO walks SMMU (regla 3; #449 colgo con
+# ioremap+readl). Poll VENDOR L11 + camino HFI intactos.
+# Lectura prevista: mapa ok + timeout => C6 muerta (fw en RAM, CM3 no ejecuta
+# por otra via); iova/size/vm mal => attach fallido; w0 mal => memcpy perdido;
+# breadcrumb corrupto => DTCM reabierto.
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -790,8 +790,24 @@
+ 	uke_poke("L10-recfg");
+ 	pr_err("UKE-L10: recfg-ok\n");
+ 	pr_flush(120, false);
+ 
++	/* UKE-L12 (diseño PRE-L12-FW-20261010, solo si L11 da timeout): ¿llegó el
++	 * fw-cuerpo a la RAM del CM3? SOLO estado + prints, CERO walks de SMMU
++	 * (regla 3; #449 colgó con ioremap+readl). CM3 aún en reset: todo lo aquí
++	 * leído es struct del host, RAM de CPU o MMIO GMU pre-release (K44). */
++	uke_poke("L12-fwmap");
++	pr_err("UKE-L12: fwmap icache iova=%#llx (esp 0x4000) size=%#zx (esp 0xfff000) vm=%s mmu=%s obj=%s virt=%s\n",
++	       gmu->icache.iova, gmu->icache.size,
++	       (!gmu->vm || IS_ERR(gmu->vm)) ? "MUERTO" : "ok",
++	       (!gmu->vm || IS_ERR(gmu->vm) || !to_msm_vm(gmu->vm)->mmu) ? "MUERTO" : "ok",
++	       !gmu->icache.obj ? "MUERTO" : "ok",
++	       !gmu->icache.virt ? "MUERTO" : "ok");
++	pr_err("UKE-L12: fwbody w0=%#x (esp 0xbd1fb51f) dtcm-bc=%#x (esp 0xffffffff)\n",
++	       gmu->icache.virt ? ((u32 *)gmu->icache.virt)[0] : 0xdead,
++	       gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff7));
++	pr_flush(120, false);
++
+ 	/* UKE-L7 (10-oct-2026): ANTES del write SYSRESET=0 (si el write mata,
+ 	 * pre-rst sale y post-rst no). */
+ 	uke_poke("L7-pre-rst");
+ 	pr_err("UKE-L7: pre-rst\n");

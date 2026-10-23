@@ -1,0 +1,58 @@
+#!/usr/bin/python3
+# uke-bateria-lectura — lectura unica de la bateria con % exacto, W y tiempo estimado. 19-oct-2026.
+#   (sin args) k=v por linea · --json · --short  (pct_exact|w|tte_s|estado|perfil|ok)
+# Signo: i_a y w POSITIVOS = descarga; negativos = carga. battmgr da current_now>0 al cargar (carga rapida +4,4 A) y <0 al descargar;
+# ojo: con status=Charging por un puerto SDP de 500 mA la bateria puede estar DESCARGANDO (current_now<0, charge_counter bajando).
+import json, os, sys, time
+B = "/sys/class/power_supply/qcom-battmgr-bat/"
+def rd(n):
+    try:
+        return open(B + n).read().strip()
+    except OSError:
+        return ""
+def num(n):
+    try:
+        return float(rd(n))
+    except ValueError:
+        return None
+def lee():
+    st = rd("status")
+    vs, cs = [], []
+    for k in range(4):                       # rafaga de 4 muestras en ~0.6 s: current_now es ruidoso
+        v, c = num("voltage_now"), num("current_now")
+        if v is not None: vs.append(v)
+        if c is not None: cs.append(c)
+        if k < 3: time.sleep(0.2)
+    v = sum(vs) / len(vs) / 1e6 if vs else None
+    i = -sum(cs) / len(cs) / 1e6 if cs else None      # + = descarga. battmgr: current_now>0 = CARGA (verificado 19-oct con carga rapida: +4,4 A y % subiendo)
+    cap, cc, cf = num("capacity"), num("charge_counter"), num("charge_full")
+    exact = round(cc / cf * 100, 2) if cc and cf else cap
+    r = {"ts": int(time.time()), "estado": st, "pct": int(cap) if cap is not None else None,
+         "pct_exact": exact,
+         # coherente = el contador de carga concuerda con capacity (±1.5 pt); si no, el firmware va por libre
+         "ok": int(cap is not None and exact is not None and abs(exact - cap) <= 1.5),
+         "charge_uah": int(cc) if cc else None, "charge_full_uah": int(cf) if cf else None,
+         "v": round(v, 3) if v else None, "ocv": round(num("voltage_ocv") / 1e6, 3) if num("voltage_ocv") else None,
+         "i_a": round(i, 3) if i is not None else None,
+         "w": round(v * i, 2) if v and i is not None else None,
+         "temp_c": round(num("temp") / 10, 1) if num("temp") is not None else None,
+         "fw_tte_s": int(num("time_to_empty_avg")) if num("time_to_empty_avg") not in (None, -1) else None,
+         "ciclos": int(num("cycle_count") or 0)}
+    tte = None
+    if st == "Discharging" and i and i > 0.02 and cc:
+        tte = int(cc / 1e6 / i * 3600)
+    elif st == "Charging" and i and i < -0.02 and cc and cf:
+        tte = int((cf - cc) / 1e6 / -i * 3600)            # tiempo hasta llenar
+    r["est_s"] = tte
+    try:
+        r["perfil"] = open("/var/lib/uke-bateria/perfil").read().strip()
+    except OSError:
+        r["perfil"] = ""
+    return r
+if __name__ == "__main__":
+    r = lee()
+    if "--json" in sys.argv: print(json.dumps(r))
+    elif "--short" in sys.argv:
+        print("|".join(str(r[k] if r[k] is not None else "") for k in ("pct_exact", "w", "est_s", "estado", "perfil", "ok")))
+    else:
+        for k, v in r.items(): print(f"{k}={'' if v is None else v}")

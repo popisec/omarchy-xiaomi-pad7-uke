@@ -1,0 +1,22 @@
+ node                                  tag          avg         peak
+--------------------------------------------------------------------
+llcc_mc@soc:interconnect@1                   2151741439   2147483647
+  a90000.spi                             0            0            0
+  a90000.spi                             0            0            0
+  ae00000.display-subsystem              0      4257792       800000
+  3000000.remoteproc-adsp                0            0            0
+  ae00000.display-subsystem              0            0       400000
+ebi@soc:interconnect@1                       2151741439   2147483647
+  a90000.spi                             0            0            0
+  a90000.spi                             0            0            0
+  1d84000.ufshc                          0            0            0
+  ae00000.display-subsystem              0      4257792       800000
+  3000000.remoteproc-adsp                0            0            0
+  ae00000.display-subsystem              0            0       400000
+xm_ufs_mem@16e0000.interconnect                       0            0
+  1d84000.ufshc                          0            0            0
+qns_a1noc_snoc@16e0000.interconnect                   0            0
+qhs_ufs_mem_cfg@1600000.interconnect                  0            0
+  1d84000.ufshc                          0            0            0
+chm_apps@24100000.interconnect                        0            0
+  1d84000.ufshc                          0            0            0

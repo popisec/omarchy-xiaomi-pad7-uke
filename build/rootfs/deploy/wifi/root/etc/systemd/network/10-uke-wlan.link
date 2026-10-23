@@ -1,0 +1,19 @@
+# 10-uke-wlan.link — nombre fijo wlan0 para el WCN6750 (ath11k_ahb, dispositivo de plataforma).
+# Sin esto systemd podria renombrarlo con la politica de rutas (wlP1p...). El .network y el servicio
+# de wpa_supplicant (wpa_supplicant-nl80211@wlan0) asumen wlan0.
+# MAC: con el kernel senemos ath11k deja wlan0 con 00:00:00:00:00:00 (medido 17-oct, sin MAC en OTP/BDF
+# leida) y addr_assign_type permanente, asi que MACAddressPolicy=persistent no actua. Se fija una MAC
+# local (bit 0x02) derivada de sha256(/etc/machine-id) de ESTA tablet.
+#
+# La MAC de arriba es la de la tablet del autor (enmascarada en la copia publica: 02:00:5e:00:00:01).
+# En tu aparato, genera la tuya:  printf 'MACAddress=02:%s\n' "$(sha256sum /etc/machine-id | cut -c1-10 | sed 's/\(..\)/\1:/g' | sed 's/:$//')"
+# (bit 0x02: el primer octeto ha de tener el bit 1 libre).
+[Match]
+# El netdev reporta ID_NET_DRIVER=ath11k (no ath11k_ahb, que es el driver de plataforma): con solo ath11k_ahb
+# el .link no casaba y caia en 99-default.link (medido con udevadm test-builtin net_setup_link, 18-oct).
+Driver=ath11k ath11k_ahb
+
+[Link]
+NamePolicy=
+Name=wlan0
+MACAddress=02:00:5e:00:00:01

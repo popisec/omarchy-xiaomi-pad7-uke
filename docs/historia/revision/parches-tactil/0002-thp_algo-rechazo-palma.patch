@@ -1,0 +1,55 @@
+--- a/thp_algo.py
++++ b/thp_algo.py
+@@ -31,12 +31,13 @@
+ class Tracker:
+     """Linea base por nodo + deteccion de picos + centroide + seguimiento de IDs."""
+ 
+-    def __init__(self, thr_on=420, thr_peak=600, alpha=1 / 64, max_touch=10, track_dist=2.5):
++    def __init__(self, thr_on=420, thr_peak=600, alpha=1 / 64, max_touch=10, track_dist=2.5, palm_nodes=40):
+         self.base = None
+         self.thr_on = thr_on          # nodo "tocado" (cuentas sobre la base)
+         self.thr_peak = thr_peak      # pico minimo para declarar un dedo
+         self.alpha = alpha            # adaptacion de la base en nodos sin toque
+         self.max_touch = max_touch
++        self.palm_nodes = palm_nodes  # componente conexa (nodos >= thr_on) de al menos N nodos = palma, no dedo
+         self.track_dist = track_dist  # distancia maxima (en nodos) para conservar el ID entre frames
+         self.prev = []                # [(id, r, c)]
+         self.next_id = 0
+@@ -93,6 +94,21 @@
+         pk.sort(reverse=True)
+         return pk[: self.max_touch]
+ 
++    def _blob(self, mutual, r, c):
++        """Nodos de la componente conexa (8-vecinos, mutual-base >= thr_on) que contiene (r, c); corta al llegar a
++        palm_nodes. Un dedo mide 4..13 nodos (1289 frames de Android); una palma o el canto de la mano, decenas."""
++        base, thr, cap = self.base, self.thr_on, self.palm_nodes
++        seen, st = {r * COLS + c}, [(r, c)]
++        while st and len(seen) < cap:
++            r0, c0 = st.pop()
++            for rr in range(max(0, r0 - 1), min(ROWS, r0 + 2)):
++                for cc in range(max(0, c0 - 1), min(COLS, c0 + 2)):
++                    k = rr * COLS + cc
++                    if k not in seen and mutual[k] - base[k] >= thr:
++                        seen.add(k)
++                        st.append((rr, cc))
++        return seen
++
+     def _centroid(self, mutual, r, c):
+         base = self.base
+         sw = sr = sc = 0.0
+@@ -147,7 +163,15 @@
+             self._base_max = self._base_min = float(med)
+         peaks = self._peaks(mutual)
+         pts = []
++        palm = set()
+         for v, r, c in peaks:
++            if r * COLS + c in palm:
++                continue
++            if self.palm_nodes:
++                blob = self._blob(mutual, r, c)
++                if len(blob) >= self.palm_nodes:
++                    palm |= blob          # el resto de picos dentro de la misma mancha tambien se descartan
++                    continue
+             rc, cc, n = self._centroid(mutual, r, c)
+             pts.append((rc, cc, n))
+         # base: adaptar solo donde no hay toque (y lejos de los picos). Recorrer los 2400 nodos costaba el 65 % del

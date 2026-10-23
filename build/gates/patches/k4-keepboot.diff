@@ -1,0 +1,400 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -182,6 +182,111 @@
+ MODULE_PARM_DESC(uke_stream_match,
+ 	"UKE (K3): 1 (defecto) = stream matching normal; 0 = para el apps-smmu (0x15000000) fuerza el camino stream-indexing sin SMR (ni barrido ni escrituras SMR en el reset).");
+ 
++/*
++ * UKE-SMMU-CLK (K4): "NO TOCAR lo que dejo el bootloader" (semantica del handoff
++ * del driver vendor: el stock no barre SMR, solo programa los qcom,handoff-smrs).
++ *
++ * CONTEXTO MEDIDO (K2/K3, 28-sep-2026; consola out/uke-ubuntu_console.log [47.71]):
++ * el probe real del apps-smmu SOBREVIVE a IDR0 (0x4c017e6e, SMS=110 grupos),
++ * IDR1 (0x60000047, NUMPAGENDXB=6, 71 CBs), IDR2, a la escritura+relectura del
++ * S2CR(109) del quirk qcom (0x000100ff -> 0x000200ff: quirk=SI) y a la LECTURA de
++ * SMR(0) = 0x80000060 (valid=1, id=0x60, mask=0x8000: un mapeo VIVO del
++ * bootloader). Y MUERE en arm_smmu_device_reset fase2 (arm-smmu.c:1788-1790): el
++ * bucle de arm_smmu_write_sme() x110 que ESCRIBE los 110 S2CR y los 110 SMR.
++ * La ultima miga antes del silencio es "reset fase2 SMR/S2CR x110".
++ *
++ * uke_keep_boot=1 (SOLO apps-smmu, reg=0x15000000, guarda uke_smmu_es_apps()):
++ *   - el reset OMITE ENTERA la fase2: no se escribe NI UN SMR ni UN S2CR (ni clear
++ *     ni repoblar). Los registros del bootloader quedan como estan;
++ *   - arm_smmu_test_smr_masks() (que tambien escribe SMR) tampoco toca el HW:
++ *     se asume el campo MASK completo (ver la funcion) para no romper la
++ *     validacion de arm_smmu_probe_device();
++ *   - el resto de fases dependen de uke_reset_mask (por defecto, con keep_boot=1:
++ *     fases 3, 4 y 5-7 SI, fase2 NO).
++ *
++ * uke_reset_mask (SOLO apps-smmu; bit a 1 = EJECUTAR la fase, bit a 0 = saltarla):
++ *   bit0 = fase2 SMR/S2CR x110          bit2 = fase4 TLBIALLH/TLBIALLNSNH
++ *   bit1 = fase3 CBAR/SCTLR/FSR x71     bit3 = fase5+6+7: RMW de sCR0,
++ *                                               impl->reset y tlb_sync+sCR0
++ * La fase1 (sGFSR) se ejecuta SIEMPRE: es un RMW que reescribe el mismo valor y en
++ * las 3 medidas previas (K1/K2/K3) paso sin incidentes. La mascara efectiva la
++ * calcula uke_reset_mask_efectiva(): el default 0xffff solo cambia (a ~bit0)
++ * cuando uke_keep_boot=1 y el usuario NO ha escrito uke_reset_mask; si el usuario
++ * la escribe, manda ese valor tal cual (asi 0xffff vuelve a activar la fase2).
++ */
++static bool uke_keep_boot;
++static int uke_reset_mask = 0xffff;
++static bool uke_reset_mask_tocado;
++
++#define UKE_RESET_F2		BIT(0)
++#define UKE_RESET_F3		BIT(1)
++#define UKE_RESET_F4		BIT(2)
++#define UKE_RESET_F567		BIT(3)
++#define UKE_RESET_BITS		(UKE_RESET_F2 | UKE_RESET_F3 | UKE_RESET_F4 | UKE_RESET_F567)
++
++static int uke_keep_boot_set(const char *val, const struct kernel_param *kp)
++{
++	int ret = param_set_bool(val, kp);
++
++	if (ret)
++		return ret;
++	pr_info("UKE-POKE: uke_keep_boot=%d (solo apps-smmu): fase2 SMR/S2CR %s y test_smr_masks %s\n",
++		uke_keep_boot,
++		uke_keep_boot ? "OMITIDA" : "normal",
++		uke_keep_boot ? "sin tocar HW" : "normal");
++	return 0;
++}
++
++static const struct kernel_param_ops uke_keep_boot_ops = {
++	.set	= uke_keep_boot_set,
++	.get	= param_get_bool,
++};
++
++module_param_cb(uke_keep_boot, &uke_keep_boot_ops, &uke_keep_boot, 0644);
++MODULE_PARM_DESC(uke_keep_boot,
++	"UKE (K4): 1 = apps-smmu (0x15000000): el reset NO escribe ningun SMR ni S2CR (fase2 omitida) y test_smr_masks no toca la region: los mapeos del bootloader quedan intactos. 0 (defecto) = reset mainline.");
++
++static int uke_reset_mask_set(const char *val, const struct kernel_param *kp)
++{
++	int ret = param_set_int(val, kp);
++
++	if (ret)
++		return ret;
++	uke_reset_mask_tocado = true;
++	pr_info("UKE-POKE: uke_reset_mask=%d (0x%x, efectivo 0x%x) fijado a mano: fase2=%u fase3=%u fase4=%u fase5-7=%u (1=ejecutar)\n",
++		uke_reset_mask, (unsigned int)uke_reset_mask,
++		(unsigned int)((unsigned int)uke_reset_mask & UKE_RESET_BITS),
++		(uke_reset_mask & UKE_RESET_F2) ? 1u : 0u,
++		(uke_reset_mask & UKE_RESET_F3) ? 1u : 0u,
++		(uke_reset_mask & UKE_RESET_F4) ? 1u : 0u,
++		(uke_reset_mask & UKE_RESET_F567) ? 1u : 0u);
++	return 0;
++}
++
++static const struct kernel_param_ops uke_reset_mask_ops = {
++	.set	= uke_reset_mask_set,
++	.get	= param_get_int,
++};
++
++module_param_cb(uke_reset_mask, &uke_reset_mask_ops, &uke_reset_mask, 0644);
++MODULE_PARM_DESC(uke_reset_mask,
++	"UKE (K4): mascara de fases del reset del apps-smmu (bit0=fase2 SMR/S2CR, bit1=fase3 CBAR/SCTLR/FSR, bit2=fase4 TLBI, bit3=fase5-7 sCR0/impl/tlb); bit a 1 = EJECUTAR. Default 0xffff; con uke_keep_boot=1 y sin tocar, el default pasa a 0xfffe (no fase2).");
++
++/* Mascara efectiva del reset: uke_keep_boot/uke_reset_mask solo afectan al apps-smmu. */
++static u32 uke_reset_mask_efectiva(struct arm_smmu_device *smmu)
++{
++	if (!uke_smmu_es_apps(smmu))
++		return UKE_RESET_BITS;	/* otros SMMU (kgsl): reset completo de mainline */
++
++	if (uke_reset_mask_tocado)
++		return (u32)uke_reset_mask & UKE_RESET_BITS;
++
++	if (uke_keep_boot)
++		return UKE_RESET_BITS & ~UKE_RESET_F2;
++
++	return UKE_RESET_BITS;
++}
++
+ static inline int arm_smmu_rpm_get(struct arm_smmu_device *smmu)
+ {
+ 	if (pm_runtime_enabled(smmu->dev))
+@@ -693,6 +798,19 @@
+ 	struct arm_smmu_cb *cb = &smmu->cbs[idx];
+ 	struct arm_smmu_cfg *cfg = cb->cfg;
+ 
++	/*
++	 * UKE-SMMU-CLK (K4): miga por CB. En el reset fase3 (71 CBs) todos los
++	 * CBs estan sin cfg y esta funcion solo escribe SCTLR=0; en el attach del
++	 * display llega con cfg asignado y escribe CBAR/TCR/TTBR/SCTLR del CB
++	 * elegido. Con uke_keep_boot=1 la fase3 puede saltarse (bit1 de
++	 * uke_reset_mask) precisamente para no desactivar CBs que el bootloader
++	 * pueda estar usando.
++	 */
++	if (uke_smmu_es_apps(smmu))
++		pr_info("UKE-POKE: write_context_bank idx=%d cfg=%s (CB_SCTLR en 0x%llx)\n",
++			idx, cfg ? "asignado" : "NULL (solo SCTLR=0)",
++			(u64)((smmu->numpage + idx) << smmu->pgshift) + ARM_SMMU_CB_SCTLR);
++
+ 	/* Unassigned context banks only need disabling */
+ 	if (!cfg) {
+ 		arm_smmu_cb_write(smmu, idx, ARM_SMMU_CB_SCTLR, 0);
+@@ -1096,6 +1214,25 @@
+ 
+ static void arm_smmu_write_sme(struct arm_smmu_device *smmu, int idx)
+ {
++	/*
++	 * UKE-SMMU-CLK (K4): miga ANTES de escribir el SME, solo para el apps-smmu.
++	 * Si la consola enmudece durante el reset fase2 o durante el attach del
++	 * display (arm_smmu_master_alloc_smes), esta linea dice el indice exacto, el
++	 * registro y los valores que se iban a escribir: es el punto de muerte.
++	 */
++	if (uke_smmu_es_apps(smmu)) {
++		if (smmu->smrs)
++			pr_info("UKE-POKE: write_sme idx=%d S2CR(0x%x) type=%u cbndx=%u + SMR(0x%x) id=0x%x mask=0x%x valid=%u\n",
++				idx, ARM_SMMU_GR0_S2CR(idx), smmu->s2crs[idx].type,
++				smmu->s2crs[idx].cbndx, ARM_SMMU_GR0_SMR(idx),
++				smmu->smrs[idx].id, smmu->smrs[idx].mask,
++				smmu->smrs[idx].valid ? 1 : 0);
++		else
++			pr_info("UKE-POKE: write_sme idx=%d S2CR(0x%x) type=%u cbndx=%u (smrs==NULL: sin SMR)\n",
++				idx, ARM_SMMU_GR0_S2CR(idx), smmu->s2crs[idx].type,
++				smmu->s2crs[idx].cbndx);
++	}
++
+ 	arm_smmu_write_s2cr(smmu, idx);
+ 	if (smmu->smrs)
+ 		arm_smmu_write_smr(smmu, idx);
+@@ -1112,6 +1249,23 @@
+ 
+ 	if (!smmu->smrs)
+ 		return;
++
++	/*
++	 * UKE-SMMU-CLK (K4): este test ESCRIBE SMR(i) DOS veces (y lo deja con el
++	 * valor de la mascara, VALID=0). Con uke_keep_boot=1 en el apps-smmu no se
++	 * toca la region del bootloader: se asume el peor caso, el campo MASK
++	 * completo (16 bits). smr_mask_mask se usa en arm_smmu_probe_device()
++	 * (arm-smmu.c:1579) para validar el mask de cada maestro; si quedara a 0,
++	 * el mdss (mask 0x02) se rechazaria con -EINVAL y no habria attach que
++	 * medir. streamid_mask se queda con el valor derivado de ID0 (0x7fff).
++	 */
++	if (uke_keep_boot && uke_smmu_es_apps(smmu)) {
++		pr_info("UKE-POKE: test_smr_masks OMITIDO (uke_keep_boot=1): sin leer ni escribir SMR; streamid_mask=0x%x smr_mask_mask=0x%x (campo completo, no medido)\n",
++			smmu->streamid_mask,
++			(unsigned int)FIELD_GET(ARM_SMMU_SMR_MASK, (u32)~0));
++		smmu->smr_mask_mask = FIELD_GET(ARM_SMMU_SMR_MASK, (u32)~0);
++		return;
++	}
+ 	/*
+ 	 * If we've had to accommodate firmware memory regions, we may
+ 	 * have live SMRs by now; tread carefully...
+@@ -1131,11 +1285,17 @@
+ 	 * masters later if they try to claim IDs outside these masks.
+ 	 */
+ 	smr = FIELD_PREP(ARM_SMMU_SMR_ID, smmu->streamid_mask);
++	if (uke_smmu_es_apps(smmu))
++		pr_info("UKE-POKE: test_smr_masks: ESCRIBO SMR(%d) en 0x%x = 0x%08x (test de IDs)\n",
++			i, ARM_SMMU_GR0_SMR(i), smr);
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_SMR(i), smr);
+ 	smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
+ 	smmu->streamid_mask = FIELD_GET(ARM_SMMU_SMR_ID, smr);
+ 
+ 	smr = FIELD_PREP(ARM_SMMU_SMR_MASK, smmu->streamid_mask);
++	if (uke_smmu_es_apps(smmu))
++		pr_info("UKE-POKE: test_smr_masks: ESCRIBO SMR(%d) en 0x%x = 0x%08x (test de mask)\n",
++			i, ARM_SMMU_GR0_SMR(i), smr);
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_SMR(i), smr);
+ 	smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
+ 	smmu->smr_mask_mask = FIELD_GET(ARM_SMMU_SMR_MASK, smr);
+@@ -1215,6 +1375,17 @@
+ 		}
+ 
+ 		ret = arm_smmu_find_sme(smmu, sid, mask);
++		/*
++		 * UKE-SMMU-CLK (K4): que indice elige el driver para este maestro. Con
++		 * uke_keep_boot=1 los SMR/S2CR del bootloader siguen en el HW, asi que
++		 * aqui se ve si el SID reutiliza el hueco del bootloader (idx con
++		 * valid=1) o si find_sme devuelve un hueco "libre" (idx con valid=0,
++		 * donde la escritura del attach PISARIA un registro del bootloader).
++		 */
++		if (uke_smmu_es_apps(smmu))
++			pr_info("UKE-POKE: attach: find_sme(dev=%s sid=0x%x mask=0x%x) -> %d%s\n",
++				dev_name(dev), sid, mask, ret,
++				ret < 0 ? " (SIN HUECO / CONFLICTO)" : "");
+ 		if (ret < 0)
+ 			goto out_err;
+ 
+@@ -1274,6 +1445,15 @@
+ 		s2cr[idx].type = type;
+ 		s2cr[idx].privcfg = S2CR_PRIVCFG_DEFAULT;
+ 		s2cr[idx].cbndx = cbndx;
++		/*
++		 * UKE-SMMU-CLK (K4): escritura de S2CR del ATTACH (display/dpu y demas
++		 * consumidores). Con uke_keep_boot=1 es la primera escritura de S2CR
++		 * desde el arranque: si la consola muere aqui, el attach del mdss es
++		 * mortal por si mismo y hay que replantearlo (ver INFORME-K4-BUILD.md).
++		 */
++		if (uke_smmu_es_apps(smmu))
++			pr_info("UKE-POKE: attach: install_s2cr idx=%d type=%u cbndx=%u -> S2CR(0x%x)\n",
++				idx, type, cbndx, ARM_SMMU_GR0_S2CR(idx));
+ 		arm_smmu_write_s2cr(smmu, idx);
+ 	}
+ }
+@@ -1775,69 +1955,100 @@
+ {
+ 	int i;
+ 	u32 reg;
++	/*
++	 * UKE-SMMU-CLK (K4): mascara efectiva de fases. Para el apps-smmu con
++	 * uke_keep_boot=1 vale ~bit0 (fase2 omitida); con uke_reset_mask escrita a
++	 * mano manda ese valor; para cualquier otro SMMU es "todo" (mainline).
++	 */
++	u32 uke_mask = uke_reset_mask_efectiva(smmu);
+ 
+ 	/* clear global FSR */
+-	pr_info("UKE-POKE: reset fase1 sGFSR\n");
++	pr_info("UKE-POKE: reset fase1 sGFSR (siempre)\n");
+ 	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sGFSR);
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sGFSR, reg);
+ 
+ 	/*
+ 	 * Reset stream mapping groups: Initial values mark all SMRn as
+ 	 * invalid and all S2CRn as bypass unless overridden.
++	 *
++	 * UKE-SMMU-CLK (K4): esta es la fase que mato a K2/K3. Con bit0 a 0 NO se
++	 * escribe ni un SMR ni un S2CR: los mapeos vivos del bootloader (p. ej.
++	 * SMR(0)=0x80000060, id=0x60) quedan intactos y el driver NO se inventa
++	 * su estado en el hardware (solo su copia en RAM, poblada por el barrido
++	 * de qcom_smmu_cfg_probe).
+ 	 */
+-	pr_info("UKE-POKE: reset fase2 SMR/S2CR x%u\n", smmu->num_mapping_groups);
+-	for (i = 0; i < smmu->num_mapping_groups; ++i)
+-		arm_smmu_write_sme(smmu, i);
++	if (uke_mask & UKE_RESET_F2) {
++		pr_info("UKE-POKE: reset fase2 SMR/S2CR x%u (uke_reset_mask=0x%x uke_keep_boot=%d)\n",
++			smmu->num_mapping_groups, uke_mask, uke_keep_boot);
++		for (i = 0; i < smmu->num_mapping_groups; ++i)
++			arm_smmu_write_sme(smmu, i);
++	} else {
++		pr_info("UKE-POKE: reset fase2 OMITIDA (uke_keep_boot=%d, uke_reset_mask=0x%x): NO se escribe NI UN SMR ni UN S2CR; los registros del bootloader quedan como estan\n",
++			uke_keep_boot, uke_mask);
++	}
+ 
+ 	/* Make sure all context banks are disabled and clear CB_FSR  */
+-	pr_info("UKE-POKE: reset fase3 CBAR/SCTLR/FSR x%u\n", smmu->num_context_banks);
+-	for (i = 0; i < smmu->num_context_banks; ++i) {
+-		arm_smmu_write_context_bank(smmu, i);
+-		arm_smmu_cb_write(smmu, i, ARM_SMMU_CB_FSR, ARM_SMMU_CB_FSR_FAULT);
++	if (uke_mask & UKE_RESET_F3) {
++		pr_info("UKE-POKE: reset fase3 CBAR/SCTLR/FSR x%u\n", smmu->num_context_banks);
++		for (i = 0; i < smmu->num_context_banks; ++i) {
++			arm_smmu_write_context_bank(smmu, i);
++			arm_smmu_cb_write(smmu, i, ARM_SMMU_CB_FSR, ARM_SMMU_CB_FSR_FAULT);
++		}
++	} else {
++		pr_info("UKE-POKE: reset fase3 OMITIDA (uke_reset_mask bit1=0): no se toca CBAR/SCTLR/FSR de los %u CBs (los CBs que el bootloader use no se desactivan)\n",
++			smmu->num_context_banks);
+ 	}
+ 
+ 	/* Invalidate the TLB, just in case */
+-	pr_info("UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH\n");
+-	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLH, QCOM_DUMMY_VAL);
+-	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLNSNH, QCOM_DUMMY_VAL);
+-
+-	pr_info("UKE-POKE: reset fase5 RMW de sCR0\n");
+-	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sCR0);
+-
+-	/* Enable fault reporting */
+-	reg |= (ARM_SMMU_sCR0_GFRE | ARM_SMMU_sCR0_GFIE |
+-		ARM_SMMU_sCR0_GCFGFRE | ARM_SMMU_sCR0_GCFGFIE);
+-
+-	/* Disable TLB broadcasting. */
+-	reg |= (ARM_SMMU_sCR0_VMIDPNE | ARM_SMMU_sCR0_PTM);
+-
+-	/* Enable client access, handling unmatched streams as appropriate */
+-	reg &= ~ARM_SMMU_sCR0_CLIENTPD;
+-	if (disable_bypass)
+-		reg |= ARM_SMMU_sCR0_USFCFG;
+-	else
+-		reg &= ~ARM_SMMU_sCR0_USFCFG;
++	if (uke_mask & UKE_RESET_F4) {
++		pr_info("UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH\n");
++		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLH, QCOM_DUMMY_VAL);
++		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLNSNH, QCOM_DUMMY_VAL);
++	} else {
++		pr_info("UKE-POKE: reset fase4 OMITIDA (uke_reset_mask bit2=0): no se invalidan TLBs globales\n");
++	}
+ 
+-	/* Disable forced broadcasting */
+-	reg &= ~ARM_SMMU_sCR0_FB;
++	if (uke_mask & UKE_RESET_F567) {
++		pr_info("UKE-POKE: reset fase5 RMW de sCR0\n");
++		reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sCR0);
+ 
+-	/* Don't upgrade barriers */
+-	reg &= ~(ARM_SMMU_sCR0_BSU);
++		/* Enable fault reporting */
++		reg |= (ARM_SMMU_sCR0_GFRE | ARM_SMMU_sCR0_GFIE |
++			ARM_SMMU_sCR0_GCFGFRE | ARM_SMMU_sCR0_GCFGFIE);
+ 
+-	if (smmu->features & ARM_SMMU_FEAT_VMID16)
+-		reg |= ARM_SMMU_sCR0_VMID16EN;
++		/* Disable TLB broadcasting. */
++		reg |= (ARM_SMMU_sCR0_VMIDPNE | ARM_SMMU_sCR0_PTM);
+ 
+-	if (smmu->features & ARM_SMMU_FEAT_EXIDS)
+-		reg |= ARM_SMMU_sCR0_EXIDENABLE;
++		/* Enable client access, handling unmatched streams as appropriate */
++		reg &= ~ARM_SMMU_sCR0_CLIENTPD;
++		if (disable_bypass)
++			reg |= ARM_SMMU_sCR0_USFCFG;
++		else
++			reg &= ~ARM_SMMU_sCR0_USFCFG;
+ 
+-	pr_info("UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)\n");
+-	if (smmu->impl && smmu->impl->reset)
+-		smmu->impl->reset(smmu);
++		/* Disable forced broadcasting */
++		reg &= ~ARM_SMMU_sCR0_FB;
+ 
+-	/* Push the button */
+-	pr_info("UKE-POKE: reset fase7 tlb_sync_global + write sCR0\n");
+-	arm_smmu_tlb_sync_global(smmu);
+-	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sCR0, reg);
++		/* Don't upgrade barriers */
++		reg &= ~(ARM_SMMU_sCR0_BSU);
++
++		if (smmu->features & ARM_SMMU_FEAT_VMID16)
++			reg |= ARM_SMMU_sCR0_VMID16EN;
++
++		if (smmu->features & ARM_SMMU_FEAT_EXIDS)
++			reg |= ARM_SMMU_sCR0_EXIDENABLE;
++
++		pr_info("UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)\n");
++		if (smmu->impl && smmu->impl->reset)
++			smmu->impl->reset(smmu);
++
++		/* Push the button */
++		pr_info("UKE-POKE: reset fase7 tlb_sync_global + write sCR0\n");
++		arm_smmu_tlb_sync_global(smmu);
++		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sCR0, reg);
++	} else {
++		pr_info("UKE-POKE: reset fases5-7 OMITIDAS (uke_reset_mask bit3=0): sCR0 sin RMW, impl->reset sin correr, sCR0 sin reescribir\n");
++	}
+ }
+ 
+ static int arm_smmu_id_size_to_bits(int size)
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+@@ -665,6 +665,17 @@
+ 	reg = FIELD_PREP(ARM_SMMU_S2CR_TYPE, type) |
+ 	      FIELD_PREP(ARM_SMMU_S2CR_CBNDX, cbndx) |
+ 	      FIELD_PREP(ARM_SMMU_S2CR_PRIVCFG, s2cr->privcfg);
++	/*
++	 * UKE-SMMU-CLK (K4): el quirk de este SMMU (medido en K2/K3: escribir
++	 * BYPASS se relee como FAULT) transforma cada S2CR BYPASS en TRANS al CB
++	 * reservado mas alto (bypass_cbndx = num_context_banks - 1). Es decir: la
++	 * fase2 del reset no escribe "bypass" sino "trans" apuntando a un CB que
++	 * nadie configuro. Esta miga solo la puede imprimir el apps-smmu (es el
++	 * unico SMMU de este aparato con bypass_quirk).
++	 */
++	if (qsmmu->bypass_quirk)
++		pr_info("UKE-POKE: qcom write_s2cr idx=%d quirk: type=%u cbndx=%u reg=0x%08x en 0x%x\n",
++			idx, type, cbndx, reg, ARM_SMMU_GR0_S2CR(idx));
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_S2CR(idx), reg);
+ }
+ 

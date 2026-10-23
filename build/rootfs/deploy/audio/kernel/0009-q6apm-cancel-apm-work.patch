@@ -1,0 +1,68 @@
+uke 0009: q6apm: parar el delayed_work del primer comando APM en remove y en los errores del probe (use-after-free de uke_apm_work_apm tras liberar el devm `apm`); aplica sobre 0005-0008.
+
+--- a/sound/soc/qcom/qdsp6/q6apm.c	2026-10-21 22:53:46.823133987 +0200
++++ b/sound/soc/qcom/qdsp6/q6apm.c	2026-10-21 22:53:46.824164403 +0200
+@@ -875,12 +875,28 @@
+ module_param(uke_retries, uint, 0444);
+ MODULE_PARM_DESC(uke_retries, "uke: intentos del primer comando APM si el SPF aun no esta listo (arranque en frio: el primero se pierde)");
+ static unsigned int uke_apm_tries;
++static bool uke_apm_work_inited;
++
++/* uke: parar el kworker del primer comando APM ANTES de que `apm` (devm) se libere: remove, o error en el probe (use-after-free medido por revision de codigo, 21-oct) */
++static void uke_apm_work_stop(void)
++{
++	if (uke_apm_work_inited) {
++		cancel_delayed_work_sync(&uke_apm_work);
++		uke_apm_work_inited = false;
++	}
++	uke_apm_work_apm = NULL;
++}
+ 
+ static void uke_apm_work_fn(struct work_struct *w)
+ {
+-	int st = q6apm_get_apm_state(uke_apm_work_apm);
++	struct q6apm *apm = READ_ONCE(uke_apm_work_apm);
++	int st;
+ 
+-	dev_info(uke_apm_work_apm->dev, "uke: estado APM (async) = %d (intento %u)\n", st, uke_apm_tries + 1);
++	if (!apm)
++		return;
++	st = q6apm_get_apm_state(apm);
++
++	dev_info(apm->dev, "uke: estado APM (async) = %d (intento %u)\n", st, uke_apm_tries + 1);
+ 	/* Arranque en frio (medido 18-oct, uke-audio.service ~3,5 s tras arrancar el ADSP): el primer comando se pierde; el SPF contesta mas tarde. */
+ 	if (!st && ++uke_apm_tries < uke_retries)
+ 		schedule_delayed_work(&uke_apm_work, msecs_to_jiffies(1000));
+@@ -919,6 +935,8 @@
+ 	if (uke_async) {
+ 		/* uke: diagnostico: el primer comando APM desde un kworker (como la sonda), no dentro del probe */
+ 		INIT_DELAYED_WORK(&uke_apm_work, uke_apm_work_fn);
++		uke_apm_work_inited = true;
++		uke_apm_tries = 0;
+ 		uke_apm_work_apm = apm;
+ 		schedule_delayed_work(&uke_apm_work, msecs_to_jiffies(uke_delay_ms));
+ 	} else {
+@@ -930,18 +948,22 @@
+ 	ret = snd_soc_register_component(dev, &q6apm_audio_component, NULL, 0);
+ 	if (ret < 0) {
+ 		dev_err(dev, "failed to register q6apm: %d\n", ret);
++		uke_apm_work_stop();
+ 		return ret;
+ 	}
+ 
+ 	ret = of_platform_populate(dev->of_node, NULL, NULL, dev);
+-	if (ret)
++	if (ret) {
++		uke_apm_work_stop();
+ 		snd_soc_unregister_component(dev);
++	}
+ 
+ 	return ret;
+ }
+ 
+ static void apm_remove(gpr_device_t *gdev)
+ {
++	uke_apm_work_stop();
+ 	of_platform_depopulate(&gdev->dev);
+ 	snd_soc_unregister_component(&gdev->dev);
+ }

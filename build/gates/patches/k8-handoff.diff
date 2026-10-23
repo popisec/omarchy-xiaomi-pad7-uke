@@ -1,0 +1,546 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.h
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.h
+@@ -277,6 +277,26 @@
+ 	enum arm_smmu_s2cr_type		type;
+ 	enum arm_smmu_s2cr_privcfg	privcfg;
+ 	u8				cbndx;
++	/*
++	 * UKE-SMMU-K8 (K8): mapeo de stream DEL BOOTLOADER que Linux no debe
++	 * tocar NUNCA (ni SMR ni S2CR ni su CB). Portado del kernel Android del
++	 * SM8635/cliffs (lineage-23.0; CodeLinaro le_kernel_msm-5.15 @8fa3cef):
++	 * `struct arm_smmu_s2cr { ... bool pinned; }` (arm-smmu.h:339-346), que
++	 * solo pone a true arm_smmu_handoff_cbs() (arm-smmu.c:3099) y que
++	 * respetan arm_smmu_free_sme() (:1787) y
++	 * arm_smmu_destroy_domain_context() (:1604-1611).
++	 *
++	 * Aqui es el UNICO estado que decide "no escribir": lo consultan los
++	 * guards de arm_smmu_write_smr/write_s2cr/write_sme y arm_smmu_free_sme.
++	 *
++	 * Diferencia deliberada con el lineage (R1 #P13 / R4 §2.1): el vendor, al
++	 * pinear, LEE S2CR(i) para copiar type/privcfg/cbndx del bootloader. En
++	 * esta tablet leer el S2CR de un indice vivo MATA (medido #P13), asi que
++	 * cbndx queda DESCONOCIDO a proposito y el CB del BL no se reutiliza:
++	 * los CB de dominios nuevos se reservan desde ARRIBA
++	 * (uke_alloc_cb_arriba) para no pisarlos.
++	 */
++	bool				pinned;
+ };
+ 
+ struct arm_smmu_smr {
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -511,6 +511,282 @@
+ 	pr_flush(500, false);
+ }
+ 
++/*
++ * ==========================================================================
++ * UKE-SMMU-K8 (29-sep-2026): PORT DEL MECANISMO DE HANDOFF (via H de R4).
++ * ==========================================================================
++ *
++ * POR QUE. El mapa de minas medido (#P8-#P23) dice, sin excepcion, una cosa:
++ * el probe del apps-smmu sobrevive a TODO (IDR0/1/2, quirk del bypass, reset
++ * con las fases 4-7) mientras no toque un registro VIVO del bootloader; y
++ * muere (wedge duro, mudo, sin panic) en cuanto LEE el S2CR de un indice vivo
++ * (#P13) o ESCRIBE un SMR/S2CR/CB que el BL tiene en uso (#P14 CB22, #P15
++ * fase3, K4c write_sme idx=1). K7 (armado por cmdline, ventana de 0,4449 s)
++ * murio igual: #P17/#P22/#P23 refutan la hipotesis temporal ⇒ el asesino es
++ * ESTRUCTURAL. La preservacion manual de K4-K7 solo cubria el idx 0
++ * (uke_smr_max=0 deja ciegos los idx 1..109, que find_sme reparte como
++ * "libres" y el attach del storm PISA).
++ *
++ * QUE HACE K8 (diseno consolidado en #P21; codigo de referencia: kernel
++ * Android del SM8635/cliffs lineage-23.0 y CodeLinaro le_kernel_msm-5.15
++ * @8fa3cef, descargado y leido en /var/tmp/uke-k8/ref/):
++ *
++ *   1. BARRIDO DE PINEO (uke_handoff_pin_sweep): tras cfg_probe y ANTES del
++ *      reset, LEE SMR(0..num_mapping_groups-1) (lectura medida segura: #P9 y
++ *      cuatro runs mas leyeron SMR(0) sin morir; la lectura letal es la del
++ *      S2CR, #P13) y marca `s2crs[i].pinned = true` en toda entrada con
++ *      VALID=1. A partir de ahi NINGUN codigo puede escribir ni reasignar ese
++ *      idx: los guards viven en los tres puntos de escritura
++ *      (arm_smmu_write_smr, arm_smmu_write_s2cr y arm_smmu_write_sme), en el
++ *      reparto de indices (arm_smmu_find_sme no reutiliza lo valido) y en el
++ *      liberador (arm_smmu_free_sme), que es el bug ALTA de R1 §7.1
++ *      (arm-smmu.c:1752-1765: arm_smmu_master_free_smes escribia el SME
++ *      liberado SIN guarda ⇒ un unbind del ufshc pisaba S2CR(0)).
++ *
++ *   2. qcom,handoff-smrs DEL DT (uke_handoff_parse_dt): pares <id mask> que el
++ *      DT declara como mapeos del firmware. Nuestro DT efectivo lo trae
++ *      (<0x1c00 0x02>, el SID del mdss/display; verificado #P21 sobre
++ *      /var/tmp/k8-check/merged.dtb). Un maestro cuyo fwpec es subconjunto de
++ *      un par (mismo test que el lineage: ver uke_handoff_es_dt) se PINa y no
++ *      se le escribe ni SMR ni S2CR: el maestro sigue con lo que dejo el BL y
++ *      el dominio queda "sin traducir por ahora" (miga explicita). Es el
++ *      handoff dirigido por DT del vendor, sin necesidad de leer S2CR.
++ *
++ *   3. CB DESDE ARRIBA (uke_alloc_cb_arriba): el lineage reutiliza el CB del
++ *      BL porque puede leer su cbndx del S2CR; aqui ese cbndx es ilegible
++ *      (leerlo mata), asi que los CB de dominios NUEVOS se reservan desde
++ *      num_context_banks-1 hacia abajo (70→0). El BL llena desde abajo (su
++ *      unico SMR visto en 7 runs es el idx 0 = ufshc; #P14 midio su CB vivo en
++ *      el 22), de modo que repartir desde arriba es la mejor aproximacion a
++ *      "no pisar lo vivo" sin poder leerlo. El CB 70 ya lo reserva el quirk
++ *      bypass (set_bit en qcom_smmu_cfg_probe), asi que el primer dominio
++ *      nuevo cae en el 69.
++ *
++ *   4. NUNCA SE LEE S2CR (ni en el barrido ni en el attach): type/privcfg/
++ *      cbndx de un indice pinado quedan DESCONOCIDOS a proposito y ningun
++ *      camino de K8 los necesita, porque de ese idx no se escribe nada.
++ *
++ * QUE NO CAMBIA: la cmdline (uke_smr_max=0, uke_keep_boot=1, uke_attach_log=2,
++ * uke_smmu_probe=1, uke_reset_mask=12), las fases del reset, el arranque
++ * DESARMADO (uke_smmu_probe=0 ⇒ -EPROBE_DEFER antes de tocar nada, identico a
++ * K6/K7) y el comportamiento de cualquier otro SMMU (kgsl): todo K8 esta tras
++ * uke_smmu_es_apps() + uke_handoff.
++ *
++ * PARAMETRO NUEVO `uke_handoff` (solo apps-smmu; default 1):
++ *   0 = APAGADO: todo el codigo K8 se comporta como K7 (A/B limpio).
++ *   1 = COMPLETO (default): barrido de pineo 0..109 + DT + CB desde arriba.
++ *   2 = SIN BARRIDO: no lee NINGUN SMR nuevo; solo pina lo que la RAM ya sabe
++ *       vivo (el barrido acotado de K3 con uke_smr_max) + el DT + CB desde
++ *       arriba. Es la escalera de rescate SIN recompilar: si el barrido
++ *       completo resultase letal en la tablet (K2 murio dentro del barrido de
++ *       LECTURAS y ese punto nunca se aclaro con consola), la siguiente imagen
++ *       es un repack de cmdline con `arm_smmu.uke_handoff=2`.
++ */
++static int uke_handoff = 1;
++
++static int uke_handoff_set(const char *val, const struct kernel_param *kp)
++{
++	int ret = param_set_int(val, kp);
++
++	if (ret)
++		return ret;
++	pr_info("UKE-POKE: uke_handoff=%d (solo apps-smmu): 0=APAGADO (comportamiento K7); 1=BARRIDO COMPLETO de SMR vivos + qcom,handoff-smrs del DT + CB desde arriba + nada pinado se escribe; 2=SIN BARRIDO (solo lo que la RAM ya sabe vivo + DT)\n",
++		uke_handoff);
++	return 0;
++}
++
++static const struct kernel_param_ops uke_handoff_ops = {
++	.set	= uke_handoff_set,
++	.get	= param_get_int,
++};
++
++module_param_cb(uke_handoff, &uke_handoff_ops, &uke_handoff, 0644);
++MODULE_PARM_DESC(uke_handoff,
++	"UKE (K8): 0=apagado (K7); 1 (defecto)=handoff completo (barrido de SMR vivos + qcom,handoff-smrs + CB desde arriba); 2=sin barrido de SMR (solo lo que la RAM ya sabe vivo + el DT). Solo apps-smmu (0x15000000).");
++
++/* Pares <id, mask> de qcom,handoff-smrs del DT (el vendor declara 1; 8 sobra). */
++static struct {
++	u16	id;
++	u16	mask;
++} uke_handoff_dt[8];
++static unsigned int uke_handoff_dt_n;
++
++/* ¿Aplica el mecanismo K8 a este SMMU? (solo apps-smmu y con uke_handoff != 0) */
++static bool uke_handoff_activo(struct arm_smmu_device *smmu)
++{
++	return uke_handoff != 0 && smmu->dev && smmu->dev->of_node &&
++	       uke_smmu_es_apps(smmu);
++}
++
++/* ¿Este idx es un mapeo del firmware que NUNCA se puede escribir ni liberar? */
++static bool uke_pinado(struct arm_smmu_device *smmu, int idx)
++{
++	if (!uke_handoff_activo(smmu))
++		return false;
++	if (idx < 0 || (unsigned int)idx >= smmu->num_mapping_groups)
++		return false;
++	return smmu->s2crs[idx].pinned;
++}
++
++/*
++ * Test de subconjunto del vendor (literal de arm_smmu_handoff_cbs(),
++ * ref/xiaomi-arm-smmu.c:3082-3083 y commit CodeLinaro 8fa3cef "arm-smmu: use
++ * smr match for handoff-smrs"): un SMR/fwpec es "handoff" si TODO lo que exige
++ * cabe dentro del par declarado en el DT.
++ *   (hand.mask & x.mask) == x.mask   -> la mascara del DT cubre la del SMR
++ *   !((hand.id ^ x.id) & ~hand.mask) -> los bits fijos del ID coinciden
++ * El commit cambio de comparar por INDICE de SMR a comparar por id/mask
++ * justamente porque el indice "could mismatch between ABL and HLOS".
++ */
++static bool uke_handoff_es_dt(u16 id, u16 mask)
++{
++	unsigned int i;
++
++	for (i = 0; i < uke_handoff_dt_n; i++) {
++		u16 hid = uke_handoff_dt[i].id;
++		u16 hmask = uke_handoff_dt[i].mask;
++
++		if ((hmask & mask) == mask && !((hid ^ id) & ~hmask))
++			return true;
++	}
++	return false;
++}
++
++static void uke_handoff_parse_dt(struct arm_smmu_device *smmu)
++{
++	struct device_node *np = smmu->dev->of_node;
++	u32 id, mask;
++	int n, i;
++
++	uke_handoff_dt_n = 0;
++	if (!np)
++		return;
++
++	n = of_property_count_elems_of_size(np, "qcom,handoff-smrs",
++					    sizeof(u32) * 2);
++	if (n <= 0) {
++		pr_info("UKE-POKE: handoff: DT sin qcom,handoff-smrs (o mal formada): 0 pares; el pineo queda solo en manos del barrido\n");
++		return;
++	}
++	if (n > (int)ARRAY_SIZE(uke_handoff_dt))
++		n = (int)ARRAY_SIZE(uke_handoff_dt);
++
++	for (i = 0; i < n; i++) {
++		if (of_property_read_u32_index(np, "qcom,handoff-smrs", 2 * i, &id) ||
++		    of_property_read_u32_index(np, "qcom,handoff-smrs", 2 * i + 1, &mask)) {
++			pr_warn("UKE-POKE: handoff: no se pudo leer el par %d de qcom,handoff-smrs; se corta\n",
++				i);
++			break;
++		}
++		uke_handoff_dt[i].id = (u16)id;
++		uke_handoff_dt[i].mask = (u16)mask;
++		uke_handoff_dt_n = i + 1;
++		pr_info("UKE-POKE: handoff: DT qcom,handoff-smrs[%u] = <0x%x 0x%x>: ese SID/mask es del BL y no se escribira\n",
++			uke_handoff_dt_n - 1, id, mask);
++	}
++}
++
++/*
++ * BARRIDO DE PINEO. Es el corazon de K8 y la unica lectura nueva que hace:
++ * SMR(0..num_mapping_groups-1) con una miga por cada entrada VIVA (las
++ * decisiones) y una miga de progreso cada 16 indices (para poder localizar un
++ * atasco blando, como el de #P10, si lo hubiera).
++ *
++ * Lo que NO se hace: leer S2CR (letal #P13), escribir nada, ni tocar
++ * smmu->smrs[]/s2crs[] mas alla del bit `pinned` (la copia RAM del SMR se deja
++ * tal cual, que es la del BL).
++ */
++static void uke_handoff_pin_sweep(struct arm_smmu_device *smmu)
++{
++	unsigned int n_pin = 0, n_leidos = 0;
++	int i;
++
++	if (!smmu->smrs) {
++		pr_info("UKE-POKE: handoff: smrs==NULL (stream indexing forzado): sin banco de SMR que pinear; solo actuara el DT y el CB desde arriba\n");
++		return;
++	}
++
++	if (uke_handoff >= 2) {
++		for (i = 0; i < (int)smmu->num_mapping_groups; i++) {
++			if (!smmu->smrs[i].valid)
++				continue;
++			smmu->s2crs[i].pinned = true;
++			n_pin++;
++			pr_info("UKE-POKE: handoff: PIN SMR(%d) id=0x%x mask=0x%x (vivo segun la RAM; modo 2 SIN barrido) -> idx NO ESCRIBIBLE\n",
++				i, smmu->smrs[i].id, smmu->smrs[i].mask);
++		}
++		pr_info("UKE-POKE: handoff: modo 2 (sin barrido): PINADOS=%u de %u grupos; no se leyo ningun SMR nuevo\n",
++			n_pin, smmu->num_mapping_groups);
++		pr_flush(500, false);
++		return;
++	}
++
++	pr_info("UKE-POKE: handoff: INICIO barrido de pineo SMR(0..%u) (%u grupos). Solo LECTURAS de SMR (medidas seguras, #P9); el S2CR de un indice vivo NO se lee (letal #P13)\n",
++		smmu->num_mapping_groups - 1, smmu->num_mapping_groups);
++	for (i = 0; i < (int)smmu->num_mapping_groups; i++) {
++		u32 smr;
++
++		if (!(i & 15))
++			pr_info("UKE-POKE: handoff: barrido SMR %d/%u ...\n",
++				i, smmu->num_mapping_groups);
++		smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
++		n_leidos++;
++		if (!FIELD_GET(ARM_SMMU_SMR_VALID, smr))
++			continue;
++
++		smmu->s2crs[i].pinned = true;
++		n_pin++;
++		pr_info("UKE-POKE: handoff: PIN SMR(%d) HW=0x%08x id=0x%x mask=0x%x%s -> idx %d NO ESCRIBIBLE (ni SMR ni S2CR ni CB)\n",
++			i, smr, (unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, smr),
++			(unsigned int)uke_smr_mask_leido(smr),
++			uke_handoff_es_dt((u16)FIELD_GET(ARM_SMMU_SMR_ID, smr),
++					  (u16)uke_smr_mask_leido(smr)) ?
++				" [declarado en qcom,handoff-smrs]" : " [vivo del BL]",
++			i);
++	}
++	pr_info("UKE-POKE: handoff: FIN barrido: leidos=%u PINADOS=%u (%u grupos). Desde aqui ni el reset ni el attach escriben esos indices\n",
++		n_leidos, n_pin, smmu->num_mapping_groups);
++	pr_flush(500, false);
++}
++
++static void uke_handoff_preparar(struct arm_smmu_device *smmu)
++{
++	if (!uke_handoff_activo(smmu))
++		return;
++	pr_info("UKE-POKE: handoff: PREPARAR modo=%d smrs=%s grupos=%u CBs=%u (K8: nada pinado se escribe; los CB nuevos se reparten desde arriba)\n",
++		uke_handoff, smmu->smrs ? "si" : "NULL",
++		smmu->num_mapping_groups, smmu->num_context_banks);
++	uke_handoff_parse_dt(smmu);
++	uke_handoff_pin_sweep(smmu);
++}
++
++/*
++ * Reserva de CB DESDE ARRIBA (num_context_banks-1 → start). Equivalente
++ * invertido de __arm_smmu_alloc_bitmap() y sustituto del truco del lineage
++ * (__arm_smmu_alloc_cb(), ref/xiaomi-arm-smmu.c:390-406: devuelve el cbndx del
++ * S2CR del BL porque puede leerlo; y arm_smmu_handoff_cbs() reserva ese CB con
++ * `bitmap_set(smmu->context_map, smmu->s2crs[i].cbndx, 1)`, :3100). Aqui el
++ * cbndx del BL es ilegible, asi que la proteccion es "no repartir nunca los
++ * CBs bajos, que son los que el BL usa" (#P14: CB22 vivo; el unico SMR vivo
++ * del BL esta en el idx 0, o sea que el BL llena desde abajo).
++ */
++static int uke_alloc_cb_arriba(struct arm_smmu_device *smmu, unsigned int start)
++{
++	int idx;
++
++	for (idx = (int)smmu->num_context_banks - 1; idx >= (int)start; idx--) {
++		if (test_and_set_bit(idx, smmu->context_map))
++			continue;	/* ya reservado (p. ej. bypass_cbndx=70) */
++		pr_info("UKE-POKE: handoff: CB %d reservado DESDE ARRIBA (start=%u num_cb=%u; evita los CB vivos del BL, cbndx ilegible)\n",
++			idx, start, smmu->num_context_banks);
++		pr_flush(500, false);
++		return idx;
++	}
++	pr_warn("UKE-POKE: handoff: NO hay CB libre desde arriba (start=%u num_cb=%u): -ENOSPC como mainline\n",
++		start, smmu->num_context_banks);
++	return -ENOSPC;
++}
++
+ static inline int arm_smmu_rpm_get(struct arm_smmu_device *smmu)
+ {
+ 	if (pm_runtime_enabled(smmu->dev))
+@@ -1132,6 +1408,18 @@
+ 	if (smmu->impl && smmu->impl->alloc_context_bank)
+ 		return smmu->impl->alloc_context_bank(smmu_domain, smmu, dev, start);
+ 
++	/*
++	 * UKE-SMMU-K8: con handoff, los CB de dominios NUEVOS se reparten desde
++	 * ARRIBA (70 -> start) en vez de 0 -> 71, para no pisar los CB que el BL
++	 * tiene vivos (su cbndx es ilegible: leer el S2CR de un indice vivo
++	 * MATA, #P13; el CB22 se midio vivo en #P14). El CB 70 ya esta reservado
++	 * por el quirk del bypass. Contrapartida del lineage: alli se puede
++	 * reutilizar el CB del BL porque __arm_smmu_alloc_cb() LEE su cbndx
++	 * (ref/xiaomi-arm-smmu.c:390-406); aqui no se puede.
++	 */
++	if (uke_handoff_activo(smmu))
++		return uke_alloc_cb_arriba(smmu, start);
++
+ 	return __arm_smmu_alloc_bitmap(smmu->context_map, start, smmu->num_context_banks);
+ }
+ 
+@@ -1419,6 +1707,18 @@
+ 	u32 reg = FIELD_PREP(ARM_SMMU_SMR_ID, smr->id) |
+ 		  FIELD_PREP(ARM_SMMU_SMR_MASK, smr->mask);
+ 
++	/*
++	 * UKE-SMMU-K8: un indice PINADO es un mapeo del bootloader y no se
++	 * escribe JAMAS. Guard de ultimo recurso: cubre el reset fase2, el
++	 * attach, el liberador y cualquier llamante futuro. Escribir un SMR
++	 * vivo mata (medido #P14/#P15/#P17).
++	 */
++	if (uke_pinado(smmu, idx)) {
++		pr_info("UKE-POKE: handoff: ESCRITURA BLOQUEADA write_smr idx=%d: el SMR es de un mapeo del BL (pinado) y no se toca\n",
++			idx);
++		return;
++	}
++
+ 	if (!(smmu->features & ARM_SMMU_FEAT_EXIDS) && smr->valid)
+ 		reg |= ARM_SMMU_SMR_VALID;
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_SMR(idx), reg);
+@@ -1429,6 +1729,17 @@
+ 	struct arm_smmu_s2cr *s2cr = smmu->s2crs + idx;
+ 	u32 reg;
+ 
++	/*
++	 * UKE-SMMU-K8: el S2CR de un indice pinado es la traduccion VIVA del
++	 * bootloader: no se escribe nunca (aqui es donde el storm del attach
++	 * mataba a K4c, write_sme idx=1).
++	 */
++	if (uke_pinado(smmu, idx)) {
++		pr_info("UKE-POKE: handoff: ESCRITURA BLOQUEADA write_s2cr idx=%d: el S2CR es de un mapeo del BL (pinado) y no se toca\n",
++			idx);
++		return;
++	}
++
+ 	if (smmu->impl && smmu->impl->write_s2cr) {
+ 		smmu->impl->write_s2cr(smmu, idx);
+ 		return;
+@@ -1447,6 +1758,17 @@
+ static void arm_smmu_write_sme(struct arm_smmu_device *smmu, int idx)
+ {
+ 	/*
++	 * UKE-SMMU-K8: si el idx esta PINADO no se escribe ni SMR ni S2CR. Se
++	 * corta aqui (antes de las migas de K4/K5) para que la ultima linea del
++	 * log sea la causa y no los valores que se iban a escribir.
++	 */
++	if (uke_pinado(smmu, idx)) {
++		pr_info("UKE-POKE: handoff: ESCRITURA BLOQUEADA write_sme idx=%d: SMR+S2CR pinados (del BL); no se escribe ninguno\n",
++			idx);
++		return;
++	}
++
++	/*
+ 	 * UKE-SMMU-CLK (K4): miga ANTES de escribir el SME, solo para el apps-smmu.
+ 	 * Si la consola enmudece durante el reset fase2 o durante el attach del
+ 	 * display (arm_smmu_master_alloc_smes), esta linea dice el indice exacto, el
+@@ -1491,8 +1813,9 @@
+ 	 * el mdss (mask 0x02) se rechazaria con -EINVAL y no habria attach que
+ 	 * medir. streamid_mask se queda con el valor derivado de ID0 (0x7fff).
+ 	 */
+-	if (uke_keep_boot && uke_smmu_es_apps(smmu)) {
+-		pr_info("UKE-POKE: test_smr_masks OMITIDO (uke_keep_boot=1): sin leer ni escribir SMR; streamid_mask=0x%x smr_mask_mask=0x%x (campo completo, no medido)\n",
++	if ((uke_keep_boot || uke_handoff_activo(smmu)) && uke_smmu_es_apps(smmu)) {
++		pr_info("UKE-POKE: test_smr_masks OMITIDO (uke_keep_boot=%d, uke_handoff=%d): sin leer ni escribir SMR; streamid_mask=0x%x smr_mask_mask=0x%x (campo completo, no medido)\n",
++			uke_keep_boot ? 1 : 0, uke_handoff,
+ 			smmu->streamid_mask,
+ 			(unsigned int)FIELD_GET(ARM_SMMU_SMR_MASK, (u32)~0));
+ 		smmu->smr_mask_mask = FIELD_GET(ARM_SMMU_SMR_MASK, (u32)~0);
+@@ -1577,6 +1900,27 @@
+ 
+ static bool arm_smmu_free_sme(struct arm_smmu_device *smmu, int idx)
+ {
++	/*
++	 * UKE-SMMU-K8: CIERRA EL BUG ALTA de R1 §7.1. Mainline (y K1..K7)
++	 * reseteaba aqui la entrada y devolvia true, y el llamante
++	 * arm_smmu_master_free_smes() ESCRIBIA el SME con BYPASS/FAULT: un
++	 * release/unbind de un maestro cuyo SME es del BL PISABA el mapeo vivo
++	 * (p. ej. el del UFS) y podia matar la tablet. Con K8 el idx pinado no
++	 * se libera, no se invalida en RAM y no se escribe: devolver false hace
++	 * que el llamante NO llame a arm_smmu_write_sme.
++	 * Cita del lineage: arm_smmu_free_sme(), ref/xiaomi-arm-smmu.c:1778-1796
++	 * (`bool pinned = smmu->s2crs[idx].pinned; ... if (pinned) { ... }`);
++	 * aqui es mas estricto (el lineage conserva pinned/cbndx pero sigue
++	 * devolviendo true y reescribiendo el SME).
++	 */
++	if (uke_pinado(smmu, idx)) {
++		if (--smmu->s2crs[idx].count < 0)
++			smmu->s2crs[idx].count = 0;
++		pr_info("UKE-POKE: handoff: free_sme idx=%d PINADO: no se libera ni se invalida ni se escribe (mapeo del BL intacto)\n",
++			idx);
++		return false;
++	}
++
+ 	if (--smmu->s2crs[idx].count)
+ 		return false;
+ 
+@@ -1634,6 +1978,42 @@
+ 		idx = ret;
+ 
+ 		/*
++		 * UKE-SMMU-K8: HANDOFF por indice y por DT. Si find_sme ha
++		 * devuelto un indice PINADO, este maestro hereda el mapeo del
++		 * bootloader: se reclama en RAM (count++/smendx) pero NO se le
++		 * escribe ni SMR ni S2CR, y el dominio queda "SIN traducir por
++		 * ahora" (el HW sigue como lo dejo el BL). Si ademas el fwpec del
++		 * maestro es un handoff declarado en el DT, el indice se pina
++		 * aunque el BL no lo tuviera vivo: esa banda de SIDs es del
++		 * firmware y Linux no la escribe (misma semantica que
++		 * arm_smmu_handoff_cbs() del lineage, pero sin leer S2CR).
++		 */
++		if (uke_handoff_activo(smmu)) {
++			if (uke_handoff_es_dt(sid, mask) && !uke_pinado(smmu, idx)) {
++				smmu->s2crs[idx].pinned = true;
++				pr_info("UKE-POKE: handoff: attach: dev=%s sid=0x%x mask=0x%x es qcom,handoff-smrs del DT; idx=%d PINADO sin estar vivo (no se escribira)\n",
++					dev_name(dev), sid, mask, idx);
++			}
++			if (uke_pinado(smmu, idx)) {
++				if (smrs && !smmu->smrs[idx].valid) {
++					/* reserva logica: idx ocupado en RAM, HW intacto */
++					smrs[idx].id = sid;
++					smrs[idx].mask = mask;
++					smrs[idx].valid = true;
++				}
++				/* OJO: si ya estaba vivo, la copia RAM del SMR es la del
++				 * BL y NO se sobrescribe (se deja COMO ESTA). */
++				smmu->s2crs[idx].count++;
++				cfg->smendx[i] = (s16)idx;
++				pr_info("UKE-POKE: handoff: attach: dev=%s sid=0x%x mask=0x%x -> idx=%d PINADO (%s): NO se escribe SMR/S2CR; el maestro sigue con el mapeo del BL y el dominio queda SIN traducir por ahora\n",
++					dev_name(dev), sid, mask, idx,
++					uke_handoff_es_dt(sid, mask) ? "handoff-smrs del DT" : "vivo del BL");
++				pr_flush(500, false);
++				continue;
++			}
++		}
++
++		/*
+ 		 * UKE-SMMU-CLK (K5): ¿este idx es un SME VIVO del bootloader? Solo el
+ 		 * apps-smmu, y solo si el barrido lo dejo en RAM (smrs[idx].valid) y
+ 		 * ningun maestro lo ha reclamado (count==0). Con uke_smr_max=0 eso es
+@@ -1684,6 +2064,15 @@
+ 	/* It worked! Now, poke the actual hardware */
+ 	for_each_cfg_sme(cfg, fwspec, i, idx) {
+ 		/*
++		 * UKE-SMMU-K8: si el idx esta PINADO (mapeo vivo del BL o SID
++		 * declarado en qcom,handoff-smrs) no se toca el HW.
++		 */
++		if (uke_pinado(smmu, idx)) {
++			pr_info("UKE-POKE: handoff: attach: SME idx=%d PINADO (%s): se omite write_sme (SMR/S2CR del BL intactos)\n",
++				idx, dev_name(dev));
++			continue;
++		}
++		/*
+ 		 * UKE-SMMU-CLK (K5): si este SME se PRESERVO (uke_attach_log=2) no se
+ 		 * toca el HW: el mapeo del bootloader sigue siendo el que traduce.
+ 		 */
+@@ -1720,7 +2109,14 @@
+ 				pr_info("UKE-POKE: attach: ESCRIBIR SME idx=%d dev=%s -> S2CR nominal=0x%08x (type=%u cbndx=%u) (smrs==NULL)\n",
+ 					idx, dev_name(dev), uke_s2cr_val(smmu, idx),
+ 					smmu->s2crs[idx].type, smmu->s2crs[idx].cbndx);
+-			if (idx == 0) {
++			/*
++			 * UKE-SMMU-K8: S2CR(0) solo se lee si el idx 0 NO esta
++			 * pinado. Con handoff el idx 0 es el SMR vivo del ufshc y
++			 * este bloque no se alcanza (el guard de arriba ya ha
++			 * saltado), pero la condicion lo hace explicito: leer el
++			 * S2CR de un mapeo vivo MATA (#P13).
++			 */
++			if (idx == 0 && !uke_pinado(smmu, idx)) {
+ 				u32 hw_smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(0));
+ 				u32 hw_s2cr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(0));
+ 
+@@ -1774,6 +2170,17 @@
+ 
+ 	for_each_cfg_sme(cfg, fwspec, i, idx) {
+ 		/*
++		 * UKE-SMMU-K8: el attach del dominio escribe S2CR para pasar al
++		 * maestro a TRANS->CB; sobre un idx pinado eso destruiria la
++		 * traduccion del BL (es el mismo asesino que en master_alloc_smes,
++		 * pero en la fase de iommu_setup_default_domain). No se escribe.
++		 */
++		if (uke_pinado(smmu, idx)) {
++			pr_info("UKE-POKE: handoff: attach: install_s2cr idx=%d PINADO: NO se escribe el S2CR (el HW sigue con el mapeo del BL; dominio SIN traducir por ahora)\n",
++				idx);
++			continue;
++		}
++		/*
+ 		 * UKE-SMMU-CLK (K5): un indice PRESERVADO (uke_attach_log=2) no se
+ 		 * toca NI en install_s2crs: el attach del dominio escribe S2CR para
+ 		 * pasar el maestro a TRANS->CB, y eso destruiria el mapeo del BL
+@@ -1805,7 +2212,7 @@
+ 				(unsigned int)(FIELD_PREP(ARM_SMMU_S2CR_TYPE, type) |
+ 				FIELD_PREP(ARM_SMMU_S2CR_CBNDX, cbndx) |
+ 				FIELD_PREP(ARM_SMMU_S2CR_PRIVCFG, S2CR_PRIVCFG_DEFAULT)));
+-			if (idx == 0) {	/* unica lectura de S2CR medida como segura */
++			if (idx == 0 && !uke_pinado(smmu, idx)) {	/* unica lectura de S2CR medida como segura; nunca sobre un idx pinado (#P13) */
+ 				u32 hw = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(0));
+ 
+ 				pr_info("UKE-POKE: attach: install_s2cr idx=0 S2CR(0) HW AHORA=0x%08x (TYPE=%u CBNDX=%u)\n",
+@@ -3068,6 +3475,15 @@
+ 
+ 	platform_set_drvdata(pdev, smmu);
+ 
++	/*
++	 * UKE-SMMU-K8: HANDOFF. Se hace AQUI y no antes: cfg_probe ya ha leido
++	 * IDR0/1/2, ha hecho el quirk y ha repartido smrs[]/s2crs[]; y se hace
++	 * ANTES del primer acceso que escribe algo (rmr_install_bypass_smr
++	 * escribe sCR0 con CLIENTPD=1). Con uke_handoff=0, o para cualquier otro
++	 * SMMU, esto es un no-op.
++	 */
++	uke_handoff_preparar(smmu);
++
+ 	/* Check for RMRs and install bypass SMRs if any */
+ 	arm_smmu_rmr_install_bypass_smr(smmu);
+ 

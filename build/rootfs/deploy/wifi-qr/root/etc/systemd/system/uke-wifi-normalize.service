@@ -1,0 +1,8 @@
+[Unit]
+Description=Perfiles Wi-Fi con clave del sistema (psk-flags=0, root 600)
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/uke-wifi-normalize

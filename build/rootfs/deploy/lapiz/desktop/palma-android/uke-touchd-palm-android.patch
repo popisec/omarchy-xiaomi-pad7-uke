@@ -1,0 +1,92 @@
+# Rechazo de palma estilo Android para uke-touchd (21-oct-2026). NO aplicado, NO desplegado. Alternativa EXCLUYENTE a ../uke-touchd-palm.patch
+# (los dos tocan las mismas lineas: aplica solo uno). Se aplica sobre la copia YA parcheada con ../../uke-touchd-pen.patch:
+#   cp tactil/uke-touchd.py /tmp/uke-touchd-pen.py; patch -p0 /tmp/uke-touchd-pen.py lapiz/uke-touchd-pen.patch
+#   patch -p0 /tmp/uke-touchd-pen.py lapiz/desktop/palma-android/uke-touchd-palm-android.patch   (+ copiar palm_android.py junto al demonio)
+# Se activa con --pen --palm-android; sin esa bandera el comportamiento es identico al de uke-touchd-pen.patch. Ver README.md.
+--- uke-touchd-pen.py
++++ uke-touchd-pen.py
+@@ -228,6 +228,18 @@
+     ap.add_argument("--idle-div", type=int, default=3, help="en reposo, en reposo, frames procesados = 180/N por segundo (N=3: 60 Hz)")
+     ap.add_argument("--hold-ms", type=int, default=500, help="ritmo completo durante este tiempo tras el ultimo toque")
+     ap.add_argument("--pen", action="store_true", help="modo lapiz (uke_pen): activa el chip si el lapiz esta conectado y despegado")
++    # Rechazo de palma estilo Android (palma-android/README.md). NO desplegado; sin --palm-android el demonio se comporta como antes.
++    ap.add_argument("--palm-android", action="store_true", help="con --pen: rechazo de palma estilo Android (retardo 40/64 ms solo con lapiz activo)")
++    ap.add_argument("--palm-weak-ms", type=int, default=40, help="retardo de decision con el lapiz en hover")
++    ap.add_argument("--palm-strong-ms", type=int, default=64, help="retardo de decision con la punta tocando")
++    ap.add_argument("--palm-move-px", type=int, default=8, help="desplazamiento (px de pantalla) desde el que un toque nuevo es dedo y no palma")
++    ap.add_argument("--palm-margin-ms", type=int, default=100, help="tras el ultimo frame de lapiz presente se sigue considerando activo (<=150)")
++    ap.add_argument("--palm-pre-ms", type=int, default=64, help="un dedo quieto llegado menos de esto antes del primer frame de lapiz es palma")
++    ap.add_argument("--palm-release-ms", type=int, default=0, help="0 = apagado. Libera un contacto quieto baneado (area <= --palm-release-area) cuando el lapiz lleva este tiempo inactivo")
++    ap.add_argument("--palm-release-area", type=int, default=6, help="con --palm-release-ms: area maxima (nodos, 1..9) que el contacto no debe haber superado")
++    ap.add_argument("--palm-no-replay-start", action="store_true", help="el 1.er frame de un dedo que pasa tras moverse sale en su posicion actual (no en la de inicio)")
++    ap.add_argument("--palm-noise-keep", action="store_true", help="un 0x509 sin lapiz presente (ruido) no suelta el dedo ni reinicia el Tracker (hipotesis, verificar con el chip)")
++    ap.add_argument("--palm-no-taps", action="store_true", help="no re-emitir como toque de 1 frame los toques breves con el lapiz en hover")
+     a = ap.parse_args()
+ 
+     def to_screen(x, y):
+@@ -262,6 +274,21 @@
+         except Exception as e:                         # noqa: BLE001
+             log("modo lapiz NO disponible (%r): el tactil sigue sin lapiz" % (e,))
+             rt = None
++    palm = None
++    if a.palm_android and rt is not None:
++        try:
++            for _d in (os.path.dirname(os.path.abspath(__file__)), "/usr/local/share/uke/lapiz", "/usr/local/share/uke/lapiz/desktop"):
++                if os.path.exists(os.path.join(_d, "palm_android.py")):
++                    sys.path.append(_d)
++                    break
++            import palm_android
++            palm = palm_android.AndroidPalm(a.palm_weak_ms, a.palm_strong_ms, a.palm_move_px, a.palm_pre_ms, a.palm_margin_ms,
++                                            tap_replay=not a.palm_no_taps, replay_start=not a.palm_no_replay_start,
++                                            release_ms=a.palm_release_ms, release_area=a.palm_release_area)
++            log("rechazo de palma Android: %d/%d ms, umbral %d px, margen %d ms" % (a.palm_weak_ms, a.palm_strong_ms, a.palm_move_px, a.palm_margin_ms))
++        except Exception as e:                         # noqa: BLE001
++            log("palma Android NO disponible (%r): sin rechazo" % (e,))
++            palm = None
+     tr = thp_algo.Tracker()
+     gfd = None
+     if not a.no_irq:
+@@ -373,10 +400,19 @@
+         fid, mag, nid, nmag = struct.unpack_from("<H2xH2xH2xH", F, 4)
+         if rt is not None and rt.handles(F):
+             good += 1
+-            if was_down:                                        # un dedo apoyado al empezar la rafaga de lapiz se suelta (revision I1)
+-                ui.frame([]); was_down = False
+-            tr.reset()                                          # SIEMPRE olvidar base y toques en una rafaga de lapiz: la rejilla 4bf posterior puede traer otra linea base y la vieja nunca se readapta (si no, toque fantasma y pellizco muerto)
+             rt.on_frame(F, now)
++            # --palm-noise-keep: un 0x509 SIN lapiz presente (ruido aislado) no suelta el dedo ni reinicia el Tracker (HIPOTESIS: la linea base 4bf
++            # no cambia con un frame suelto; sin la bandera todo 0x509 hace lo de siempre: release + tr.reset)
++            keep = palm is not None and a.palm_noise_keep and rt.sess.last_pen != now
++            if not keep:
++                if was_down:                                    # un dedo apoyado al empezar la rafaga de lapiz se suelta (revision I1)
++                    ui.frame([]); was_down = False
++                tr.reset()                                      # SIEMPRE olvidar base y toques en una rafaga de lapiz: la rejilla 4bf posterior puede traer otra linea base y la vieja nunca se readapta (si no, toque fantasma y pellizco muerto)
++            if palm is not None:
++                if rt.sess.last_pen == now:
++                    palm.pen_frame(now)                         # frame de lapiz PRESENTE (= ABS_DISTANCE de Android)
++                elif not keep:
++                    palm.tracker_reset(now)                     # 0x509 de ruido (lapiz no presente): no activa el rechazo; los contactos conservan estado
+             last_touch = now                                    # con lapiz: ritmo completo (240 Hz)
+         elif mag != thp_algo.MAGIC or nmag != (~thp_algo.MAGIC & 0xFFFF) or nid != (~fid & 0xFFFF):
+             bad += 1
+@@ -386,10 +422,19 @@
+             mut.frombytes(F[0x40:0x40 + 2 * thp_algo.ROWS * thp_algo.COLS])
+             if tr.quick_idle(mut):
+                 idle += 1
+-                if was_down:
++                if palm is not None:
++                    pts = palm.filter([], now, rt is not None and rt.sess.touching)    # vacia toques re-emitidos / contabiliza el frame
++                    if pts or was_down:
++                        ui.frame(pts)
++                    was_down = bool(pts)
++                elif was_down:
+                     ui.frame([]); was_down = False
+             else:
+                 pts = [(tid, *to_screen(x, y), n) for tid, x, y, n in tr.feed(mut)]
++                if palm is not None:
++                    if pts:
++                        last_touch = now                        # el contacto pendiente/baneado no emite: mantener el ritmo completo
++                    pts = palm.filter(pts, now, rt is not None and rt.sess.touching)
+                 if pts or was_down:
+                     ui.frame(pts)
+                     if a.verbose and pts:

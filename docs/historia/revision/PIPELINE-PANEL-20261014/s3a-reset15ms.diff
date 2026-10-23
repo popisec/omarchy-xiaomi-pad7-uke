@@ -1,0 +1,14 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -279,8 +279,10 @@
+ 	pr_info("UKE-P82: rst: assert2(3ms) OK\n");
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+ 	uke_poke("K48-w4-done");
+-	usleep_range(100000, 101000);	/* r7: 15->100ms, discriminador temporal */
+-	uke_poke("K48-rst-R2-ok");	/* RELEASE final 100ms */
++	/* S3a (ex-L27 §E.5 + §B.3, = L38-variable sola): el vendor usa 15 ms
++	 * finales (0/10,1/3,0/3,1/15); los 100 ms eran el discriminador r7. */
++	usleep_range(15000, 15500);
++	uke_poke("K48-rst-R2-ok");	/* RELEASE final 15ms (vendor) */
+ 	pr_info("UKE-P82: rst: release2(15ms) OK — reset COMPLETO\n");
+ }

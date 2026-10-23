@@ -1,0 +1,20 @@
+=== G0 pins ===
+  OK  pins y herramientas
+=== G1: extraer payload s281 ===
+  OK  payload s281 (152 frags, max=2103), sin rastro de gpr
+=== G2: injertar fragment@2200 (gpr disabled) ===
+  OK  compila con 1 fragmento añadido
+=== G3: fdtoverlay (gate 1: el ABL haría lo mismo) ===
+  OK  fdtoverlay verde (s282 y s281)
+=== G4: G-GPR (el gate que importa) ===
+  OK  gpr status=disabled en el merged
+  OK  canales qrtr/pmic_glink/fastrpc intactos
+=== G5: paridad s281 (nada más puede haber cambiado) ===
+  OK  OPP + iommus-DC + bootargs + touch: paridad s281
+=== G6: dt_table + roundtrip ===
+  OK  dt_table (1 entrada) + roundtrip; 607458 B
+=== G7: gate 2 (uke-dtbo-check.py, igual que antes de flashear) ===
+  OK  uke-dtbo-check.py limpio
+
+PUBLICADO: ~/proyectos/omarchy-uke/build/bootimg/s282-boot-dtbo-gpu-display-opp148-nogpr.img
+sha256 = 00c3410677eaa15d801024a2e9b0e0213cefd028a4372fee913b4d21eee168d0

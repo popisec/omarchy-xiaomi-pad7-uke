@@ -1,0 +1,80 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c	2026-10-17 13:00:02.703951242 +0200
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c	2026-10-17 13:00:02.705036920 +0200
+@@ -70,6 +70,8 @@
+ 	struct gpio_descs *esd_gpios;
+ 	/* L76: instante del 0x29 (para dt 0x29 -> PPS -> VID ON). */
+ 	ktime_t t_29;
++	/* L76-R: ciclo de rieles ya hecho (solo en el primer prepare). */
++	bool rails_cycled;
+ };
+ 
+ struct o82_panel_desc {
+@@ -410,6 +412,60 @@
+ 	return ret;
+ }
+ 
++/*
++ * L76-R (17-oct): ciclo de rieles antes del primer encendido, como el vendor.
++ *
++ * El wake del vendor parte de rieles APAGADOS: al apagar manda 0x28/0x10 y
++ * luego reset GPIO335 = 0, vsn OFF, +2.2 ms vsp OFF (vendor-harvest-20261017b/
++ * sleep20/README.md); al encender, vsp, vsn, reset 0/1/0/1 e init. Nuestro
++ * primer prepare parte de vsp/vsn ENCENDIDOS por el ABL (el panel viene
++ * con la splash). Aqui se replica el estado de partida del vendor: reset
++ * asertado, vsn off, vsp off, espera uke_l76_rail_off_ms, y despues la
++ * secuencia normal (o82_power_on + o82_reset). Solo una vez por arranque.
++ *
++ * vsp/vsn son reguladores GPIO que dejo encendidos el ABL y que nosotros aun
++ * no hemos votado: para que el core los apague hay que tomar una referencia
++ * (enable) y soltarla (disable). Si siguen encendidos (always-on u otro
++ * consumidor) solo se registra; no es fatal.
++ */
++static bool uke_l76_rail_cycle = true;
++module_param(uke_l76_rail_cycle, bool, 0444);
++MODULE_PARM_DESC(uke_l76_rail_cycle, "UKE-L76: apagar vsn/vsp con reset asertado antes del primer prepare (vendor)");
++static unsigned int uke_l76_rail_off_ms = 500;
++module_param(uke_l76_rail_off_ms, uint, 0444);
++MODULE_PARM_DESC(uke_l76_rail_off_ms, "UKE-L76: ms con vsp/vsn apagados en el ciclo de rieles");
++
++static void o82_l76_rail_cycle(struct o82_panel *ctx)
++{
++	/* indices de o82_supplies: 1 = vsp, 2 = vsn */
++	struct regulator *vsp = ctx->supplies[1].consumer;
++	struct regulator *vsn = ctx->supplies[2].consumer;
++	int pre_p, pre_n;
++
++	if (!uke_l76_rail_cycle || ctx->rails_cycled)
++		return;
++	ctx->rails_cycled = true;
++
++	pre_p = regulator_is_enabled(vsp);
++	pre_n = regulator_is_enabled(vsn);
++
++	uke_poke("L76-rail-cycle");
++	gpiod_set_value_cansleep(ctx->reset_gpio, 1);	/* fisico LOW = reset */
++	usleep_range(1000, 1500);
++
++	if (!regulator_enable(vsn))
++		regulator_disable(vsn);
++	usleep_range(2000, 2500);			/* vendor: vsn -> 2.2 ms -> vsp */
++	if (!regulator_enable(vsp))
++		regulator_disable(vsp);
++
++	pr_info("UKE-L76-RAIL: reset=0, vsn %d->%d, vsp %d->%d (vendor 1->0), off %u ms\n",
++		pre_n, regulator_is_enabled(vsn), pre_p, regulator_is_enabled(vsp),
++		uke_l76_rail_off_ms);
++	msleep(uke_l76_rail_off_ms);
++	pr_info("UKE-L76-RAIL: fin de la espera, sigue power_on + reset\n");
++}
++
+ static int o82_prepare(struct drm_panel *panel)
+ {
+ 	uke_poke("K47-pan-prep");
+@@ -429,6 +485,7 @@
+ 		return 0;
+ 	}
+ 	pr_info("UKE-P82: prepare: INICIO\n");
++	o82_l76_rail_cycle(ctx);
+ 	ret = o82_power_on(ctx);
+ 	if (ret < 0) {
+ 		pr_info("UKE-P82: prepare: power_on FALLO %d\n", ret);

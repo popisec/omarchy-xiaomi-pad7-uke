@@ -1,0 +1,51 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -476,29 +476,37 @@
+ 		return;
+ 
+ 	smr0 = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(0));
+-	s2cr0 = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(0));
+-	pr_info("UKE-POKE: BL estado idx=0: SMR(0) HW=0x%08x (valid=%u id=0x%x mask=0x%x) S2CR(0) HW=0x%08x (TYPE=%u CBNDX=%u PRIVCFG=%u)\n",
++	/*
++	 * UKE-SMMU-CLK (K6, #P13): S2CR(0) NO se lee. La relectura del registro
++	 * de traduccion VIVO del UFS es letal: el disparo K5b (attach_log=1,
++	 * 29-sep 00:55) murio antes del primer print de este volcado, y S2CR(0)
++	 * era la unica lectura no probada del dump. SMR(0) si es seguro (leido
++	 * 4 veces hoy). s2cr0 queda a 0 y la miga imprime la nota NO LEIDO.
++	 */
++	s2cr0 = 0;
++	pr_info("UKE-POKE: BL estado idx=0: SMR(0) HW=0x%08x (valid=%u id=0x%x mask=0x%x) S2CR(0) HW=<NO LEIDO (letal #P13)> (s2cr0=%u)\n",
+ 		smr0, (unsigned int)FIELD_GET(ARM_SMMU_SMR_VALID, smr0),
+ 		(unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, smr0),
+-		(unsigned int)uke_smr_mask_leido(smr0),
+-		s2cr0, (unsigned int)FIELD_GET(ARM_SMMU_S2CR_TYPE, s2cr0),
+-		(unsigned int)FIELD_GET(ARM_SMMU_S2CR_CBNDX, s2cr0),
+-		(unsigned int)FIELD_GET(ARM_SMMU_S2CR_PRIVCFG, s2cr0));
++		(unsigned int)uke_smr_mask_leido(smr0), s2cr0);
+ 
+ 	for (i = 1; smmu->smrs && (unsigned int)i < smmu->num_mapping_groups; i++) {
+ 		u32 smr, s2cr;
+ 
+ 		if (!smmu->smrs[i].valid)	/* solo lo que la RAM conoce del BL */
+ 			continue;
++		/*
++		 * UKE-SMMU-CLK (K6, #P13): del indice i solo se lee SMR(i).
++		 * S2CR(i) tampoco se lee: es la misma clase de registro de
++		 * traduccion que S2CR(0). Con uke_smr_max=0 este bucle no itera
++		 * (smrs[1..] esta invalid); la nota vale para barridos futuros.
++		 */
+ 		smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
+-		s2cr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(i));
+-		pr_info("UKE-POKE: BL estado idx=%d (smrs.valid, count=%u): SMR(%d) HW=0x%08x (valid=%u id=0x%x mask=0x%x) S2CR(%d) HW=0x%08x (TYPE=%u CBNDX=%u)\n",
++		s2cr = 0;
++		pr_info("UKE-POKE: BL estado idx=%d (smrs.valid, count=%u): SMR(%d) HW=0x%08x (valid=%u id=0x%x mask=0x%x) S2CR(%d) HW=<NO LEIDO (letal #P13)> (s2cr=%u)\n",
+ 			i, smmu->s2crs[i].count, i, smr,
+ 			(unsigned int)FIELD_GET(ARM_SMMU_SMR_VALID, smr),
+ 			(unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, smr),
+-			(unsigned int)uke_smr_mask_leido(smr),
+-			i, s2cr, (unsigned int)FIELD_GET(ARM_SMMU_S2CR_TYPE, s2cr),
+-			(unsigned int)FIELD_GET(ARM_SMMU_S2CR_CBNDX, s2cr));
++			(unsigned int)uke_smr_mask_leido(smr), i, s2cr);
+ 	}
+ 	pr_flush(500, false);
+ }

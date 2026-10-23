@@ -1,0 +1,48 @@
+#!/usr/bin/python3
+# uke-modo-carga — si la tablet arranco por el cargador (no por el usuario), no inicia el escritorio (sddm) y se queda
+# cargando con pantalla apagada y perfil Ahorro; el boton de encendido arranca el escritorio. 20-oct-2026.
+# Siempre registra el pureason de cada arranque en /var/log/uke-bateria/arranques.log (para calibrar la lista).
+import os, struct, subprocess, sys, time
+CONF = "/etc/uke/modo-carga.conf"; FLAG = "/run/uke-modo-carga"; FORZAR = "/var/lib/uke-bateria/forzar-escritorio"
+def cmdline():
+    d = {}
+    for t in open("/proc/cmdline").read().split():
+        if "=" in t: k, v = t.split("=", 1); d[k] = v
+    return d
+def conf():
+    v = {"PUREASON_CARGADOR": "0x40010"}
+    try:
+        for ln in open(CONF):
+            ln = ln.strip()
+            if ln and not ln.startswith("#") and "=" in ln: k, x = ln.split("=", 1); v[k] = x.strip('"')
+    except OSError: pass
+    return v
+def log(msg):
+    os.makedirs("/var/log/uke-bateria", exist_ok=True)
+    open("/var/log/uke-bateria/arranques.log", "a").write(f"{time.strftime('%F %T')} {msg}\n")
+def esperar_boton():
+    dev = None
+    for n in os.listdir("/dev/input/by-path"):
+        if n.endswith("pwrkey-event"): dev = "/dev/input/by-path/" + n
+    if not dev: log("modo-carga: sin evento pwrkey; arranco escritorio"); return
+    with open(dev, "rb", buffering=0) as f:
+        while True:
+            b = f.read(24)
+            if len(b) == 24:
+                _, _, t, c, v = struct.unpack("llHHi", b)
+                if t == 1 and c == 116 and v == 1: return        # KEY_POWER pulsado
+def decide():
+    c = cmdline(); pr = c.get("bootinfo.pureason", "?"); k = conf()
+    log(f"arranque pureason={pr} pdreason={c.get('bootinfo.pdreason','?')} silent={c.get('silent_boot.mode','?')}")
+    if os.path.exists(FORZAR) or pr not in k["PUREASON_CARGADOR"].split():
+        return                                   # arranque normal
+    open(FLAG, "w").write(pr)                    # sddm.service tiene ConditionPathExists=!/run/uke-modo-carga
+    log("modo carga: arranque por cargador; escritorio NO iniciado hasta pulsar encendido")
+def boton():
+    subprocess.run(["sh", "-c", "cat /sys/class/backlight/uke-backlight/brightness > /run/uke-modo-carga.bl; echo 0 > /sys/class/backlight/uke-backlight/brightness; /usr/local/bin/uke-perfil root-set ahorro; rfkill block bluetooth"], timeout=20)
+    esperar_boton()
+    log("modo carga: boton de encendido -> arranco escritorio")
+    try: os.remove(FLAG)
+    except OSError: pass
+    subprocess.run(["sh", "-c", "rfkill unblock bluetooth; b=$(cat /run/uke-modo-carga.bl 2>/dev/null); echo ${b:-102} > /sys/class/backlight/uke-backlight/brightness 2>/dev/null; systemctl start sddm.service"], timeout=30)
+{"decide": decide, "boton": boton}[sys.argv[1] if len(sys.argv) > 1 else "decide"]()

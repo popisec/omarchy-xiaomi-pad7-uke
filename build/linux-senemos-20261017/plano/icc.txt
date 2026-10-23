@@ -1,0 +1,118 @@
+ node                                  tag          avg         peak
+--------------------------------------------------------------------
+qup0_core_master@soc:interconnect@0          2147483647   2147483647
+  a80000.i2c                             0            0            0
+qup1_core_master@soc:interconnect@0          2147483647   2147483647
+  890000.i2c                             0            0            0
+qup0_core_slave@soc:interconnect@0           2147483647   2147483647
+  a80000.i2c                             0            0            0
+qup1_core_slave@soc:interconnect@0           2147483647   2147483647
+  890000.i2c                             0            0            0
+llcc_mc@soc:interconnect@1                   2147723647   2147483647
+  ae00000.display-subsystem              0      4257792       800000
+  1d84000.ufshc                          0            0       298189
+  a600000.ssusb                          0       240000       700000
+  ae00000.display-subsystem              0            0       400000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+ebi@soc:interconnect@1                       2147723647   2147483647
+  ae00000.display-subsystem              0      4257792       800000
+  1d84000.ufshc                          0            0       298189
+  a600000.ssusb                          0       240000       700000
+  ae00000.display-subsystem              0            0       400000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+qhm_qup0@16e0000.interconnect                2147483647   2147483647
+  a80000.i2c                             0            0            0
+xm_ufs_mem@16e0000.interconnect              2147483647   2147483647
+  1d84000.ufshc                          0            0       298189
+xm_usb3_0@16e0000.interconnect               2147483647   2147483647
+  a600000.ssusb                          0       240000       700000
+qns_a1noc_snoc@16e0000.interconnect          2147723647   2147483647
+  1d84000.ufshc                          0            0       298189
+  a600000.ssusb                          0       240000       700000
+  a80000.i2c                             0            0            0
+qhm_qup1@1700000.interconnect                2147483647   2147483647
+  890000.i2c                             0            0            0
+qns_a2noc_snoc@1700000.interconnect          2147483647   2147483647
+  890000.i2c                             0            0            0
+qsm_cfg@1600000.interconnect                 2147483647   2147483647
+  1d84000.ufshc                          0            0         1000
+  a600000.ssusb                          0            0        40000
+  ae00000.display-subsystem              0            0        57000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+qhs_display_cfg@1600000.interconnect         2147483647   2147483647
+  ae00000.display-subsystem              0            0        57000
+qhs_qup0@1600000.interconnect                2147483647   2147483647
+  a80000.i2c                             0            0            0
+qhs_qup1@1600000.interconnect                2147483647   2147483647
+  890000.i2c                             0            0            0
+qhs_ufs_mem_cfg@1600000.interconnect         2147483647   2147483647
+  1d84000.ufshc                          0            0         1000
+qhs_usb3_0@1600000.interconnect              2147483647   2147483647
+  a600000.ssusb                          0            0        40000
+qnm_gemnoc_cnoc@1500000.interconnect         2147483647   2147483647
+  1d84000.ufshc                          0            0         1000
+  a600000.ssusb                          0            0        40000
+  ae00000.display-subsystem              0            0        57000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+qss_cfg@1500000.interconnect                 2147483647   2147483647
+  1d84000.ufshc                          0            0         1000
+  a600000.ssusb                          0            0        40000
+  ae00000.display-subsystem              0            0        57000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+chm_apps@24100000.interconnect               2147483647   2147483647
+  1d84000.ufshc                          0            0         1000
+  a600000.ssusb                          0            0        40000
+  ae00000.display-subsystem              0            0        57000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+qnm_gpu@24100000.interconnect                2147483647   2147483647
+qnm_lpass_gemnoc@24100000.interconnect                0            0
+qnm_mnoc_hf@24100000.interconnect            2147483647   2147483647
+  ae00000.display-subsystem              0      4257792       800000
+  ae00000.display-subsystem              0            0       400000
+qnm_snoc_sf@24100000.interconnect            2147723647   2147483647
+  1d84000.ufshc                          0            0       298189
+  a600000.ssusb                          0       240000       700000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+qns_gem_noc_cnoc@24100000.interconnect       2147483647   2147483647
+  1d84000.ufshc                          0            0         1000
+  a600000.ssusb                          0            0        40000
+  ae00000.display-subsystem              0            0        57000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+qns_llcc@24100000.interconnect               2147723647   2147483647
+  ae00000.display-subsystem              0      4257792       800000
+  1d84000.ufshc                          0            0       298189
+  a600000.ssusb                          0       240000       700000
+  ae00000.display-subsystem              0            0       400000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0
+qnm_lpiaon_noc@7e40000.interconnect                   0            0
+qns_lpass_ag_noc_gemnoc@7e40000.interconnect            0            0
+qnm_lpass_lpinoc@7400000.interconnect                 0            0
+qns_lpass_aggnoc@7400000.interconnect                 0            0
+qxm_lpinoc_dsp_axim@7430000.interconnect              0            0
+qns_lpi_aon_noc@7430000.interconnect                  0            0
+qnm_mdp@1400000.interconnect                 2147483647   2147483647
+  ae00000.display-subsystem              0      4257792       800000
+  ae00000.display-subsystem              0            0       400000
+qns_mem_noc_hf@1400000.interconnect          2147483647   2147483647
+  ae00000.display-subsystem              0      4257792       800000
+  ae00000.display-subsystem              0            0       400000
+qnm_aggre1_noc@1680000.interconnect          2147723647   2147483647
+  1d84000.ufshc                          0            0       298189
+  a600000.ssusb                          0       240000       700000
+  a80000.i2c                             0            0            0
+qnm_aggre2_noc@1680000.interconnect          2147483647   2147483647
+  890000.i2c                             0            0            0
+qns_gemnoc_sf@1680000.interconnect           2147723647   2147483647
+  1d84000.ufshc                          0            0       298189
+  a600000.ssusb                          0       240000       700000
+  890000.i2c                             0            0            0
+  a80000.i2c                             0            0            0

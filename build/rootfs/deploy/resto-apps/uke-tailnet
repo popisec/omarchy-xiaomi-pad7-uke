@@ -1,0 +1,9 @@
+#!/bin/sh
+# uke-tailnet — lanza una app con salida a la tailnet por el proxy de tailscaled (127.0.0.1:1055, HTTP CONNECT + SOCKS5).
+# La tablet va con tailscaled en userspace-networking: sin esto las apps no llegan a SERVIDOR-01/PC-PORTATIL (100.x).
+# Lo local (localhost, LAN 192.168.x, .local) sale directo. 22-oct-2026 (build/rootfs/deploy/resto-apps).
+P=http://127.0.0.1:1055
+export http_proxy=$P https_proxy=$P HTTP_PROXY=$P HTTPS_PROXY=$P
+export ALL_PROXY=socks5h://127.0.0.1:1055 all_proxy=socks5h://127.0.0.1:1055
+export NO_PROXY=localhost,127.0.0.1,::1,.local,192.0.2.0/16 no_proxy=localhost,127.0.0.1,::1,.local,192.0.2.0/16
+exec "$@"

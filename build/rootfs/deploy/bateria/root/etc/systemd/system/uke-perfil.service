@@ -1,0 +1,10 @@
+[Unit]
+Description=uke: aplicar perfil de energia guardado (governor, freq max, GPU)
+After=sysinit.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/uke-perfil apply
+ExecStartPost=-/usr/local/bin/uke-icl
+[Install]
+WantedBy=multi-user.target

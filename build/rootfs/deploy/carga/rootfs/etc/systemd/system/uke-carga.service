@@ -1,0 +1,23 @@
+[Unit]
+Description=uke: pila de carga (qrtr, pd-mapper, pmic_glink, battmgr, ADSP) con kernel senemos
+# SOLO el kernel MCC45TR/senemos. En los palawan manda uke-adsp.service.
+ConditionKernelVersion=*senemos*
+ConditionPathExists=/usr/local/sbin/uke-carga-start.sh
+After=local-fs.target systemd-udevd.service systemd-udev-trigger.service
+Wants=systemd-udevd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/uke-carga-start.sh
+# 2 = AMARILLO (batería visible pero sin Charging, p. ej. sin cargador): el ADSP
+# queda arriba, así que el servicio no se marca como fallido.
+SuccessExitStatus=2
+TimeoutStartSec=240
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=uke-carga
+# Sin Restart=: un fallo de firmware o de ADSP no se reintenta en bucle.
+
+[Install]
+WantedBy=multi-user.target

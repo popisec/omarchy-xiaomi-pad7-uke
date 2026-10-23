@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e8b-card-fs19xx-pins.dtso — ETAPA E8b: tarjeta TDM del altavoz con el CODEC REAL (uke_fs19xx) en lugar del spdif-dit. BORRADOR del PC (18-oct-2026), NO probado.
+ * CON pines LPI gpio6-9 (funcion 2: BCLK/WS/DATA) hacia los 4 FS19xx: PRIMERA salida fisica del TDM (E7b + amplificadores reales).
+ * ALTERNATIVA a e4c/e7a/e7b/e5 (mismo modelo "UKE": cargar solo UNA tarjeta).
+ *
+ * Requiere: i2c@88c000 encendido (uke-audio-e7-amps-i2c.dtso o parche 0001), uke_fs19xx.ko con los 4 amps probados (/lib/firmware/fs19xx.fsm),
+ * snd-q6apm/lpass-dais 0005+0006, e2d. Por defecto uke_fs_play=0: los amplificadores NO se tocan al reproducir.
+ * El nodo `fs19xx-codec` es un dispositivo de plataforma (no hace falta phandle de los clientes I2C, que en el DT vivo no tienen etiqueta).
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			uke_fs19xx_e8b: fs19xx-codec {
+				compatible = "uke,fs19xx-codec";
+				#sound-dai-cells = <0>;
+			};
+
+			uke_sound_e8b: sound {
+				compatible = "qcom,sm8650-sndcard", "qcom,sm8450-sndcard";
+				model = "UKE";
+				pinctrl-names = "default";
+				pinctrl-0 = <&uke_tdm1_active>;
+
+				tdm-playback-dai-link {
+					link-name = "TDM-LPAIF_VA-RX-PRIMARY";
+
+					cpu {
+						sound-dai = <&uke_q6apmbedai PRIMARY_TDM_RX_0>;
+					};
+
+					codec {
+						sound-dai = <&uke_fs19xx_e8b>;
+					};
+
+					platform {
+						sound-dai = <&uke_q6apm>;
+					};
+				};
+			};
+		};
+	};
+};

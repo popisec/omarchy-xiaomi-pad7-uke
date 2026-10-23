@@ -1,0 +1,12 @@
+--- a/build/rootfs/deploy/touch-mode/uke-gestures.py
++++ b/build/rootfs/deploy/touch-mode/uke-gestures.py
+@@ -265,6 +265,9 @@
+             elif code in (ABS_MT_POSITION_X, ABS_MT_POSITION_Y) and self.cur in self.slots:
+                 self.slots[self.cur]["x" if code == ABS_MT_POSITION_X else "y"] = val
+                 self.dirty = True
++        elif (typ == EV_KEY and code == 0x14a and val == 0 and self.slots) or (typ == EV_SYN and code == 3):
++            self.slots.clear()   # BTN_TOUCH 0 = ningun contacto; SYN_DROPPED = estado perdido: no dejar slots fantasma
++            self.dirty = True
+         elif typ == EV_SYN and code == 0 and self.dirty:
+             self.dirty = False
+             self.step(t)

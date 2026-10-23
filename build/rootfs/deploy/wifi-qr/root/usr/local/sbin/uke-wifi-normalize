@@ -1,0 +1,20 @@
+#!/bin/sh
+# uke-wifi-normalize — deja los perfiles Wi-Fi de NetworkManager con la clave en el sistema:
+# psk-flags=0 (guardada en el keyfile root 600), permisos de todos los usuarios, fichero 600 root.
+# NO lee ni muestra claves. Idempotente: si ya esta bien, no toca nada (no rebota con el path unit).
+D=/etc/NetworkManager/system-connections
+for f in "$D"/*.nmconnection; do
+	[ -f "$f" ] || continue
+	chown root:root "$f" 2>/dev/null; chmod 600 "$f" 2>/dev/null
+	grep -q '^\[wifi-security\]' "$f" || continue
+	u=$(sed -n 's/^uuid=//p' "$f" | head -1); [ -n "$u" ] || continue
+	fl=$(sed -n '/^\[wifi-security\]/,/^\[/{s/^psk-flags=//p}' "$f" | head -1)
+	perm=$(sed -n '/^\[connection\]/,/^\[/{s/^permissions=//p}' "$f" | head -1)
+	if [ "${fl:-0}" != 0 ]; then
+		nmcli connection modify uuid "$u" 802-11-wireless-security.psk-flags 0 && logger -t uke-wifi-normalize "perfil $u: psk-flags $fl -> 0"
+	fi
+	if [ -n "$perm" ]; then
+		nmcli connection modify uuid "$u" connection.permissions "" && logger -t uke-wifi-normalize "perfil $u: permisos de usuario quitados"
+	fi
+done
+exit 0

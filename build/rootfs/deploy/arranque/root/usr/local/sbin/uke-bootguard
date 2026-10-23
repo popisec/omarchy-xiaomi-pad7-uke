@@ -1,0 +1,139 @@
+#!/bin/bash
+# uke-bootguard — guarda de arranque para lo que puede colgar la SoC (WiFi/WPSS, escritorio/GMU, Bluetooth/UART+chip).
+# Instalado en /usr/local/sbin/uke-bootguard por build/rootfs/deploy/arranque/deploy.sh.
+#
+# PROBLEMA. Un cuelgue durante el arranque exige reset fisico (el watchdog del s229 no esta arreglado,
+# R-42) y CADA reset gasta un reintento del slot (slot-retry-count). Si el servicio que cuelga se
+# vuelve a lanzar solo en cada arranque, el bucle se come el slot entero. Esta guarda rompe el bucle
+# sin tocar la tablet por SSH (que en un cuelgue no esta disponible).
+#
+# MECANISMO ("dead-man" por componente: wifi, desktop, bt):
+#   begin NAME   (lo llama ExecCondition= de la unidad; exit 0 = adelante, exit 1 = omitir, sin fallo)
+#       1. interruptor manual: existe /etc/uke/no-NAME o /etc/uke/safe-mode  -> omite
+#       2. disparada: existe $STATE/NAME.tripped                              -> omite
+#       3. si queda $STATE/NAME.pending de OTRO boot_id, el intento anterior no llego a 'ok'
+#          (cuelgue, reset o corte) -> fallos+1; con fallos >= MAX (2) se dispara (NAME.tripped) y omite
+#       4. escribe NAME.pending (boot_id + hora) + sync y programa un temporizador transitorio
+#          (systemd-run --on-active=VENTANA) que ejecutara 'ok NAME' si la tablet sigue viva
+#   ok NAME      borra pending y fallos. Lo llama: el temporizador (VENTANA s tras begin, 180 por defecto), la unidad
+#                en cuanto su fase arriesgada VUELVE (uke-wifi: ExecStartPost, para no culparle del cuelgue del
+#                escritorio que arranca justo despues) y ExecStopPost= (fallo sin cuelgue o apagado ordenado)
+#   reset NAME|all   borra pending/fallos/tripped (rearmar a mano tras diagnosticar)
+#   status [NAME]    estado legible (interruptores, pending, fallos, tripped, temporizadores)
+#
+# Un reinicio ordenado (reboot/poweroff tras sync) NO cuenta como fallo (ExecStopPost llama a 'ok').
+# LIMITE: protege el ARRANQUE de cada componente (su fase arriesgada y, en el escritorio, los primeros 180 s);
+# un cuelgue tardio (minutos despues, con el 'ok' ya dado) no lo ve.
+# Un corte brusco o el Power+Vol- dentro de la ventana cuenta 1; hacen falta MAX seguidos para disparar.
+#
+# Entorno (para pruebas fuera de la tablet): UKE_GUARD_STATE (/var/lib/uke/guard), UKE_GUARD_ETC (/etc/uke),
+#   UKE_GUARD_MAX (2), UKE_GUARD_WINDOW (180), UKE_BOOT_ID, UKE_GUARD_NO_RUN=1 (no llama a systemd-run ni a sync).
+set -u
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+STATE=${UKE_GUARD_STATE:-/var/lib/uke/guard}
+ETC=${UKE_GUARD_ETC:-/etc/uke}
+MAX=${UKE_GUARD_MAX:-2}
+WINDOW=${UKE_GUARD_WINDOW:-180}
+BOOT_ID=${UKE_BOOT_ID:-$(cat /proc/sys/kernel/random/boot_id 2>/dev/null || echo unknown)}
+SELF=$(readlink -f "$0" 2>/dev/null || echo "$0")
+# Todos los nombres que usan las unidades con ExecCondition=uke-bootguard begin|ok <n>.
+# Si uno falta aqui, su .tripped no lo rearma "reset all" y su estado no sale en
+# "status": el fallo queda invisible y el componente se queda apagado para siempre.
+KNOWN="wifi desktop bt audio audio-amps touch"
+
+say() {
+	local m="uke-bootguard: $*"
+	printf '%s\n' "$m"
+	[ -z "${UKE_GUARD_NO_RUN:-}" ] && [ -w /dev/kmsg ] && printf '%s\n' "$m" > /dev/kmsg 2>/dev/null
+	return 0
+}
+flush() { [ -n "${UKE_GUARD_NO_RUN:-}" ] || sync; }
+valid() { case "$1" in ''|*[!a-z0-9-]*) return 1 ;; *) return 0 ;; esac; }
+need_name() { valid "${1:-}" || { echo "uso: $0 {begin|ok|reset|status} NAME   (NAME = a-z0-9-)" >&2; exit 2; }; }
+
+cmd_begin() {
+	local n=$1 f=0 prev
+	mkdir -p "$STATE" 2>/dev/null || { say "$n: no puedo crear $STATE -> OMITO por seguridad"; return 1; }
+	if [ -e "$ETC/safe-mode" ] || [ -e "$ETC/no-$n" ]; then
+		say "$n: omitido por interruptor manual ($( [ -e "$ETC/safe-mode" ] && echo "$ETC/safe-mode" || echo "$ETC/no-$n" ))"
+		return 1
+	fi
+	if [ -e "$STATE/$n.tripped" ]; then
+		say "$n: DISPARADA (el arranque con $n no se completo $MAX veces seguidas) -> omitido. Tras diagnosticar: uke-bootguard reset $n"
+		return 1
+	fi
+	if [ -e "$STATE/$n.pending" ]; then
+		prev=$(cut -d' ' -f1 "$STATE/$n.pending" 2>/dev/null)
+		if [ "$prev" != "$BOOT_ID" ]; then
+			f=$(cat "$STATE/$n.fails" 2>/dev/null); f=$(( ${f:-0} + 1 ))
+			echo "$f" > "$STATE/$n.fails"
+			say "$n: el intento anterior ($(cut -d' ' -f2 "$STATE/$n.pending" 2>/dev/null)) NO llego a 'ok' (cuelgue/reset/corte): fallos seguidos $f/$MAX"
+			if [ "$f" -ge "$MAX" ]; then
+				date -u +%FT%TZ > "$STATE/$n.tripped"
+				rm -f "$STATE/$n.pending"
+				flush
+				say "$n: DISPARADA -> no se vuelve a intentar hasta 'uke-bootguard reset $n' (o borrar $STATE/$n.tripped)"
+				return 1
+			fi
+		fi
+	fi
+	printf '%s %s\n' "$BOOT_ID" "$(date -u +%FT%TZ)" > "$STATE/$n.pending"
+	flush
+	say "$n: intento marcado (pending); se dara por bueno a los ${WINDOW}s o en un apagado ordenado"
+	if [ -z "${UKE_GUARD_NO_RUN:-}" ] && command -v systemd-run >/dev/null 2>&1; then
+		systemctl stop "uke-guard-ok-$n.timer" "uke-guard-ok-$n.service" >/dev/null 2>&1
+		systemd-run --quiet --collect --on-active="$WINDOW" --unit="uke-guard-ok-$n" \
+			--description="uke-bootguard: $n sobrevivio ${WINDOW}s" "$SELF" ok "$n" >/dev/null 2>&1 \
+			|| say "$n: AVISO: no pude programar el temporizador de 'ok' (se limpiara en el apagado ordenado)"
+	fi
+	return 0
+}
+
+cmd_ok() {
+	local n=$1
+	if [ -e "$STATE/$n.pending" ] || [ -e "$STATE/$n.fails" ]; then
+		rm -f "$STATE/$n.pending" "$STATE/$n.fails"
+		flush
+		say "$n: ok (el sistema sigue vivo; pending/fallos borrados)"
+	fi
+	return 0
+}
+
+cmd_reset() {
+	local n=$1 x
+	for x in $( [ "$n" = all ] && echo "$KNOWN" || echo "$n" ); do
+		rm -f "$STATE/$x.pending" "$STATE/$x.fails" "$STATE/$x.tripped"
+		[ -n "${UKE_GUARD_NO_RUN:-}" ] || systemctl stop "uke-guard-ok-$x.timer" >/dev/null 2>&1
+		say "$x: reset (pending/fallos/tripped borrados)"
+	done
+	flush
+	return 0
+}
+
+cmd_status() {
+	local only=${1:-} x
+	echo "boot_id=$BOOT_ID  MAX=$MAX  ventana=${WINDOW}s  estado=$STATE  interruptores=$ETC"
+	[ -e "$ETC/safe-mode" ] && echo "  SAFE-MODE activo ($ETC/safe-mode): ni WiFi ni BT ni escritorio"
+	for x in $KNOWN; do
+		[ -n "$only" ] && [ "$only" != "$x" ] && continue
+		printf '  %-8s' "$x"
+		[ -e "$ETC/no-$x" ] && printf ' [interruptor %s/no-%s]' "$ETC" "$x"
+		[ -e "$STATE/$x.tripped" ] && printf ' [DISPARADA %s]' "$(cat "$STATE/$x.tripped")"
+		[ -e "$STATE/$x.pending" ] && printf ' [pending: %s]' "$(cat "$STATE/$x.pending")"
+		printf ' fallos=%s' "$(cat "$STATE/$x.fails" 2>/dev/null || echo 0)"
+		if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet "uke-guard-ok-$x.timer" 2>/dev/null; then
+			printf ' [ok programado]'
+		fi
+		echo
+	done
+	return 0
+}
+
+case "${1:-}" in
+	begin) need_name "${2:-}"; cmd_begin "$2"; exit $? ;;
+	ok) need_name "${2:-}"; cmd_ok "$2"; exit $? ;;
+	reset) [ "${2:-}" = all ] || need_name "${2:-}"; cmd_reset "$2"; exit $? ;;
+	status) cmd_status "${2:-}"; exit 0 ;;
+	-h|--help|"") awk 'NR>1 && /^set -u/{exit} NR>1' "$0"; exit 0 ;;
+	*) echo "uso: $0 {begin|ok|reset|status} NAME" >&2; exit 2 ;;
+esac

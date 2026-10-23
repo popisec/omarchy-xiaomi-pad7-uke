@@ -1,0 +1,31 @@
+== ANTES (mudo) 10:24:18: gpio35=outhigh gpio40=inhigh gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inlow gpio156=outlow  | uart: 
+== --down
+10:24:18 uke-bt-up: hci_uart descargado
+10:24:18 uke-bt-up: uke_bt_b descargado (overlay retirado)
+== TRAS --down: gpio35=outhigh gpio40=inhigh gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inlow gpio156=outlow  | uart: 
+== encendido: uke-bt-up.sh (sampler pid 10716)
+10:24:19 uke-bt-up: serdev: serial0-0 
+10:24:19 uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+10:24:27 uke-bt-up: VERDE (tras 3 reintento(s) del driver): [  532.151632] Bluetooth: hci0: QCA controller version 0x01200102|[  532.858051] Bluetooth: hci0: QCA setup on UART is completed|
+== DESPUES: gpio35=outhigh gpio40=inlow gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inhigh gpio156=outhigh  | uart: 
+--- regulator_summary a +6 s del lanzamiento:
+ pmxr2230_s1                      2    2      0 unknown  1856mV     0mA  1856mV  2040mV 
+    serial0-0-vddrfa1p7           1                               302mA     0mV     0mV
+ pmxr2230_s2                      2    2      0    fast  1256mV     0mA  1256mV  1256mV 
+    serial0-0-vddrfa1p2           1                               257mA     0mV     0mV
+ pmxr2230_s3                      5    5      0 unknown   984mV     0mA   968mV  1040mV 
+    serial0-0-vddrfa0p8           1                               102mA     0mV     0mV
+    serial0-0-vddrfacmn           1                                12mA     0mV     0mV
+    serial0-0-vddbtcxmx           1                               126mA     0mV     0mV
+    serial0-0-vddaon              1                                26mA     0mV     0mV
+ pmxr2230_l7                      3    3      0    fast  1800mV     0mA  1800mV  1800mV 
+    serial0-0-vddio               1                                 5mA     0mV     0mV
+== muestras: 56
+0.00 gpio35=outhigh gpio40=inhigh gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inlow gpio156=outlow  uart:
+1.18 gpio35=outhigh gpio40=inlow gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inhigh gpio156=outhigh  uart:
+3.38 gpio35=outhigh gpio40=inhigh gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inhigh gpio156=outhigh  uart:
+3.55 gpio35=outhigh gpio40=inlow gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inhigh gpio156=outhigh  uart:
+5.59 gpio35=outhigh gpio40=inhigh gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inlow gpio156=outlow  uart:
+5.76 gpio35=outhigh gpio40=inlow gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inhigh gpio156=outhigh  uart:
+7.81 gpio35=outhigh gpio40=inhigh gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inlow gpio156=outlow  uart:
+7.98 gpio35=outhigh gpio40=inlow gpio41=inlow gpio42=outhigh gpio43=inhigh gpio80=inhigh gpio156=outhigh  uart:

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "omarkyy.tablet",
+  "name": "Omarchy Touch Mode",
+  "version": "1.0.0-uke1",
+  "author": "alertxsto",
+  "license": "MIT AND CC-BY-SA-4.0",
+  "description": "Floating resizable on-screen keyboard (ES/US) for the Xiaomi Pad uke; rotation via uke-rotate. Local fork of omarkyy.tablet 1.0.0.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Omarchy Touch Mode",
+    "category": "Input",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

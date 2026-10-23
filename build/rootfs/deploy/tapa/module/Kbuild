@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+# Lo construye ../build.sh. UKE_OVL_DIR = ruta absoluta del .dtbo; UKE_OVL_HDR = bt/module (uke-ovl.h, compartido con el BT).
+obj-m += uke_tapa.o
+CFLAGS_uke_tapa.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-tapa.dtbo\"
+ccflags-y += -I$(src) -I$(UKE_OVL_HDR)

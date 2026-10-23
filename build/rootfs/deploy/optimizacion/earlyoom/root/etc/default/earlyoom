@@ -1,0 +1,5 @@
+# uke (23-oct-2026, ram-optim): earlyoom porque el kernel no tiene CONFIG_PSI (systemd-oomd no funciona) y la RAM es de 7,4 GiB con zram de 4 GiB.
+# Mata solo si quedan <5 % de RAM disponible Y <10 % de swap (zram) libre. Sin comillas ni espacios en las regex: systemd parte $EARLYOOM_ARGS por espacios y no quita comillas.
+# --avoid: la sesion grafica, la barra, la red de rescate (sshd, tailscaled) y el nucleo del sistema. --prefer: apps grandes que se pueden reabrir.
+# Sin -n (necesita systembus-notify). Informe de memoria al journal cada hora (-r 3600).
+EARLYOOM_ARGS="-m 5 -s 10 -r 3600 --avoid ^(init|systemd|systemd-journal|systemd-logind|dbus-broker|Hyprland|quickshell|Xwayland|uwsm|sddm|sddm-helper|sshd|sshd-session|tailscaled|pipewire|wireplumber|NetworkManager)$ --prefer ^(firefox|Isolated.Web.Co|Web.Content|steam|steamwebhelper|opencode|nextcloud|delfin|megapixels)$"

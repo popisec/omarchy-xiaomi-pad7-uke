@@ -1,0 +1,51 @@
+--- a/drivers/video/backlight/ktz8866.c	2026-10-14 20:27:20.056973299 +0200
++++ b/drivers/video/backlight/ktz8866.c	2026-10-14 20:27:23.955895523 +0200
+@@ -50,6 +50,7 @@
+  */
+ 
+ #include <linux/backlight.h>
++#include <linux/delay.h>
+ #include <linux/err.h>
+ #include <linux/gpio/consumer.h>
+ #include <linux/i2c.h>
+@@ -512,6 +513,7 @@
+ 	struct backlight_device *backlight_dev;
+ 	struct backlight_properties props;
+ 	struct ktz8866 *ktz;
++	unsigned int cfg1 = 0;
+ 	int ret = 0;
+ 
+ 	/* Vendor probe requires SMBUS byte-data ops (mask 0x180000). */
+@@ -568,6 +570,32 @@
+ 	ktz8866_init(ktz);
+ 	uke_ktz_dump(ktz, "post-init");
+ 
++	/* L56 (14-oct-2026, receta probada en vivo hoy, KTZ-PWM-ENABLE.md):
++	 * el ABL deja BL_CFG1=0x53 (PWM_EN=1, modo "I2C x PWM") con el pin PWM
++	 * a duty=0 (nadie lo maneja en Linux) => el chip queda en Standby (boost
++	 * OFF) con registros "perfectos" y sin luz. Limpiar SOLO el bit0
++	 * (I2C-only, conserva el resto: 0x53->0x52) y re-armar BL_EN (0x3F, 50 ms,
++	 * 0x7F), igual que el flip en vivo que encendio la luz. Punto elegido:
++	 * tras ktz8866_init (su 0x3F no debe deshacer el re-armo) y antes del
++	 * primer update_status (que programa 0x7F + brillo con PWM_EN ya a 0 y
++	 * mantiene la luz, sin parpadeo). Si el I2C falla se avisa y se sigue:
++	 * el peor caso es L54 (vivo sin luz); fallar el probe romperia el enlace
++	 * panel-backlight (L45). */
++	ret = regmap_read(ktz->regmap, BL_CFG1, &cfg1);
++	if (!ret)
++		ret = ktz8866_write(ktz, BL_CFG1, cfg1 & ~BIT(0));
++	if (ret)
++		dev_warn(&client->dev, "L56: PWM-off RMW failed (%d), continuing as L54 (alive, no light)\n", ret);
++	else {
++		if (ktz8866_write(ktz, BL_EN, BL_EN_OFF))
++			dev_warn(&client->dev, "L56: BL_EN 0x3F failed, continuing\n");
++		msleep(50);
++		if (ktz8866_write(ktz, BL_EN, BL_EN_ON))
++			dev_warn(&client->dev, "L56: BL_EN 0x7F failed, continuing\n");
++	}
++	dev_info(&client->dev, "UKE-L56: PWM_EN=0 (I2C-only) + BL_EN re-armed (BL_CFG1 0x%02x->0x%02x, rc=%d)\n",
++		 cfg1, cfg1 & ~BIT(0), ret);
++
+ 	i2c_set_clientdata(client, backlight_dev);
+ 	backlight_update_status(backlight_dev);
+ 	uke_ktz_dump(ktz, "post-first-update");

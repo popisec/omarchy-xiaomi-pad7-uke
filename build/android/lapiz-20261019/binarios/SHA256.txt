@@ -1,0 +1,7 @@
+cc792d1e09e332af  handwriting_app_config.json
+00759e37d3112192  miui_shortcut_config.json
+3c825ae207d171d8  nvt_run_selftest_get_result_data_sample.bat
+9cf15a28152cf89a  stylus_game_config.json
+5b1368632417572e  stylus_page_key_bw_config.json
+2ab52cada97e43dd  stylus_palm_reject_config.json
+miui-notes-base.apk  bfdc5434ce4d9b0a (224 MB, solo en disco, no en git; origen /data/app/*/com.miui.notes-*/base.apk, 20-oct-2026)

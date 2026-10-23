@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: GPL-2.0
+# VCM de la trasera (ciclo 18). Lo construye ./build-vcm.sh.
+obj-m += uke_rpmh_ldob14.o uke_cam_vcm.o uke_vcm.o uke_cam_lens.o uke_dw9714.o
+CFLAGS_uke_cam_vcm.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-cam-vcm.dtbo\"
+CFLAGS_uke_cam_lens.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-cam-lens.dtbo\"
+ccflags-y += -I$(src) -I$(UKE_OVL_INC)

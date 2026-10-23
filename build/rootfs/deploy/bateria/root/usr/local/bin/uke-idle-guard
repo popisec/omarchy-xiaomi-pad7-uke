@@ -1,0 +1,11 @@
+#!/bin/bash
+# uke-idle-guard — mientras haya una sesion SSH establecida (puerto 22), inhibe el reposo (pantalla/DPMS/suspension)
+# para que el trabajo remoto no corte la conexion. Al cerrar el SSH, el reposo normal vuelve en <=15 s. 20-oct-2026.
+# Desactivar a mano: touch /run/uke-idle-guard.off   (o systemctl stop uke-idle-guard)
+while true; do
+	if [ ! -e /run/uke-idle-guard.off ] && [ -n "$(ss -Htn state established '( sport = :22 )' 2>/dev/null)" ]; then
+		systemd-inhibit --what=idle:sleep --who=uke-idle-guard --why="sesion SSH abierta" --mode=block sleep 15
+	else
+		sleep 10
+	fi
+done

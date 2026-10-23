@@ -1,0 +1,328 @@
+# Maintainer: omarchy-uke project
+# Firmware radio (WiFi/WPSS/ADSP/CDSP/BT) de la Xiaomi Pad 7 "uke".
+#
+# Origen:
+#  - qca6750/wpss.mdt + wpss.b00..b10,b12 (SIN b11: asi esta en la ROM) +
+#    wpss.qdb: NON-HLOS.bin de la ROM oficial OS3.0.303.0.WOZEUXM
+#    (particion modem = /vendor/firmware_mnt en Android, formato FAT16;
+#    extraido con 7z sin montar). firmware-name del DT del port:
+#    "qca6750/wpss.mdt" (remoteproc wpss via qcom_q6v5_pas).
+#  - adsp.mdt + adsp.bXX (51 segs, sin b24/b51) + adsp_dtb.mdt (+b00..b02):
+#    idem NON-HLOS.bin image/adsp*. Los pide cliffs-adsp-pas
+#    (qcom_q6v5_pas.c:1409-1410 firmware_name="adsp.mdt",
+#    dtb_firmware_name="adsp_dtb.mdt"). Prerrequisito de la cadena de
+#    bateria (pmic_glink/battmgr <- PDR charger_pd del ADSP).
+#  - cdsp.mdt + cdsp.bXX (15 segs, sin b14) + cdsp_dtb*: idem (OPCIONAL:
+#    remoteproc_cdsp disabled en el DT y cliffs-cdsp-pas sin entrada en el
+#    of_match del fork; precocinado para cuando se active).
+#  - qca/msbtfw11.mbn + qca/msnv11.bin + msnv11.b09/.b0a: linux-firmware
+#    del host (/usr/lib/firmware/qca/*.zst) DESCOMPRIMIDO con zstd -d:
+#    el kernel del port NO tiene CONFIG_FW_LOADER_COMPRESS y no lee .zst
+#    (btqca.c:828/929 piden qca/msbtfw11.mbn y qca/msnv11.bin planos).
+#  - ath11k/WCN6750/hw1.0/board-2.bin: linux-firmware del host, idem
+#    descomprimido de board-2.bin.zst (calibracion ath11k/WCN6750).
+#    NOTA: el wpss.mdt de linux-firmware (symlink a sc7280/wpss.mbn) NO
+#    sirve para qcom_q6v5_pas (sin segmentos .bXX) y NO se instala.
+# NO empaquetado: adsp2* (segunda instancia ADSP, sin nodo en el port),
+# *.jsn (registry JSON vendor), regdb_xiaomi.bin / bd_o82gl.elf /
+# wlan_mac.bin (formato vendor, ath11k no los consume), mss (modem off).
+pkgname=uke-fw-radio
+pkgver=1
+pkgrel=1
+pkgdesc="WiFi/BT/ADSP/CDSP radio firmware for Xiaomi Pad 7 (uke)"
+arch=('any')
+url="file://~/proyectos/ubuntu-uke/ROM-OS3.0.303.0.WOZEUXM.tgz"
+license=('custom')
+depends=()
+source=(
+        'adsp.b00'
+        'adsp.b01'
+        'adsp.b02'
+        'adsp.b03'
+        'adsp.b04'
+        'adsp.b05'
+        'adsp.b06'
+        'adsp.b07'
+        'adsp.b08'
+        'adsp.b09'
+        'adsp.b10'
+        'adsp.b11'
+        'adsp.b12'
+        'adsp.b13'
+        'adsp.b14'
+        'adsp.b15'
+        'adsp.b16'
+        'adsp.b17'
+        'adsp.b18'
+        'adsp.b19'
+        'adsp.b20'
+        'adsp.b21'
+        'adsp.b22'
+        'adsp.b23'
+        'adsp.b25'
+        'adsp.b26'
+        'adsp.b27'
+        'adsp.b28'
+        'adsp.b29'
+        'adsp.b30'
+        'adsp.b31'
+        'adsp.b32'
+        'adsp.b33'
+        'adsp.b34'
+        'adsp.b35'
+        'adsp.b36'
+        'adsp.b37'
+        'adsp.b38'
+        'adsp.b39'
+        'adsp.b40'
+        'adsp.b41'
+        'adsp.b42'
+        'adsp.b43'
+        'adsp.b44'
+        'adsp.b45'
+        'adsp.b46'
+        'adsp.b47'
+        'adsp.b48'
+        'adsp.b49'
+        'adsp.b50'
+        'adsp.b52'
+        'adsp.mdt'
+        'adsp_dtb.b00'
+        'adsp_dtb.b01'
+        'adsp_dtb.b02'
+        'adsp_dtb.mdt'
+        'board-2.bin'
+        'cdsp.b00'
+        'cdsp.b01'
+        'cdsp.b02'
+        'cdsp.b03'
+        'cdsp.b04'
+        'cdsp.b05'
+        'cdsp.b06'
+        'cdsp.b07'
+        'cdsp.b08'
+        'cdsp.b09'
+        'cdsp.b10'
+        'cdsp.b11'
+        'cdsp.b12'
+        'cdsp.b13'
+        'cdsp.b15'
+        'cdsp.mdt'
+        'cdsp_dtb.b00'
+        'cdsp_dtb.b01'
+        'cdsp_dtb.b02'
+        'cdsp_dtb.mdt'
+        'msbtfw11.mbn'
+        'msnv11.b09'
+        'msnv11.b0a'
+        'msnv11.bin'
+        'wpss.b00'
+        'wpss.b01'
+        'wpss.b02'
+        'wpss.b03'
+        'wpss.b04'
+        'wpss.b05'
+        'wpss.b06'
+        'wpss.b07'
+        'wpss.b08'
+        'wpss.b09'
+        'wpss.b10'
+        'wpss.b12'
+        'wpss.mdt'
+        'wpss.qdb'
+)
+sha256sums=(
+        '04166e7068e52c644c1d8727a6c32b4555d7fbe19aff17457acc17d5ad7884cd'
+        '11b0009dc008a20ba47cbd6eed0749e2a5f3134672898e831342ba268f7e5595'
+        '249b0be4fe2c2b89025664aa08cfdcf47e820535218463bd52706518117a22c7'
+        'f4152045abeea6f75c54d0bdd95ce169d255662be3bb2edb1dcff40417ec9bbc'
+        'd40caa41d40746e98d6355df9da9c7fab0ffe90fc96bf903788f276bcc197e16'
+        'ad7b0f83389a920bd3431264d990e2ff93018f49b99c15f73de65f5b7cca052b'
+        'fbdcc05089173e5cdce903a9c28809f46baef39ecaefaa6877d29daa352770d6'
+        '7270cebac835b56b5f10b38797aefee0de21574a1de00084533c1267f723dfbe'
+        '075b802c8a6c19aa1a6faab2099e4b62233b422cf664d7a7ff40f462ff13054a'
+        '7ad6260783e16811137f8b2533ca129ee5879867a9ebc03c7c64a4a859a779d9'
+        '6f262d14ef3ec38ef60e1fdfd1e3d4b38a907afb7404262a06fea224936175f8'
+        'def0a5cda02af8c17698fdb3283d76ff9e25bff5863120d806d437b8ab7e071e'
+        'bfaf7b1711bcd1f1d9658a67248a114569c5135a0a85d4fb3cbe967b62547941'
+        '6db58e079d61bd49ec10d05569fd171e89a7d58993b969c830cfcc4f12a1f27a'
+        'bc6b17e6d619cc625975eb89ee4d29e01ac3f8b9b16f539b9e135d9721767679'
+        '13606f5a7648cbf07f295cc5bcdac48d4386defc52770d067deb0da216792e98'
+        'b9068641139d446da954c0fcee7cb68421d66058429de5751fb6e03803bdf762'
+        '19beb98cc2e1b49e63bffa352f3828f618888775230faebee529613a7236345c'
+        'c002713910ffae5259f091d1d119ae72af6a78e35a5362386a6e7166479a5af2'
+        '883f8eac2b0798264e3ad20c2800a402fe5b33e9545eec8b4795cff24a839d9e'
+        'cc1787d4614b7ba99151867a7d2f6f7bed22e093dc0ce06d67bf0944485d4d14'
+        '5a092b258739658d6a78834afcc6e4e7870bd4ec0062f1a21e48f3b307e12124'
+        'fa2ed1a0e4e70416c89fa197ebe6a88b0d6b0b54c921df87a50e796aae3e89d1'
+        'ab0de7f7fb189b2a5cff99ac069ecc0268fa958ef92068744517ff0e2551c7ce'
+        '8948a6b88376b9d3f75e89f33ea0c03e149d6ebde637874951c121d0b6b17efd'
+        '61d0fe2f10ca7f68cedba50945c758ef6620f4358ee87a106fd4e35cedfaba44'
+        '74c88636f09f3b30dc9945b22f8745db68797a6c4e28b577d08b4c9eff23b0ac'
+        '792481482e013bf238463d6f9bfd5077eda446a3ad878691d6cc0b8df0c70cc4'
+        '829d7e34b123ecdb03b8fb687fb9efb5c2f1eef6545fda9ae58641f7d1a70575'
+        'a786ca4ead6f023fc2d26faf521d40c304e28341d15654511749ed617044559b'
+        'ff833d47ef0e25d8aa3c83c615a7915c31534618fbd288f6ab8948bac24d1721'
+        '521b1793218a8d27d787bb65697fd715d5f23ac569839cb0764652a6e8179363'
+        'c9ea43c30c6a86390a0c1e023f2115ea33d164381ba121e234d74496afeb9113'
+        'd39b1ea75e4ccb7a53c952c533fd484ff6b68a017966646636838e7012dfc497'
+        '28af6af2161ed282713883b7d7f247833c69be062b54472f72ee3c07ee472db6'
+        'b0dbbc00c11a284ca1635a04d7751e31248e26fbb8f625f953246f40f0a67f6b'
+        '86bcb73ff4cf9f7e8f37be0196f15f0e65f54a78cabfaa9423370101d447adee'
+        '8831ac9abdbc470d9621d3394f60a8d9c7e777b0f22658433e28505d1a21c562'
+        '53fc4df4a47b166aef8d245e7de50c05b37f831406c03a180b80deecb9931147'
+        '42c86837570fabc9cf1504a1f596b7d56305f44e3bbccd3a431be8bf5882b352'
+        'f6cd091acaf5221a9ea67b694436be261e82f927102062fe98d605daf4bad1bc'
+        '5589584cfe085b3239e26b31802089a32a0d7ba0570fd8d19512e4d3113a702c'
+        'a73e35f97bc6ae7a560f95c221e1ee8607e15402f76944ecdf532728c07a1acc'
+        'f244dadde2813c1dc16dd783cec9595e4eb4ccb9de28dc944782f5b5ec8fc3ad'
+        'e63b84b3cc47161927ce0b17be6d0896d620b52afd8b710f1920fde6d7c40807'
+        '8d181fc60c59eaa490ab778b27c18de70f4f0e61f429a724182ead18937ae9e4'
+        '0e9af7cba3044d140828583f33def093378c147fbc8489a4f283f7c2f2352533'
+        'e0d37271085706ba7079622063dab8899d1ff591827c6e0ee25c9044c10c3f1e'
+        'aff7e23303334dd0fa24d9d9b4b523f05cefde0ee418d83177e6c318970bb76f'
+        'b4f0ffd764727b141a2d6eb0d306bc8a926b472a254ecb01652b8dcee8da47e5'
+        'aa1bbe070b822357bbccf95353da4babb46b560d22032b35a30fdfbae98676b8'
+        'efb516e8b589cfa0462d23406edfa3d77768f98e6e0bc89f06b865201f21efbb'
+        'd40b10067ecbfc6b05c63083da74a0942c3b2ddabffdefb94c55b9533aebe8b3'
+        'ad20a9d5b1f070ad6ea813ce4722d9e617c6157d6c6fd2f63b555d0fbea5510d'
+        '8fac3773f769af93fdb305d23e3163462000233fc4643f88b6e7a30a41389882'
+        '37c1f69793d4f4596cb0ba2b72796c7cbc809fff664a33f371901a806c35aa9d'
+        'dd2769c0528ecb575fc66233fe755eb7e4a81dff7b50973d8b5eda7585adf32b'
+        'ca7d42461530d1bfcbfa5994d6f701498ee421b81c29a2de305007738baef41f'
+        '9be17ec22ee562eee6ab2890494ec2cbabcb900db05e119a557de99b4d17eece'
+        '0f56a959e1e797abbbe8ca1bdd30530cb70a1e9f24c9f57de549813293d6a7ae'
+        '2a0c13bb67d25778ca6b59352fbc331c08f83e103abd7fe65cc7026e20b9029d'
+        '55f3080eb303a674a34023ab892635eff2e99724aea8c9429291385e9481dc40'
+        '25b5b025eb551c2c56ecf974e329f2a96ebc853997f56bed6b887b9ebf9e2c82'
+        '4f78c9274334a20fd4643383c963ab77724105c6d0fa8a8134cf773c68f47962'
+        '07a4a213fad5600da2886ec82510b36eabd9f086e23092d77a48bf696d01d48f'
+        '6d9aa426510b3dbae5668a21d45b0830a24da2d408c91221448affdb4fed5fcf'
+        '1f8784c2c72df9a77f6a06737772edf7c854f2252a4ddd76858655ee460143eb'
+        'c695c43fa9fc0f9bc9a987b723cafc326e1bd6b14cf8d75c470a6b2d18e75806'
+        'a95928282829aad98cc1177afb6cca55e590c977f3f5ef4ae1fb7b6c9b85c534'
+        'f387b986031de07fe34594f370edf72352f435899ab820a99f6df61fac800960'
+        '62af5c1ecf24e5c4f9ea123f5bceb29e36d12dff99776f9ea4f11bb452eeb2a3'
+        'f183c0208b41a1e6858dc971b061d74c9dd71252de080ac31777c4a3203c174f'
+        'cb62c68e5f10d466ae8d15fcd03b7c89266ade1eeb82cb4283d119578189ec6a'
+        'e4396dcd9bb9bc847f8429f8c1be9dfc706bead48262400cc35b8ab89a452288'
+        '33e44907f85205cf77d9e445394feb00c65f4d446cbd90a8f4991e56c608e629'
+        'b9433fc8212cb466e5cb52cf468f1d088a6e5a69ad492da2403dc827e7190d00'
+        'f4b0cdcc899cc614b817e91e9f232fd394ae1c53ebeec04dda5431d3bea4ceb6'
+        '2c450354a6947c7c780ceaa180693a0c5464697309933b618b60325f63d005c5'
+        'e6ac57da95c246e59d6e8fa0a8bfb7eff4cadabedfdb67f27c79ea4b98cc8fb6'
+        '5a3de63780c4c1e6a6223ebee744dff36a992a3712da426c2c88985c3d7fa804'
+        'e213c462d9eae57163fa9ad83a5ba06a590630371bccc1e8ecc783a2ec0d3c90'
+        '2f0b37ad814da7e612bdd420c411a323367936efea2eea32f19c9b796244b0d4'
+        '3dd190536edda87cda85b69fcc7d03174e948daa3618ca5b9a5e902f4dd2d7d4'
+        'bcaff73b3436be65aa26cf06b5e5f3e4eef3b8b5a625cc78e9169e7c9b3f5dc0'
+        'b7a3b1f97ef810824c8660222d4deb8689de77ea809c6c9ed8d779ec48dfea1d'
+        '41870cea04a11339ed8e99324e33ff2119c8de23cb77d0ad3fc7b52de059f8c9'
+        'aae176b232881e8b9258e1844a9b946a4e4690b9bb5463b281cd1ba2b3ee1f14'
+        '2b9d868e0d776659f3741d9cce75f7239f4693596181657e420c5693979473a3'
+        'd7846f851ef64896a307db5b0e08249cfd9319f0769ec91988156d92833de9fa'
+        '0de7c47d174666be7f6a820951225ce0d50c97007aa186191e9ef25356efcb34'
+        '57464f648ec1a089770e642b7c35717bf9b925e65996ba5d7671e9c77321de13'
+        '26d0fc62bd7983c7c95c03079e751e8a3188a5965b7e0c4a101ad26331819a0c'
+        'a1f14ed3aeb4d122a78d5fea665e1364589c89991d8de16757d06ebccc700374'
+        'b3451c51cd58e1afd6f172e46b78fefb236cb7efdd02bd4991a3ab2794be6560'
+        'f5d029a49b38dee301310d04e43efb9d45bd7c89f805e8fbb3ae9665aefb88f5'
+)
+
+package() {
+  install -Dm644 "adsp.b00" "$pkgdir/usr/lib/firmware/adsp.b00"
+  install -Dm644 "adsp.b01" "$pkgdir/usr/lib/firmware/adsp.b01"
+  install -Dm644 "adsp.b02" "$pkgdir/usr/lib/firmware/adsp.b02"
+  install -Dm644 "adsp.b03" "$pkgdir/usr/lib/firmware/adsp.b03"
+  install -Dm644 "adsp.b04" "$pkgdir/usr/lib/firmware/adsp.b04"
+  install -Dm644 "adsp.b05" "$pkgdir/usr/lib/firmware/adsp.b05"
+  install -Dm644 "adsp.b06" "$pkgdir/usr/lib/firmware/adsp.b06"
+  install -Dm644 "adsp.b07" "$pkgdir/usr/lib/firmware/adsp.b07"
+  install -Dm644 "adsp.b08" "$pkgdir/usr/lib/firmware/adsp.b08"
+  install -Dm644 "adsp.b09" "$pkgdir/usr/lib/firmware/adsp.b09"
+  install -Dm644 "adsp.b10" "$pkgdir/usr/lib/firmware/adsp.b10"
+  install -Dm644 "adsp.b11" "$pkgdir/usr/lib/firmware/adsp.b11"
+  install -Dm644 "adsp.b12" "$pkgdir/usr/lib/firmware/adsp.b12"
+  install -Dm644 "adsp.b13" "$pkgdir/usr/lib/firmware/adsp.b13"
+  install -Dm644 "adsp.b14" "$pkgdir/usr/lib/firmware/adsp.b14"
+  install -Dm644 "adsp.b15" "$pkgdir/usr/lib/firmware/adsp.b15"
+  install -Dm644 "adsp.b16" "$pkgdir/usr/lib/firmware/adsp.b16"
+  install -Dm644 "adsp.b17" "$pkgdir/usr/lib/firmware/adsp.b17"
+  install -Dm644 "adsp.b18" "$pkgdir/usr/lib/firmware/adsp.b18"
+  install -Dm644 "adsp.b19" "$pkgdir/usr/lib/firmware/adsp.b19"
+  install -Dm644 "adsp.b20" "$pkgdir/usr/lib/firmware/adsp.b20"
+  install -Dm644 "adsp.b21" "$pkgdir/usr/lib/firmware/adsp.b21"
+  install -Dm644 "adsp.b22" "$pkgdir/usr/lib/firmware/adsp.b22"
+  install -Dm644 "adsp.b23" "$pkgdir/usr/lib/firmware/adsp.b23"
+  install -Dm644 "adsp.b25" "$pkgdir/usr/lib/firmware/adsp.b25"
+  install -Dm644 "adsp.b26" "$pkgdir/usr/lib/firmware/adsp.b26"
+  install -Dm644 "adsp.b27" "$pkgdir/usr/lib/firmware/adsp.b27"
+  install -Dm644 "adsp.b28" "$pkgdir/usr/lib/firmware/adsp.b28"
+  install -Dm644 "adsp.b29" "$pkgdir/usr/lib/firmware/adsp.b29"
+  install -Dm644 "adsp.b30" "$pkgdir/usr/lib/firmware/adsp.b30"
+  install -Dm644 "adsp.b31" "$pkgdir/usr/lib/firmware/adsp.b31"
+  install -Dm644 "adsp.b32" "$pkgdir/usr/lib/firmware/adsp.b32"
+  install -Dm644 "adsp.b33" "$pkgdir/usr/lib/firmware/adsp.b33"
+  install -Dm644 "adsp.b34" "$pkgdir/usr/lib/firmware/adsp.b34"
+  install -Dm644 "adsp.b35" "$pkgdir/usr/lib/firmware/adsp.b35"
+  install -Dm644 "adsp.b36" "$pkgdir/usr/lib/firmware/adsp.b36"
+  install -Dm644 "adsp.b37" "$pkgdir/usr/lib/firmware/adsp.b37"
+  install -Dm644 "adsp.b38" "$pkgdir/usr/lib/firmware/adsp.b38"
+  install -Dm644 "adsp.b39" "$pkgdir/usr/lib/firmware/adsp.b39"
+  install -Dm644 "adsp.b40" "$pkgdir/usr/lib/firmware/adsp.b40"
+  install -Dm644 "adsp.b41" "$pkgdir/usr/lib/firmware/adsp.b41"
+  install -Dm644 "adsp.b42" "$pkgdir/usr/lib/firmware/adsp.b42"
+  install -Dm644 "adsp.b43" "$pkgdir/usr/lib/firmware/adsp.b43"
+  install -Dm644 "adsp.b44" "$pkgdir/usr/lib/firmware/adsp.b44"
+  install -Dm644 "adsp.b45" "$pkgdir/usr/lib/firmware/adsp.b45"
+  install -Dm644 "adsp.b46" "$pkgdir/usr/lib/firmware/adsp.b46"
+  install -Dm644 "adsp.b47" "$pkgdir/usr/lib/firmware/adsp.b47"
+  install -Dm644 "adsp.b48" "$pkgdir/usr/lib/firmware/adsp.b48"
+  install -Dm644 "adsp.b49" "$pkgdir/usr/lib/firmware/adsp.b49"
+  install -Dm644 "adsp.b50" "$pkgdir/usr/lib/firmware/adsp.b50"
+  install -Dm644 "adsp.b52" "$pkgdir/usr/lib/firmware/adsp.b52"
+  install -Dm644 "adsp.mdt" "$pkgdir/usr/lib/firmware/adsp.mdt"
+  install -Dm644 "adsp_dtb.b00" "$pkgdir/usr/lib/firmware/adsp_dtb.b00"
+  install -Dm644 "adsp_dtb.b01" "$pkgdir/usr/lib/firmware/adsp_dtb.b01"
+  install -Dm644 "adsp_dtb.b02" "$pkgdir/usr/lib/firmware/adsp_dtb.b02"
+  install -Dm644 "adsp_dtb.mdt" "$pkgdir/usr/lib/firmware/adsp_dtb.mdt"
+  install -Dm644 "board-2.bin" "$pkgdir/usr/lib/firmware/ath11k/WCN6750/hw1.0/board-2.bin"
+  install -Dm644 "cdsp.b00" "$pkgdir/usr/lib/firmware/cdsp.b00"
+  install -Dm644 "cdsp.b01" "$pkgdir/usr/lib/firmware/cdsp.b01"
+  install -Dm644 "cdsp.b02" "$pkgdir/usr/lib/firmware/cdsp.b02"
+  install -Dm644 "cdsp.b03" "$pkgdir/usr/lib/firmware/cdsp.b03"
+  install -Dm644 "cdsp.b04" "$pkgdir/usr/lib/firmware/cdsp.b04"
+  install -Dm644 "cdsp.b05" "$pkgdir/usr/lib/firmware/cdsp.b05"
+  install -Dm644 "cdsp.b06" "$pkgdir/usr/lib/firmware/cdsp.b06"
+  install -Dm644 "cdsp.b07" "$pkgdir/usr/lib/firmware/cdsp.b07"
+  install -Dm644 "cdsp.b08" "$pkgdir/usr/lib/firmware/cdsp.b08"
+  install -Dm644 "cdsp.b09" "$pkgdir/usr/lib/firmware/cdsp.b09"
+  install -Dm644 "cdsp.b10" "$pkgdir/usr/lib/firmware/cdsp.b10"
+  install -Dm644 "cdsp.b11" "$pkgdir/usr/lib/firmware/cdsp.b11"
+  install -Dm644 "cdsp.b12" "$pkgdir/usr/lib/firmware/cdsp.b12"
+  install -Dm644 "cdsp.b13" "$pkgdir/usr/lib/firmware/cdsp.b13"
+  install -Dm644 "cdsp.b15" "$pkgdir/usr/lib/firmware/cdsp.b15"
+  install -Dm644 "cdsp.mdt" "$pkgdir/usr/lib/firmware/cdsp.mdt"
+  install -Dm644 "cdsp_dtb.b00" "$pkgdir/usr/lib/firmware/cdsp_dtb.b00"
+  install -Dm644 "cdsp_dtb.b01" "$pkgdir/usr/lib/firmware/cdsp_dtb.b01"
+  install -Dm644 "cdsp_dtb.b02" "$pkgdir/usr/lib/firmware/cdsp_dtb.b02"
+  install -Dm644 "cdsp_dtb.mdt" "$pkgdir/usr/lib/firmware/cdsp_dtb.mdt"
+  install -Dm644 "msbtfw11.mbn" "$pkgdir/usr/lib/firmware/qca/msbtfw11.mbn"
+  install -Dm644 "msnv11.b09" "$pkgdir/usr/lib/firmware/qca/msnv11.b09"
+  install -Dm644 "msnv11.b0a" "$pkgdir/usr/lib/firmware/qca/msnv11.b0a"
+  install -Dm644 "msnv11.bin" "$pkgdir/usr/lib/firmware/qca/msnv11.bin"
+  install -Dm644 "wpss.b00" "$pkgdir/usr/lib/firmware/qca6750/wpss.b00"
+  install -Dm644 "wpss.b01" "$pkgdir/usr/lib/firmware/qca6750/wpss.b01"
+  install -Dm644 "wpss.b02" "$pkgdir/usr/lib/firmware/qca6750/wpss.b02"
+  install -Dm644 "wpss.b03" "$pkgdir/usr/lib/firmware/qca6750/wpss.b03"
+  install -Dm644 "wpss.b04" "$pkgdir/usr/lib/firmware/qca6750/wpss.b04"
+  install -Dm644 "wpss.b05" "$pkgdir/usr/lib/firmware/qca6750/wpss.b05"
+  install -Dm644 "wpss.b06" "$pkgdir/usr/lib/firmware/qca6750/wpss.b06"
+  install -Dm644 "wpss.b07" "$pkgdir/usr/lib/firmware/qca6750/wpss.b07"
+  install -Dm644 "wpss.b08" "$pkgdir/usr/lib/firmware/qca6750/wpss.b08"
+  install -Dm644 "wpss.b09" "$pkgdir/usr/lib/firmware/qca6750/wpss.b09"
+  install -Dm644 "wpss.b10" "$pkgdir/usr/lib/firmware/qca6750/wpss.b10"
+  install -Dm644 "wpss.b12" "$pkgdir/usr/lib/firmware/qca6750/wpss.b12"
+  install -Dm644 "wpss.mdt" "$pkgdir/usr/lib/firmware/qca6750/wpss.mdt"
+  install -Dm644 "wpss.qdb" "$pkgdir/usr/lib/firmware/qca6750/wpss.qdb"
+}

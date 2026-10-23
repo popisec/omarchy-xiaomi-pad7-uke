@@ -1,0 +1,3 @@
+#!/bin/bash
+# uke-apagar — sync y apagado (con cable de carga el PMIC/bootloader la enciende de nuevo: entonces entra el modo carga).
+sync; sync; exec systemctl poweroff

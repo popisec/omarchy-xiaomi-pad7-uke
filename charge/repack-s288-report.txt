@@ -1,0 +1,27 @@
+=== G0 pins ===
+  OK  pins (s287 9f3d2b00 + base 3f973c78) y herramientas
+=== G1: extraer payload s287 ===
+  OK  payload s287 (159 frags, max=2403), bus KTZ + vci presentes
+=== G2: injertar fragment@2404 (ADSP icc -> mc_virt) ===
+  OK  compila con 1 fragmento anadido (2404, ADSP icc en /soc/remoteproc-adsp@03000000)
+=== G3: fdtoverlay (gate 1: el ABL haria lo mismo) ===
+  OK  fdtoverlay verde (s288 y s287)
+=== G4: el ADSP cambia a mc_virt, y SOLO el ===
+  OK  mc_virt = /soc/interconnect@1, phandle 0x188, cliffs-mc_virt
+  OK  interconnects = <0x188 3 0x188 512> (MASTER_LLCC=3 -> SLAVE_EBI1=512)
+  OK  cx-supply presente y vacia (of_parse_phandle NULL -> -ENODEV -> ausente)
+  OK  referencia s287 con vendor (0x187../0x189.., 8 celdas): el cambio es solo del s288
+  OK  interconnect-names intactos
+=== G5: paridad s287 ===
+  OK  gpr disabled + backlight resuelto + OPP 148648750 + panel identico: paridad s287
+  OK  KTZ + 2 gpi-dma + 6 GENI identicos a s287
+=== G5b: diff exhaustivo m287 vs m288 (SOLO el ADSP puede diferir) ===
+  OK  set de nodos identico (4267 nodos, ninguno creado ni borrado)
+  OK  cero cambios fuera del ADSP; en el ADSP SOLO interconnects + cx-supply
+=== G6: dt_table + roundtrip ===
+  OK  dt_table (1 entrada) + roundtrip; 608832 B
+=== G7: uke-dtbo-check.py (GATE, no aviso) ===
+  OK  uke-dtbo-check.py limpio
+
+PUBLICADO: ~/proyectos/omarchy-uke/build/bootimg/s288-boot-dtbo-gpu-display-gpi-i2c-ktz-vci-adsp.img
+sha256 = 02d403c518346bf5a3757c5519eb8ca205f8f75af078cfde2e03d9d49e702dfb

@@ -1,0 +1,2 @@
+soc:gpio_key	
+arm-scmi.0.auto	arm-scmi: failed to setup channels

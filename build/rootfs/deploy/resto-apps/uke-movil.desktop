@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Móvil (scrcpy)
+Comment=Controlar el Nothing Phone 2a por Tailscale
+Exec=/usr/local/bin/uke-movil
+Icon=phone
+Terminal=false
+Categories=Utility;

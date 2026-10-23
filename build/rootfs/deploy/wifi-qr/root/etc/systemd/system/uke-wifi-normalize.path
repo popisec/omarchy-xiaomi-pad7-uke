@@ -1,0 +1,9 @@
+[Unit]
+Description=Vigila perfiles de NetworkManager para normalizar psk-flags
+
+[Path]
+PathChanged=/etc/NetworkManager/system-connections
+Unit=uke-wifi-normalize.service
+
+[Install]
+WantedBy=multi-user.target

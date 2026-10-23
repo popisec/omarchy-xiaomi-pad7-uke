@@ -1,0 +1,65 @@
+cmd-db
+interconnect
+pm_genpd
+qcom_aoss
+qcom_socinfo
+domain                          status          children        performance
+    /device                         runtime status                  managed by
+------------------------------------------------------------------------------
+mdss_int2_gdsc                  off-0                           0
+mdss_gdsc                       on                              0
+    ae00000.display-subsystem       active                      0           SW
+gpu_cc_gx_gdsc                  off-0                           0
+    genpd:1:3d68000.qcom,gmu        suspended                   0           SW
+gpu_cc_cx_gdsc                  off-0                           0
+    3da0000.kgsl-smmu               suspended                   0           SW
+    genpd:0:3d68000.qcom,gmu        suspended                   0           SW
+usb3_phy_gdsc                   on                              0
+usb30_prim_gdsc                 on                              0
+ufs_mem_phy_gdsc                on                              0
+ufs_phy_gdsc                    on                              0
+pcie_0_phy_gdsc                 off-0                           0
+pcie_0_gdsc                     off-0                           0
+cluster-pd                      on                              0
+                                                cpu-pd0, cpu-pd1, cpu-pd2, cpu-pd3, cpu-pd4, cpu-pd5, cpu-pd6, cpu-pd7
+    17a00000.rsc                    suspended                   0           SW
+cpu-pd7                         on                              0
+    genpd:0:cpu7                    active                      0           SW
+cpu-pd6                         on                              0
+    genpd:0:cpu6                    active                      0           SW
+cpu-pd5                         on                              0
+    genpd:0:cpu5                    active                      0           SW
+cpu-pd4                         on                              0
+    genpd:0:cpu4                    active                      0           SW
+cpu-pd3                         on                              0
+    genpd:0:cpu3                    active                      0           SW
+cpu-pd2                         off-0                           0
+    genpd:0:cpu2                    suspended                   0           SW
+cpu-pd1                         on                              0
+    genpd:0:cpu1                    active                      0           SW
+cpu-pd0                         on                              0
+    genpd:0:cpu0                    active                      0           SW
+ node                                  tag          avg         peak
+--------------------------------------------------------------------
+llcc_mc@soc:interconnect@1                   2151741439   2147483647
+  a90000.spi                             0            0            0
+  a90000.spi                             0            0            0
+  ae00000.display-subsystem              0      4257792       800000
+  3000000.remoteproc-adsp                0            0            0
+  ae00000.display-subsystem              0            0       400000
+ebi@soc:interconnect@1                       2151741439   2147483647
+  a90000.spi                             0            0            0
+  a90000.spi                             0            0            0
+  1d84000.ufshc                          0            0            0
+  ae00000.display-subsystem              0      4257792       800000
+  3000000.remoteproc-adsp                0            0            0
+  ae00000.display-subsystem              0            0       400000
+xm_ufs_mem@16e0000.interconnect                       0            0
+  1d84000.ufshc                          0            0            0
+qns_a1noc_snoc@16e0000.interconnect                   0            0
+qhs_ufs_mem_cfg@1600000.interconnect                  0            0
+  1d84000.ufshc                          0            0            0
+chm_apps@24100000.interconnect                        0            0
+  1d84000.ufshc                          0            0            0
+ls: cannot access '/sys/kernel/debug/qcom_cmd_db*': No such file or directory
+head: cannot open '/sys/kernel/debug/qcom_cmd_db' for reading: No such file or directory

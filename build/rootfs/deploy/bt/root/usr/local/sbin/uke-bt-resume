@@ -1,0 +1,48 @@
+#!/bin/bash
+# uke-bt-resume — tras reanudar de la suspension: enciende el adaptador y reconecta los dispositivos que estaban conectados
+# (/var/lib/uke/bt-last, escrito por uke-bt-sleep). Lo lanza el gancho, desacoplado; nunca bloquea la suspension.
+# Reintenta: el auricular puede tardar unos segundos en estar listo tras reanudar (o reconectar el solo, que tambien vale).
+# Pruebas en el PC: UKE_BT_ROOT, UKE_BT_PATH, UKE_BT_TMO (timeout por orden), UKE_BT_TRIES, UKE_BT_PAUSE (s entre intentos), UKE_BT_WAIT.
+PATH=${UKE_BT_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin}
+ROOT=${UKE_BT_ROOT:-}
+TMO=${UKE_BT_TMO:-12}
+TRIES=${UKE_BT_TRIES:-6}
+PAUSE=${UKE_BT_PAUSE:-3}
+WAIT=${UKE_BT_WAIT:-20}   # s de espera a bluetooth.service y a hci0 (pruebas: 1)
+UP=${UKE_BT_UP:-/usr/local/sbin/uke-bt-up.sh}
+RECOVER=${UKE_BT_RECOVER:-1}   # 1 = si `power on` no responde (chip mudo tras la reanudacion), --down + encendido por ciclos (uke-bt-up.sh) y reintentar
+LOG=$ROOT/var/log/uke-bt.log
+LAST=$ROOT/var/lib/uke/bt-last
+say() { printf '%s uke-bt-resume: %s\n' "$(date -u +%FT%TZ)" "$*" >> "$LOG" 2>/dev/null; return 0; }
+[ -e "$ROOT/etc/uke/no-bt" ] && exit 0
+command -v bluetoothctl >/dev/null || exit 0
+for i in $(seq 1 "$WAIT"); do systemctl is-active --quiet bluetooth.service 2>/dev/null && break; sleep 1; done
+systemctl is-active --quiet bluetooth.service 2>/dev/null || { say "bluetooth.service no esta activo: no hago nada"; exit 0; }
+for i in $(seq 1 "$WAIT"); do [ -e "$ROOT/sys/class/bluetooth/hci0" ] && break; sleep 1; done
+if timeout "$TMO" bluetoothctl power on >/dev/null 2>&1; then
+	say "adaptador encendido"
+else
+	say "power on no respondio"
+	if [ "$RECOVER" != 0 ] && [ -x "$UP" ]; then
+		# el WCN6750 puede quedar mudo tras reencenderlo (BT-MUDO-20261019.md): descargar y volver a encender por ciclos es lo que lo rescato en el bucle
+		say "recuperacion: uke-bt-up.sh --down y encendido por ciclos"
+		timeout 60 "$UP" --down >/dev/null 2>&1
+		UKE_BT_CYCLES=3 timeout 240 "$UP" --service >/dev/null 2>&1; rc=$?
+		say "recuperacion: uke-bt-up.sh rc=$rc"
+		for i in $(seq 1 "$WAIT"); do [ -e "$ROOT/sys/class/bluetooth/hci0" ] && break; sleep 1; done
+		timeout "$TMO" bluetoothctl power on >/dev/null 2>&1 && say "adaptador encendido tras la recuperacion" || say "ROJO: el adaptador no enciende ni tras la recuperacion (uke-bt-up.sh rc=$rc)"
+	fi
+fi
+[ -s "$LAST" ] || { say "sin dispositivos que reconectar"; exit 0; }
+while read -r mac; do
+	[ -n "$mac" ] || continue
+	ok=0
+	for i in $(seq 1 "$TRIES"); do
+		if timeout "$TMO" bluetoothctl info "$mac" 2>/dev/null | grep -q 'Connected: yes'; then ok=1; break; fi
+		timeout "$TMO" bluetoothctl connect "$mac" >/dev/null 2>&1
+		sleep "$PAUSE"
+	done
+	if [ "$ok" = 0 ] && timeout "$TMO" bluetoothctl info "$mac" 2>/dev/null | grep -q 'Connected: yes'; then ok=1; fi
+	say "reconexion de ${mac%:*:*:*}:XX:XX:XX $([ "$ok" = 1 ] && echo OK || echo "NO tras $TRIES intentos")"
+done < "$LAST"
+exit 0

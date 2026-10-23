@@ -1,0 +1,53 @@
+--- /tmp/a6xx_gmu.c.k43	2026-10-03 00:46:31.541756004 +0200
++++ build/kernel-pokes/k18-tree/drivers/gpu/drm/msm/adreno/a6xx_gmu.c	2026-10-03 01:02:43.411008772 +0200
+@@ -684,6 +684,32 @@
+ 		gmu_write(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP, 0);
+ 	uke_poke("S2-gen9");
+ 
++	/* UKE-K44 (3-oct-2026, ledger #499): SOLO LECTURA de los registros que
++	 * definen desde donde fetch-ea el CM3, impresa ANTES de soltar el reset
++	 * (CM3 quieto: no puede interferir). Nivel err (3<4: pasa el tope de
++	 * consola de K41). 12 lecturas, todas dentro del recurso GMU del DT;
++	 * cero SMMU, cero volcados de rangos (regla 3). Diseño: informe K44. */
++	pr_err("UKE-K44 A: rst=%08x bootcfg=%08x cfg=%08x initres=%08x\n",
++		gmu_read(gmu, REG_A6XX_GMU_CM3_SYSRESET),
++		gmu_read(gmu, REG_A6XX_GMU_CM3_BOOT_CONFIG),
++		gmu_read(gmu, REG_A6XX_GMU_CM3_CFG),
++		gmu_read(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT));
++	pr_err("UKE-K44 B: itcm0=%08x itcm1=%08x (esp 10007f80/00000105)\n",
++		gmu_read(gmu, REG_A6XX_GMU_CM3_ITCM_START),
++		gmu_read(gmu, REG_A6XX_GMU_CM3_ITCM_START + 1));
++	pr_err("UKE-K44 C: icache=%08x dcache=%08x sysbus=%08x (esp 1/1/1)\n",
++		gmu_read(gmu, REG_A6XX_GMU_ICACHE_CONFIG),
++		gmu_read(gmu, REG_A6XX_GMU_DCACHE_CONFIG),
++		gmu_read(gmu, REG_A6XX_GMU_SYS_BUS_CONFIG));
++	pr_err("UKE-K44 D: hfi_info=%08x hfi_addr=%08x (esp 1/%08llx)\n",
++		gmu_read(gmu, REG_A6XX_GMU_HFI_QTBL_INFO),
++		gmu_read(gmu, REG_A6XX_GMU_HFI_QTBL_ADDR),
++		gmu->hfi.iova);
++	pr_err("UKE-K44 E: fence=%08x fence_r0=%08x (esp 0/8c8008a0)\n",
++		gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_STATUS),
++		gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_RANGE_0));
++	pr_flush(120, false);
++
+ 	/* UKE-K25 (1-oct-2026, sesion #458) — TEST H2.
+ 	 *
+ 	 * H2: el volcado SMMU es (parte de) el wedge. Este codigo hace, aqui, EN CADA
+@@ -719,6 +745,17 @@
+ 	uke_poke(ret ? "S4-pollFAIL" : "S4-pollOK");
+ 	pr_flush(120, false);
+ 
++	/* UKE-K44': la MISMA lista, solo si el poll tuvo exito (maquina viva) */
++	if (!ret) {
++		pr_err("UKE-K44' A: rst=%08x bootcfg=%08x cfg=%08x initres=%08x\n",
++			gmu_read(gmu, REG_A6XX_GMU_CM3_SYSRESET),
++			gmu_read(gmu, REG_A6XX_GMU_CM3_BOOT_CONFIG),
++			gmu_read(gmu, REG_A6XX_GMU_CM3_CFG),
++			gmu_read(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT));
++		pr_err("UKE-K44' E: fence=%08x (esp 0; si no: bus-fault fenceado)\n",
++			gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_STATUS));
++	}
++
+ 	if (ret)
+ 		DRM_DEV_ERROR(gmu->dev, "GMU firmware initialization timed out\n");
+ 

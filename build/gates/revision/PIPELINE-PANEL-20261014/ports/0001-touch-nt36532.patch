@@ -1,0 +1,67 @@
+--- a/drivers/pinctrl/qcom/pinctrl-cliffs.c	2026-10-15 10:47:50.100806359 +0200
++++ b/drivers/pinctrl/qcom/pinctrl-cliffs.c	2026-10-15 10:47:59.495203681 +0200
+@@ -1568,7 +1568,7 @@
+ };
+ 
+ static const struct pinfunction cliffs_functions[] = {
+-	FUNCTION(gpio),
++	MSM_GPIO_PIN_FUNCTION(gpio),
+ 	FUNCTION(HOST2WLAN_SOL),
+ 	FUNCTION(RESOUT_GPIO_N),
+ 	FUNCTION(aoss_cti),
+--- a/arch/arm64/boot/dts/qcom/xiaomi-uke.dts	2026-10-15 10:47:50.102551490 +0200
++++ b/arch/arm64/boot/dts/qcom/xiaomi-uke.dts	2026-10-15 10:47:59.496471605 +0200
+@@ -530,8 +530,10 @@
+  *       &mdss_dsi1 { status = "okay"; assigned-clock-parents dsi0-phy; };
+  * TODO: &mdss_dsi0_phy / &mdss_dsi1_phy con vdds-supply (<&vreg_l2b_0p95>?
+  *       confirmar contra el overlay/regulador vendor vdda-0p9).
+- * TODO: touch novatek nt36532 en SPI (driver por portar; el fork solo trae
+- *       nt36672a). El backlight de este panel es DCS 0x51 interno del panel
++ * TODO: display pendiente (mdss/dsi/phys). Touch: driver
++ *       novatek-nt36xxx-spi.c YA en el arbol (compatible "novatek,NVT-ts-spi",
++ *       CONFIG_TOUCHSCREEN_NOVATEK_NT36XXX_SPI=y); nodo en &spi4 abajo.
++ *       El backlight de este panel es DCS 0x51 interno del panel
+  *       (lo registra el driver); ktz8866 NO aplica al o82.
+  * TODO: anadir grupos regulators-1 (pm8550vs c, l3c panel) y regulators-3
+  *       (pmr735a e) con rails de display/touch del DTBO vendor.
+@@ -551,6 +553,40 @@
+ 	status = "okay";
+ };
+ 
++/* ---- touch Novatek NT36532 (QUP0 SE4 SPI, INT tlmm gpio54) ----
++ * Espejo del nodo vendor del DTBO stock (fragment@35 -> spi@a90000/
++ * novatek@0): compatible/CS/freq exactos; INT via interrupts-extended
++ * (el vendor usa novatek,irq-gpio <&tlmm 54 0x2001> + gpio_to_irq).
++ * 0x2001 = IRQF_ONESHOT | EDGE_RISING (flags Linux del .ko vendor,
++ * verificado en fase4-touch.dts del staging hermano); si no hay eventos,
++ * probar IRQ_TYPE_EDGE_FALLING (1 linea). Sin reset-gpios ni supplies:
++ * TDDI, los rieles van con el panel (el driver los trata como opcionales).
++ * Pines del bus (MISO16/MOSI17/CLK18/CS19, qup0_se4) ya muxados por
++ * qup_spi4_data_clk/cs de palawan.dtsi: este bloque no anade pinctrl.
++ * NOTA DE RUTA: mientras el arranque use DTBO derivado del vendor, el nodo
++ * vivo lo aporta el DTBO y este bloque solo vale para el DT nativo futuro;
++ * en la ruta DTBO el fix es el overlay fase4-touch.dts (staging hermano),
++ * que anade interrupts al novatek@0 existente. */
++&spi4 {
++	status = "okay";
++
++	touchscreen@0 {
++		compatible = "novatek,NVT-ts-spi";
++		reg = <0>;
++
++		spi-max-frequency = <19200000>;
++		interrupts-extended = <&tlmm 54 IRQ_TYPE_EDGE_RISING>;
++
++		/* abs_x_max=2136, abs_y_max=3200 (dmesg vendor); el IC
++		 * reporta records de 12 bits. Si evtest muestra ejes
++		 * permutados, intercambiar size-x/size-y. */
++		touchscreen-size-x = <2136>;
++		touchscreen-size-y = <3200>;
++
++		status = "okay";
++	};
++};
++
+ &gpu_zap_shader {
+ 	firmware-name = "qcom/uke/gen71100_zap.mbn";
+ };

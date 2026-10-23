@@ -1,0 +1,274 @@
+[    0.000000] Kernel command line: msm.separate_gpu_kms=1 loglevel=6 kpti=0 log_buf_len=256K swiotlb=noforce loop.max_part=7 pcie_ports=compat irqaffinity=0-2 cpufreq.default_governor=performance sysctl.kernel.sched_pelt_multiplier=4 kasan=off cgroup.memory=nokmem,nosocket disable_dma32=on kernel.panic_on_rcu_stall=1 fw_devlink.strict=1 service_locator.enable=1 rcupdate.rcu_expedited=1 rcu_nocbs=0-7 no-steal-acc printk.console_no_auto_verbose=0 can.stats_timer=0 ftrace_dump_on_oops firmware_class.path=/vendor/firmware_mnt/image,/vendor/firmware_mnt/image/kiwi,/vendor/vm-system/oemvm/boot,/vendor/vm-system/trustedvm/boot,/vendor/firmware,/vendor/firmware/wlan/qca_cld/kiwi_v2 pci-msm-drv.pcie_sm_regs=0x1D07000,0x1040,0x1048,0x3000,0x1 video=vfb:640x400,bpp=32,memsize=3072000 swinfo.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user mtdoops.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user bootconfig rdinit=/ukeinit panic=10 memmap=0x1A12800$0xE3940000 console=tty0 fbcon=map:0 hung_task_timeout_secs=20 hung_task_panic=1 \
+[    0.000000] Kernel command line: watchdog_thresh=10 console=ttyGS0,115200 fw_devlink=permissive clk_ignore_unused pd_ignore_unused arm-smmu.disable_bypass=0 arm_smmu.uke_smr_max=0 arm_smmu.uke_keep_boot=1 arm_smmu.uke_attach_log=2 arm_smmu.uke_reset_mask=12 memmap=0x2B00000$0xE3940000 loglevel=4 msm.uke_gmu_shared=0 arm_smmu.uke_kgsl_keep=0 hung_task_panic=0 printk.always_kmsg_dump=0 plymouth.enable=0 msm.uke_s3_stage=3 msm.uke_rescue=1 msm.uke_probe_hold_ms=5000 iomem=relaxed arm_smmu.uke_disp_reclaim=1 regulator_ignore_unused bootinfo.pureason=0x800001 bootinfo.pdreason=0x2 msm_sharedmem.cma_already_panic=0 debug_ext.initrd_size=62921 spidev.bufsiz=16384 hwid.hwid_value=1638400 hwid.project=11 hwid.build_adc=51239 hwid.project_adc=81 msm_drm.dsi_display0=qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid: msm_drm.oled_wp=99807e msm_drm.debugpolicy=0x20 msm_drm.build_id=c3 rootwait ro init=/init silent_boot.mode=nonsilent log_buf_len=2M loglevel=6 console=ttynull block2mtd.block2mtd=/dev/block/by-name/oops,2097152 \
+[    0.000000] arm-smmu: UKE-POKE: uke_keep_boot=1 (solo apps-smmu): fase2 SMR/S2CR OMITIDA y test_smr_masks sin tocar HW
+[    0.000000] arm-smmu: UKE-POKE: uke_attach_log=2 (0=nada; 1=miga por maestro con flush antes de escribir + volcado BL; 2=ademas PRESERVAR los indices vivos del BL sin escribir)
+[    0.000000] arm-smmu: UKE-POKE: uke_reset_mask=12 (0xc, efectivo 0xc) fijado a mano: fase2=0 fase3=0 fase4=1 fase5-7=1 (1=ejecutar)
+[    0.276013] iommu: Default domain type: Translated
+[    0.276016] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.308639] WARNING: ../k52-L16-tree/drivers/clk/qcom/clk-rcg2.c:136 at update_config+0xdc/0xf8, CPU#7: swapper/0/1
+[    0.316570] arm-smmu: UKE-POKE: arm_smmu_device_probe ENTRANDO, dev=3da0000.kgsl-smmu
+[    0.316777] arm-smmu: UKE-POKE: apps-smmu: -> arm_smmu_device_cfg_probe (lectura IDR0/1/2 y PIDR; y qcom_smmu_cfg_probe ESCRIBE el S2CR del ultimo grupo y lo relee, que es el test del bypass quirk)
+[    0.316780] arm-smmu 3da0000.kgsl-smmu: probing hardware configuration...
+[    0.316781] arm-smmu 3da0000.kgsl-smmu: SMMUv2 with:
+[    0.316803] arm-smmu: UKE-POKE: cfg_probe ID0=0x4c017e18 (SMS=24 groups)
+[    0.316805] arm-smmu 3da0000.kgsl-smmu: 	stage 1 translation
+[    0.316806] arm-smmu 3da0000.kgsl-smmu: 	coherent table walk
+[    0.316807] arm-smmu 3da0000.kgsl-smmu: 	stream matching with 24 register groups
+[    0.316821] arm-smmu: UKE-POKE: cfg_probe ID1=0x40000016 pgshift=12 NUMPAGENDXB=4 CBs=22; CB base=0x20000 (mmio=262144 B)
+[    0.316823] arm-smmu 3da0000.kgsl-smmu: 	22 context banks (0 stage-2 only)
+[    0.316835] arm-smmu: UKE-POKE: cfg_probe ID2=0x00005511
+[    0.316836] arm-smmu 3da0000.kgsl-smmu: 	Supported page sizes: 0x61311000
+[    0.316837] arm-smmu 3da0000.kgsl-smmu: 	Stage-1: 48-bit VA -> 36-bit IPA
+[    0.316875] arm-smmu 3da0000.kgsl-smmu: 	preserved 0 boot mappings
+[    0.316877] arm-smmu: UKE-POKE: apps-smmu: -> arm_smmu_device_reset (SMR/S2CR x24, CBAR/SCTLR/FSR x22, TLBIALLH, RMW de sCR0, y arm_mmu500_reset con CB_ACTLR si CONFIG_ARM_SMMU_MMU_500_CPRE_ERRATA)
+[    0.316878] arm-smmu: UKE-POKE: reset fase1 sGFSR (siempre)
+[    0.316898] arm-smmu: UKE-POKE: reset fase2 SMR/S2CR x24 (uke_reset_mask=0xf uke_keep_boot=1)
+[    0.317575] arm-smmu: UKE-POKE: reset fase3 CBAR/SCTLR/FSR x22
+[    0.317620] arm-smmu: UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH
+[    0.317645] arm-smmu: UKE-POKE: reset fase5 RMW de sCR0
+[    0.317657] arm-smmu: UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)
+[    0.317668] arm-smmu: UKE-POKE: apps-smmu: -> arm_mmu500_reset: lectura ID7 y RMW de sACR(CACHE_LOCK, SMTNMB, S2CRB_TLBEN)
+[    0.317765] arm-smmu: UKE-POKE: reset fase7 tlb_sync_global + write sCR0
+[    0.318088] platform 3d00000.qcom,kgsl-3d0: Adding to iommu group 0
+[    0.318275] platform 3d68000.qcom,gmu: Adding to iommu group 1
+[    0.319182] arm-smmu: UKE-POKE: arm_smmu_device_probe ENTRANDO, dev=15000000.apps-smmu
+[    0.319184] arm-smmu: UKE-POKE: apps-smmu @00000000f57f7d28 base=0x15000000: primer probe DIFFERIDO para que el reintento caiga con la consola viva
+[    0.320931] arm-smmu: UKE-POKE: reset fase1 sGFSR (siempre)
+[    0.320957] arm-smmu: UKE-POKE: reset fase2 SMR/S2CR x24 (uke_reset_mask=0xf uke_keep_boot=1)
+[    0.321630] arm-smmu: UKE-POKE: reset fase3 CBAR/SCTLR/FSR x22
+[    0.321676] arm-smmu: UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH
+[    0.321702] arm-smmu: UKE-POKE: reset fase5 RMW de sCR0
+[    0.321713] arm-smmu: UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)
+[    0.321724] arm-smmu: UKE-POKE: apps-smmu: -> arm_mmu500_reset: lectura ID7 y RMW de sACR(CACHE_LOCK, SMTNMB, S2CRB_TLBEN)
+[    0.321822] arm-smmu: UKE-POKE: reset fase7 tlb_sync_global + write sCR0
+[    0.322530] UKE-K39: fault handler instalado en el dominio propio de 3d00000.qcom,kgsl-3d0 (msm_iommu_new, antes solo msm_iommu_gpu_new lo tenia)
+[    0.322716] arm-smmu: UKE-K38: attach dev=3d00000.qcom,kgsl-3d0 id[0]=0x00000000 (sid=0) -> cbndx=0
+[    0.322739] WARNING: ../k52-L16-tree/drivers/iommu/iommu.c:2061 at iommu_set_fault_handler+0x28/0x38, CPU#7: swapper/0/1
+[    0.322759] pc : iommu_set_fault_handler+0x28/0x38
+[    0.322761] lr : msm_iommu_gpu_new+0xb0/0x100
+[    0.322789]  iommu_set_fault_handler+0x28/0x38 (P)
+[    0.322791]  adreno_iommu_create_vm+0x2c/0xc0
+[    0.323276] UKE-K39: fault handler instalado en el dominio propio de 3d68000.qcom,gmu (msm_iommu_new, antes solo msm_iommu_gpu_new lo tenia)
+[    0.323433] arm-smmu: UKE-K38: attach dev=3d68000.qcom,gmu id[0]=0x00000005 (sid=5) -> cbndx=1
+[    0.421462] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpe2: probe with driver qcom-rpmh-regulator failed with error -22
+[    0.421516] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpe1: probe with driver qcom-rpmh-regulator failed with error -22
+[    0.421521] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpe3: probe with driver qcom-rpmh-regulator failed with error -22
+[    0.422167] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb1: probe with driver qcom-rpmh-regulator failed with error -22
+[    0.422405] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb3: probe with driver qcom-rpmh-regulator failed with error -22
+[    0.428474] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob22: regulator-pmxr2230-l22: devm_regulator_register() failed, ret=-131
+[    0.428540] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob22: regulator-pmxr2230-l22: failed to register regulator: -131
+[    0.428558] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob22: probe with driver qcom-rpmh-regulator failed with error -131
+[    0.429057] qcom-rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-bobb1: probe with driver qcom-rpmh-regulator failed with error -22
+[    0.471952] arm-smmu 3da0000.kgsl-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/kgsl-smmu@3da0000/gpu_qtb@3de8000
+[    0.472280] arm-smmu 3da0000.kgsl-smmu: Failed to create device link (0x180) with supplier 24100000.interconnect for /soc/kgsl-smmu@3da0000/gpu_qtb@3de8000
+[    0.476669] X9WAVE-try 15000000.apps-smmu
+[    0.476670] UKE-POKE: W:15000000.apps-smmu
+[    0.476741] X9WAVE-poked 15000000.apps-smmu
+[    0.476789] arm-smmu: UKE-POKE: arm_smmu_device_probe ENTRANDO, dev=15000000.apps-smmu
+[    0.476791] arm-smmu: UKE-POKE: apps-smmu: desarmado (echo 1 > /sys/module/arm_smmu/parameters/uke_smmu_probe); no se toca el bloque. Arranque sano.
+[    0.499299] msm_dsi ae96000.dsi: [drm:dsi_dev_probe] *ERROR* dsi_get_phy: phy driver is not ready
+[    0.529286] dwc3-qcom a600000.ssusb: no usb-ddr path (-22), continuing without icc votes (x9 bring-up)
+[    0.529287] dwc3-qcom a600000.ssusb: no apps-usb path (-61), continuing without icc votes (x9 bring-up)
+[    0.529289] UKE-POKE: icc=0
+[    0.531285] UKE-L66: icc paths requeridos (L19 revertido)
+[    0.533014] UKE-L66: icc paths requeridos (L19 revertido)
+[    0.533800] X9WAVE-try 15000000.apps-smmu
+[    0.533801] UKE-POKE: W:15000000.apps-smmu
+[    0.533870] X9WAVE-poked 15000000.apps-smmu
+[    0.533914] arm-smmu: UKE-POKE: arm_smmu_device_probe ENTRANDO, dev=15000000.apps-smmu
+[    0.537984] X9WAVE-try 15000000.apps-smmu
+[    0.537984] UKE-POKE: W:15000000.apps-smmu
+[    0.538054] X9WAVE-poked 15000000.apps-smmu
+[    0.538096] arm-smmu: UKE-POKE: arm_smmu_device_probe ENTRANDO, dev=15000000.apps-smmu
+[    3.662759] X9WAVE-try 15000000.apps-smmu
+[    3.662760] UKE-POKE: W:15000000.apps-smmu
+[    3.662830] X9WAVE-poked 15000000.apps-smmu
+[    3.662878] arm-smmu: UKE-POKE: arm_smmu_device_probe ENTRANDO, dev=15000000.apps-smmu
+[    3.662879] arm-smmu: UKE-POKE: apps-smmu: desarmado (echo 1 > /sys/module/arm_smmu/parameters/uke_smmu_probe); no se toca el bloque. Arranque sano.
+[    4.004025] arm-smmu: UKE-POKE: arming en caliente: uke_smmu_probe=1
+[    4.008660] X9WAVE-try 15000000.apps-smmu
+[    4.008664] UKE-POKE: W:15000000.apps-smmu
+[    4.009120] X9WAVE-poked 15000000.apps-smmu
+[    4.009336] arm-smmu: UKE-POKE: arm_smmu_device_probe ENTRANDO, dev=15000000.apps-smmu
+[    4.009342] arm-smmu: UKE-POKE: apps-smmu: REINTENTO del probe, consola ya viva. Lo que viene a continuaci\xc3\xb3n es el probe de verdad.
+[    4.011741] arm-smmu: UKE-POKE: apps-smmu: -> arm_smmu_device_cfg_probe (lectura IDR0/1/2 y PIDR; y qcom_smmu_cfg_probe ESCRIBE el S2CR del ultimo grupo y lo relee, que es el test del bypass quirk)
+[    4.011749] arm-smmu 15000000.apps-smmu: probing hardware configuration...
+[    4.011754] arm-smmu 15000000.apps-smmu: SMMUv2 with:
+[    4.011758] arm-smmu: UKE-POKE: ARMADO \xe2\x80\x94 probe real del apps-smmu, lo que sigue puede colgar
+[    4.011798] arm-smmu: UKE-POKE: cfg_probe ID0=0x4c017e6e (SMS=110 groups)
+[    4.011803] arm-smmu 15000000.apps-smmu: 	stage 1 translation
+[    4.011808] arm-smmu 15000000.apps-smmu: 	coherent table walk
+[    4.011813] arm-smmu 15000000.apps-smmu: 	stream matching with 110 register groups
+[    4.011840] arm-smmu: UKE-POKE: cfg_probe ID1=0x60000047 pgshift=12 NUMPAGENDXB=6 CBs=71; CB base=0x80000 (mmio=1048576 B)
+[    4.011847] arm-smmu 15000000.apps-smmu: 	71 context banks (0 stage-2 only)
+[    4.011873] arm-smmu: UKE-POKE: cfg_probe ID2=0x00005111
+[    4.011938] arm-smmu 15000000.apps-smmu: 	Supported page sizes: 0x61311000
+[    4.011943] arm-smmu 15000000.apps-smmu: 	Stage-1: 36-bit VA -> 36-bit IPA
+[    4.011992] arm-smmu: UKE-POKE: handoff: PREPARAR modo=1 smrs=si grupos=110 CBs=71 (K8: nada pinado se escribe; los CB nuevos se reparten desde arriba)
+[    4.011998] arm-smmu: UKE-POKE: handoff: DT qcom,handoff-smrs[0] = <0x1c00 0x2>: ese SID/mask es del BL y no se escribira
+[    4.012002] arm-smmu: UKE-POKE: handoff: INICIO barrido de pineo SMR(0..109) (110 grupos). Solo LECTURAS de SMR (medidas seguras, #P9); el S2CR de un indice vivo NO se lee (letal #P13)
+[    4.012007] arm-smmu: UKE-POKE: handoff: barrido SMR 0/110 ...
+[    4.012031] arm-smmu: UKE-POKE: handoff: PIN SMR(0) HW=0x80000060 id=0x60 mask=0x0 [vivo del BL] -> idx 0 NO ESCRIBIBLE (ni SMR ni S2CR ni CB)
+[    4.012057] arm-smmu: UKE-POKE: handoff: PIN SMR(1) HW=0x80000140 id=0x140 mask=0x0 [vivo del BL] -> idx 1 NO ESCRIBIBLE (ni SMR ni S2CR ni CB)
+[    4.012082] arm-smmu: UKE-POKE: handoff: PIN SMR(2) HW=0x80021c00 id=0x1c00 mask=0x2 [declarado en qcom,handoff-smrs] -> idx 2 NO ESCRIBIBLE (ni SMR ni S2CR ni CB)
+[    4.012107] arm-smmu: UKE-POKE: handoff: PIN SMR(3) HW=0x80000040 id=0x40 mask=0x0 [vivo del BL] -> idx 3 NO ESCRIBIBLE (ni SMR ni S2CR ni CB)
+[    4.012132] arm-smmu: UKE-POKE: handoff: PIN SMR(4) HW=0x80000480 id=0x480 mask=0x0 [vivo del BL] -> idx 4 NO ESCRIBIBLE (ni SMR ni S2CR ni CB)
+[    4.012356] arm-smmu: UKE-POKE: handoff: barrido SMR 16/110 ...
+[    4.012703] arm-smmu: UKE-POKE: handoff: barrido SMR 32/110 ...
+[    4.013026] arm-smmu: UKE-POKE: handoff: barrido SMR 48/110 ...
+[    4.013347] arm-smmu: UKE-POKE: handoff: barrido SMR 64/110 ...
+[    4.013688] arm-smmu: UKE-POKE: handoff: barrido SMR 80/110 ...
+[    4.014009] arm-smmu: UKE-POKE: handoff: barrido SMR 96/110 ...
+[    4.014292] arm-smmu: UKE-POKE: handoff: FIN barrido: leidos=110 PINADOS=5 (110 grupos). Desde aqui ni el reset ni el attach escriben esos indices
+[    4.014300] arm-smmu: UKE-POKE: K9 uke_write_mask=0x0 (efectivo 0x0): F4_TLBI=0 F5_sCR0=0 F6_ACTLR=0 F7_sCR0=0 quirk=0 rmr_CLIENTPD=0 attach_sme=0 install_s2cr=0 ctxbank=0  [0x0 = cero escrituras nuevas: si aun muere mudo, el asesino es de LECTURA/resto incondicional; si vive, se reactivan grupos]
+[    4.014310] arm-smmu: UKE-POKE: wmask[rmr]: SILENCIADA (uke_write_mask=0x0 bit5=0): NO se lee ni se escribe sCR0; el estado del BL queda intacto
+[    4.014317] arm-smmu 15000000.apps-smmu: 	preserved 0 boot mappings
+[    4.014343] arm-smmu: UKE-POKE: BL estado idx=0: SMR(0) HW=0x80000060 (valid=1 id=0x60 mask=0x0) S2CR(0) HW=<NO LEIDO (letal #P13)> (s2cr0=0)
+[    4.014350] arm-smmu: UKE-POKE: apps-smmu: -> arm_smmu_device_reset (SMR/S2CR x110, CBAR/SCTLR/FSR x71, TLBIALLH, RMW de sCR0, y arm_mmu500_reset con CB_ACTLR si CONFIG_ARM_SMMU_MMU_500_CPRE_ERRATA)
+[    4.014355] arm-smmu: UKE-POKE: reset fase1 sGFSR (siempre)
+[    4.014378] arm-smmu: UKE-POKE: wmask[fase1]: sGFSR leido=0x00000000 -> reescritura RMW incondicional (F1 no esta en uke_write_mask)
+[    4.014408] arm-smmu: UKE-POKE: reset fase2 OMITIDA (uke_keep_boot=1, uke_reset_mask=0xc): NO se escribe NI UN SMR ni UN S2CR; los registros del bootloader quedan como estan
+[    4.014412] arm-smmu: UKE-POKE: reset fase3 OMITIDA (uke_reset_mask bit1=0): no se toca CBAR/SCTLR/FSR de los 71 CBs (los CBs que el bootloader use no se desactivan)
+[    4.014416] arm-smmu: UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH
+[    4.014420] arm-smmu: UKE-POKE: wmask[F4 TLBI]: SILENCIADA (uke_write_mask=0x0 bit0=0): NO se escriben TLBIALLH/TLBIALLNSNH; la TLB del BL queda como este
+[    4.014426] arm-smmu: UKE-POKE: reset fase5 RMW de sCR0
+[    4.014429] arm-smmu: UKE-POKE: wmask[F5 sCR0]: SILENCIADA (uke_write_mask=0x0 bit1=0): NO se lee ni se recalcula sCR0; F7 se omitira tambien (sin valor)
+[    4.014435] arm-smmu: UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)
+[    4.014439] arm-smmu: UKE-POKE: wmask[F6 ACTLR]: SILENCIADA (uke_write_mask=0x0 bit2=0): NO se llama impl->reset (ni RMW de sACR ni CB_ACTLR x71); el prefetch/CACHE_LOCK del BL queda como este
+[    4.014445] arm-smmu: UKE-POKE: reset fase7 tlb_sync_global + write sCR0
+[    4.014447] arm-smmu: UKE-POKE: wmask[F7 sCR0]: OMITIDA porque F5 (bit1=0) esta silenciada: no hay valor de sCR0 que escribir (NO se hace tlb_sync_global ni write sCR0)
+[    4.014455] arm-smmu: UKE-POKE: test_smr_masks OMITIDO (uke_keep_boot=1, uke_handoff=1): sin leer ni escribir SMR; streamid_mask=0x7fff smr_mask_mask=0xffff (campo completo, no medido)
+[    4.015154] arm-smmu: UKE-POKE: attach: find_sme(dev=1de0000.qcedev sid=0x480 mask=0x0) -> 1
+[    4.015162] arm-smmu: UKE-POKE: handoff: attach: dev=1de0000.qcedev sid=0x480 mask=0x0 -> idx=1 PINADO (vivo del BL): NO se escribe SMR/S2CR; el maestro sigue con el mapeo del BL y el dominio queda SIN traducir por ahora
+[    4.015170] arm-smmu: UKE-POKE: attach: find_sme(dev=1de0000.qcedev sid=0x481 mask=0x0) -> 2
+[    4.015174] arm-smmu: UKE-POKE: handoff: attach: dev=1de0000.qcedev sid=0x481 mask=0x0 -> idx=2 PINADO (vivo del BL): NO se escribe SMR/S2CR; el maestro sigue con el mapeo del BL y el dominio queda SIN traducir por ahora
+[    4.015182] arm-smmu: UKE-POKE: handoff: attach: SME idx=1 PINADO (1de0000.qcedev): se omite write_sme (SMR/S2CR del BL intactos)
+[    4.015186] arm-smmu: UKE-POKE: handoff: attach: SME idx=2 PINADO (1de0000.qcedev): se omite write_sme (SMR/S2CR del BL intactos)
+[    4.015246] platform 1de0000.qcedev: Adding to iommu group 2
+[    4.015297] arm-smmu: UKE-POKE: attach: find_sme(dev=1d84000.ufshc sid=0x60 mask=0x0) -> 0
+[    4.015302] arm-smmu: UKE-POKE: handoff: attach: dev=1d84000.ufshc sid=0x60 mask=0x0 -> idx=0 PINADO (vivo del BL): NO se escribe SMR/S2CR; el maestro sigue con el mapeo del BL y el dominio queda SIN traducir por ahora
+[    4.015308] arm-smmu: UKE-POKE: handoff: attach: SME idx=0 PINADO (1d84000.ufshc): se omite write_sme (SMR/S2CR del BL intactos)
+[    4.015356] platform 1d84000.ufshc: Adding to iommu group 3
+[    4.015747] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:usb_audio_qmi_dev sid=0x100b mask=0x0) -> 3
+[    4.015753] arm-smmu: UKE-POKE: handoff: attach: dev=soc:usb_audio_qmi_dev sid=0x100b mask=0x0 -> idx=3 PINADO (vivo del BL): NO se escribe SMR/S2CR; el maestro sigue con el mapeo del BL y el dominio queda SIN traducir por ahora
+[    4.015760] arm-smmu: UKE-POKE: handoff: attach: SME idx=3 PINADO (soc:usb_audio_qmi_dev): se omite write_sme (SMR/S2CR del BL intactos)
+[    4.015812] platform soc:usb_audio_qmi_dev: Adding to iommu group 4
+[    4.015844] arm-smmu: UKE-POKE: attach: find_sme(dev=a00000.qcom,gpi-dma sid=0xb6 mask=0x0) -> 4
+[    4.015849] arm-smmu: UKE-POKE: handoff: attach: dev=a00000.qcom,gpi-dma sid=0xb6 mask=0x0 -> idx=4 PINADO (vivo del BL): NO se escribe SMR/S2CR; el maestro sigue con el mapeo del BL y el dominio queda SIN traducir por ahora
+[    4.015856] arm-smmu: UKE-POKE: handoff: attach: SME idx=4 PINADO (a00000.qcom,gpi-dma): se omite write_sme (SMR/S2CR del BL intactos)
+[    4.015898] platform a00000.qcom,gpi-dma: Adding to iommu group 5
+[    4.015930] arm-smmu: UKE-POKE: attach: find_sme(dev=ac0000.qcom,qupv3_0_geni_se sid=0xa3 mask=0x0) -> 5
+[    4.015938] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=5 dev=ac0000.qcom,qupv3_0_geni_se -> SMR=0x800000a3 (id=0xa3 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.015949] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=5 dev=ac0000.qcom,qupv3_0_geni_se (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.015996] platform ac0000.qcom,qupv3_0_geni_se: Adding to iommu group 6
+[    4.016029] arm-smmu: UKE-POKE: attach: find_sme(dev=800000.qcom,gpi-dma sid=0x436 mask=0x0) -> 6
+[    4.016034] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=6 dev=800000.qcom,gpi-dma -> SMR=0x80000436 (id=0x436 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016045] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=6 dev=800000.qcom,gpi-dma (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016091] platform 800000.qcom,gpi-dma: Adding to iommu group 7
+[    4.016123] arm-smmu: UKE-POKE: attach: find_sme(dev=8c0000.qcom,qupv3_1_geni_se sid=0x423 mask=0x0) -> 7
+[    4.016128] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=7 dev=8c0000.qcom,qupv3_1_geni_se -> SMR=0x80000423 (id=0x423 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016138] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=7 dev=8c0000.qcom,qupv3_1_geni_se (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016190] platform 8c0000.qcom,qupv3_1_geni_se: Adding to iommu group 8
+[    4.016445] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,smmu_sde_unsec_cb sid=0x3fff mask=0x0) -> 8
+[    4.016451] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=8 dev=soc:qcom,smmu_sde_unsec_cb -> SMR=0x80003fff (id=0x3fff mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016461] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=8 dev=soc:qcom,smmu_sde_unsec_cb (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016532] platform soc:qcom,smmu_sde_unsec_cb: Adding to iommu group 9
+[    4.016567] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,smmu_sde_sec_cb sid=0x1c01 mask=0x0) -> 9
+[    4.016573] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=9 dev=soc:qcom,smmu_sde_sec_cb -> SMR=0x80001c01 (id=0x1c01 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016584] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=9 dev=soc:qcom,smmu_sde_sec_cb (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016629] arm-smmu: UKE-K16: display sid=0x1c01 -> grupo PROPIO rc=-281440451523328 (split)
+[    4.016640] platform soc:qcom,smmu_sde_sec_cb: Adding to iommu group 10
+[    4.016794] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_ife sid=0x800 mask=0x20) -> 10
+[    4.016801] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=10 dev=soc:qcom,cam_smmu:msm_cam_smmu_ife -> SMR=0x80200800 (id=0x800 mask=0x20 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016811] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=10 dev=soc:qcom,cam_smmu:msm_cam_smmu_ife (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016857] platform soc:qcom,cam_smmu:msm_cam_smmu_ife: Adding to iommu group 11
+[    4.016890] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_jpeg sid=0x18a0 mask=0x0) -> 11
+[    4.016897] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=11 dev=soc:qcom,cam_smmu:msm_cam_smmu_jpeg -> SMR=0x800018a0 (id=0x18a0 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016906] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=11 dev=soc:qcom,cam_smmu:msm_cam_smmu_jpeg (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016952] platform soc:qcom,cam_smmu:msm_cam_smmu_jpeg: Adding to iommu group 12
+[    4.016995] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1820 mask=0x0) -> 12
+[    4.017001] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x18c0 mask=0x0) -> 13
+[    4.017006] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1800 mask=0x0) -> 14
+[    4.017012] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1840 mask=0x0) -> 15
+[    4.017017] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1880 mask=0x0) -> 16
+[    4.017022] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=12 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001820 (id=0x1820 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017032] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=12 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017038] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=13 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x800018c0 (id=0x18c0 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017048] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=13 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017054] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=14 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001800 (id=0x1800 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017063] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=14 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017069] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=15 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001840 (id=0x1840 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017079] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=15 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017085] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=16 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001880 (id=0x1880 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017094] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=16 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017141] platform soc:qcom,cam_smmu:msm_cam_smmu_icp: Adding to iommu group 13
+[    4.017175] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_cdm sid=0x1860 mask=0x0) -> 17
+[    4.017180] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=17 dev=soc:qcom,cam_smmu:msm_cam_smmu_cdm -> SMR=0x80001860 (id=0x1860 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017190] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=17 dev=soc:qcom,cam_smmu:msm_cam_smmu_cdm (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017235] platform soc:qcom,cam_smmu:msm_cam_smmu_cdm: Adding to iommu group 14
+[    4.017267] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_cre sid=0x18e0 mask=0x0) -> 18
+[    4.017272] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=18 dev=soc:qcom,cam_smmu:msm_cam_smmu_cre -> SMR=0x800018e0 (id=0x18e0 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017282] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=18 dev=soc:qcom,cam_smmu:msm_cam_smmu_cre (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017330] platform soc:qcom,cam_smmu:msm_cam_smmu_cre: Adding to iommu group 15
+[    4.017695] arm-smmu: UKE-POKE: attach: find_sme(dev=17110040.qcom,wcn6750 sid=0x1400 mask=0x1) -> 19
+[    4.017704] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=19 dev=17110040.qcom,wcn6750 -> SMR=0x80011400 (id=0x1400 mask=0x1 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017714] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=19 dev=17110040.qcom,wcn6750 (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017767] platform 17110040.qcom,wcn6750: Adding to iommu group 16
+[    4.018097] arm-smmu: UKE-POKE: attach: find_sme(dev=ae01000.display-controller sid=0x1c00 mask=0x2) -> 20
+[    4.018173] arm-smmu: UKE-POKE: FIX-A1b: reclaim display: SMR(2) del BL casa sid=0x1c00 mask=0x2 (pinado=1, count=1): ae01000.display-controller programa SOLO este idx (find=20; wmask 0x0, resto intacto)
+[    4.018181] arm-smmu: UKE-K12: handoff no-vivo sid=0x1c00 -> attach normal (se escribe S2CR)
+[    4.018185] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=2 dev=ae01000.display-controller -> SMR=0x80021c00 (id=0x1c00 mask=0x2 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.018195] arm-smmu: UKE-POKE: FIX-A1b: force-idx: ESCRIBO el SME idx=2 dev=ae01000.display-controller (wmask bit6=0 pero reclaim display; ajenos intactos)
+[    4.018201] arm-smmu: UKE-POKE: wmask[attach_sme]: ESCRIBO el SME idx=2 dev=ae01000.display-controller (bit6=1)
+[    4.018206] arm-smmu: UKE-POKE: write_sme idx=2 S2CR(0xc08) type=1 cbndx=0 + SMR(0x808) id=0x1c00 mask=0x2 valid=1
+[    4.018303] arm-smmu: UKE-K16: display sid=0x1c00 -> grupo PROPIO rc=-281440601884928 (split)
+[    4.018311] platform ae01000.display-controller: Adding to iommu group 17
+[    4.018327] arm-smmu: UKE-POKE: handoff: attach: install_s2cr idx=1 PINADO: NO se escribe el S2CR (el HW sigue con el mapeo del BL; dominio SIN traducir por ahora)
+[    4.018337] arm-smmu: UKE-POKE: handoff: attach: install_s2cr idx=0 PINADO: NO se escribe el S2CR (el HW sigue con el mapeo del BL; dominio SIN traducir por ahora)
+[    4.018343] arm-smmu: UKE-POKE: handoff: attach: install_s2cr idx=3 PINADO: NO se escribe el S2CR (el HW sigue con el mapeo del BL; dominio SIN traducir por ahora)
+[    4.018348] arm-smmu: UKE-POKE: handoff: attach: install_s2cr idx=4 PINADO: NO se escribe el S2CR (el HW sigue con el mapeo del BL; dominio SIN traducir por ahora)
+[    4.018858] arm-smmu: UKE-POKE: attach: find_sme(dev=10048000.tmc sid=0x4e0 mask=0x20) -> 20
+[    4.018867] arm-smmu: UKE-POKE: attach: find_sme(dev=10048000.tmc sid=0x4c0 mask=0x20) -> 20
+[    4.018872] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=20 dev=10048000.tmc -> SMR=0x802004e0 (id=0x4e0 mask=0x20 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.018882] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=20 dev=10048000.tmc (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.018889] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=20 dev=10048000.tmc -> SMR=0x802004e0 (id=0x4e0 mask=0x20 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.018899] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=20 dev=10048000.tmc (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.018949] amba 10048000.tmc: Adding to iommu group 18
+[    4.018986] arm-smmu: UKE-POKE: attach: find_sme(dev=1004f000.tmc sid=0x500 mask=0x0) -> 21
+[    4.018991] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=21 dev=1004f000.tmc -> SMR=0x80000500 (id=0x500 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.019001] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=21 dev=1004f000.tmc (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.019050] amba 1004f000.tmc: Adding to iommu group 19
+[    4.029282] ufshcd-qcom 1d84000.ufshc: ufshcd_populate_vreg: Unable to find vdd-hba-supply regulator, assuming enabled
+[    4.029364] ufshcd-qcom 1d84000.ufshc: ufshcd_populate_vreg: Unable to find vccq2-supply regulator, assuming enabled
+[    4.119938] X9ICC-skip: votos ICC del GENI neutralizados
+[   47.290522] novatek-nt36xxx-spi spi0.0: chip SIGUE mudo tras handshake (-110): revisar alimentacion TDDI (panel), bus SPI o IRQ; continuando sin chip
+[   47.310232] msm_dpu ae01000.display-controller: [drm] UKE-K13: msm_kms_init_vm: iommu_dev=ae01000.display-controller (mdp=mapeado mdss=no)
+[   47.310237] UKE-K39: fault handler instalado en el dominio propio de ae01000.display-controller (msm_iommu_new, antes solo msm_iommu_gpu_new lo tenia)
+[   47.310242] arm-smmu: UKE-K13: init_domain_context(ae01000.display-controller): fmt=1 features_fmt=0xe80 ias=36 oas=36 stage=0
+[   47.310244] arm-smmu: UKE-POKE: handoff: CB 69 reservado DESDE ARRIBA (start=0 num_cb=71; evita los CB vivos del BL, cbndx ilegible)
+[   47.310247] arm-smmu: UKE-POKE: FIX-A1b: force-idx: dominio de ae01000.display-controller (sid display) -> su CB idx=69 se programa (wmask bit8=0; resto intactos)
+[   47.310257] arm-smmu: UKE-POKE: write_context_bank idx=69 cfg=asignado (CB_SCTLR en 0xc5000)
+[   47.310260] arm-smmu: UKE-POKE: FIX-A1b: force-idx: PROGRAMO el CB idx=69 del dominio display (wmask bit8=0; resto intactos)
+[   47.310262] arm-smmu: UKE-POKE: wmask[ctxbank]: ESCRIBO el CB idx=69 (reservado desde arriba; bit8=1) con CBAR/CBA2R/TCR/TTBR/MAIR/SCTLR
+[   47.310410] arm-smmu: UKE-POKE: attach: install_s2cr idx=2 type=0 cbndx=69 -> S2CR(0xc08); nominal=0x00000045 (quirk qcom reescribe si es BYPASS)
+[   47.310413] arm-smmu: UKE-POKE: FIX-A1b: force-idx: ESCRIBO el S2CR idx=2 a TRANS->CB nuevo (wmask bit7=0 pero reclaim display)
+[   47.310415] arm-smmu: UKE-POKE: wmask[install_s2cr]: ESCRIBO el S2CR idx=2 (bit7=1)
+[   47.310444] arm-smmu: UKE-K38: attach dev=ae01000.display-controller id[0]=0x00021c00 (sid=7168) -> cbndx=69
+[   47.310463] WARNING: ../k52-L16-tree/drivers/iommu/iommu.c:2061 at iommu_set_fault_handler+0x28/0x38, CPU#5: kworker/u32:2/70
+[   47.310504] pc : iommu_set_fault_handler+0x28/0x38
+[   47.310507] lr : msm_iommu_disp_new+0x40/0x60
+[   47.310543]  iommu_set_fault_handler+0x28/0x38 (P)
+[   47.316412] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to soc:qcom,smmu_sde_unsec_cb
+[  171.424112] arm-smmu: UKE-POKE: reset fase1 sGFSR (siempre)
+[  171.424148] arm-smmu: UKE-POKE: reset fase2 SMR/S2CR x24 (uke_reset_mask=0xf uke_keep_boot=1)
+[  171.424876] arm-smmu: UKE-POKE: reset fase3 CBAR/SCTLR/FSR x22
+[  171.425005] arm-smmu: UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH
+[  171.425032] arm-smmu: UKE-POKE: reset fase5 RMW de sCR0
+[  171.425045] arm-smmu: UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)
+[  171.425057] arm-smmu: UKE-POKE: apps-smmu: -> arm_mmu500_reset: lectura ID7 y RMW de sACR(CACHE_LOCK, SMTNMB, S2CRB_TLBEN)
+[  171.425158] arm-smmu: UKE-POKE: reset fase7 tlb_sync_global + write sCR0
+[  171.427521] UKE-K25: volcado SMMU DESACTIVADO (uke_smmu_dump=0) \xe2\x80\x94 test H2: NO se lee el SMMU en este resume
+[ 1369.767696] [drm:dpu_reg_write] [ubwc_error_off:0x138] <= 0x80000000
+[ 1369.767791] [drm:dpu_reg_write] [ubwc_error_off:0x1C8] <= 0x80000000
+[ 1814.935473] WARNING: ../k52-L16-tree/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c:628 at dpu_crtc_debugfs_state_show+0x118/0x128, CPU#3: cat/35558
+[ 1814.939280] WARNING: ../k52-L16-tree/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c:628 at dpu_crtc_debugfs_state_show+0x118/0x128, CPU#6: cat/35564

@@ -1,0 +1,25 @@
+=== G0 pins ===
+  OK  pins (s286 33d153f2 + base 3f973c78) y herramientas
+=== G1: extraer payload s286 ===
+  OK  payload s286 (158 frags, max=2402), bus KTZ presente
+=== G2: injertar fragment@2403 (vci-supply del panel) ===
+  OK  compila con 1 fragmento anadido (2403, vci-supply en /soc/display-subsystem@ae00000/dsi@ae94000/panel@0)
+=== G3: fdtoverlay (gate 1: el ABL haria lo mismo) ===
+  OK  fdtoverlay verde (s287 y s286)
+=== G4: el bus del KTZ cambia, y SOLO el ===
+  OK  vallas 1+2+2b: compatible mainline + clock-names=se + dmas al GPI de su wrapper + proto I2C
+  OK  vci-supply = phandle(L19) = 0x150 (y el s286 no lo traia)
+  OK  los 2 gpi-dma intactos de s285 (sm6350 + channels + mask)
+  OK  los 6 GENI no tocados siguen identicos a s285
+=== G5: paridad s285 ===
+  OK  gpr disabled + backlight resuelto + OPP 148648750 + panel identico: paridad s285
+=== G5b: diff exhaustivo m285 vs m286 (solo el bus puede diferir) ===
+  OK  set de nodos identico (4267 nodos, ninguno creado ni borrado)
+  OK  cero cambios fuera del panel; en el panel SOLO vci-supply
+=== G6: dt_table + roundtrip ===
+  OK  dt_table (1 entrada) + roundtrip; 608694 B
+=== G7: uke-dtbo-check.py (GATE, no aviso) ===
+  OK  uke-dtbo-check.py limpio
+
+PUBLICADO: ~/proyectos/omarchy-uke/build/bootimg/s287-boot-dtbo-gpu-display-gpi-i2c-ktz-vci.img
+sha256 = 9f3d2b0043921d9a2090f53cdccf8e97df9038f1cd82a4deb1b6f3da0a4c09e9

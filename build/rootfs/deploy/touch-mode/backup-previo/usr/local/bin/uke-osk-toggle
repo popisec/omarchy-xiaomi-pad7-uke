@@ -1,0 +1,17 @@
+#!/bin/sh
+# uke-osk-toggle [toggle|show|hide|status] — teclado en pantalla (squeekboard) por D-Bus sm.puri.OSK0.
+# Funciona desde cualquier usuario/SSH: apunta al bus de sesion de 'omarchy' si no hay uno propio.
+U=$(id -u omarchy 2>/dev/null) || exit 1
+# el bus rechaza a otros uids (p. ej. root por SSH): reejecutar como omarchy
+[ "$(id -u)" = "$U" ] || exec sudo -u omarchy env -u DBUS_SESSION_BUS_ADDRESS "$0" "$@"
+case "$DBUS_SESSION_BUS_ADDRESS" in *"/run/user/$U/"*) ;; *) export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$U/bus ;; esac
+B="busctl --user"
+get() { $B get-property sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 Visible | cut -d' ' -f2; }
+set_() { $B call sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b "$1"; }
+case "${1:-toggle}" in
+show) set_ true ;;
+hide) set_ false ;;
+status) get ;;
+toggle) [ "$(get)" = true ] && set_ false || set_ true ;;
+*) echo "uso: $0 [toggle|show|hide|status]" >&2; exit 2 ;;
+esac

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "uke.navidrome",
+  "name": "Navidrome (uke)",
+  "version": "0.2.1-uke1",
+  "author": "backmeupplz (uke fork)",
+  "license": "MIT",
+  "description": "Fork of backmeupplz.navidrome 0.2.1 for the uke tablet: the panel owns its service, so it works under third-party bars (powerbar) without patching Omarchy.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Navidrome",
+    "description": "Now playing, library browser and album shuffle",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

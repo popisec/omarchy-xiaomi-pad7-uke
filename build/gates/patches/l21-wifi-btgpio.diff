@@ -1,0 +1,17 @@
+--- /tmp/pwrseq-backup.c	2026-10-11 04:43:39.651767171 +0200
++++ ~/proyectos/omarchy-uke/build/kernel-pokes/k52-L16-tree/drivers/power/sequencing/pwrseq-qcom-wcn.c	2026-10-11 04:43:55.881109522 +0200
+@@ -492,9 +492,11 @@
+ 	}
+ 
+ 	ctx->bt_gpio = devm_gpiod_get_optional(dev, "bt-enable", GPIOD_OUT_LOW);
+-	if (IS_ERR(ctx->bt_gpio))
+-		return dev_err_probe(dev, PTR_ERR(ctx->bt_gpio),
+-				     "Failed to get the Bluetooth enable GPIO\n");
++	if (IS_ERR(ctx->bt_gpio)) {
++		ret = PTR_ERR(ctx->bt_gpio);
++		ctx->bt_gpio = NULL;
++		pr_warn("UKE-WIFI: bt-enable gpio no disponible (err=%d), sigo sin el\n", ret);
++	}
+ 
+ 	/*
+ 	 * FIXME: This should actually be GPIOD_OUT_LOW, but doing so would

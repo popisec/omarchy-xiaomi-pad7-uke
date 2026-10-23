@@ -1,0 +1,13 @@
+10:51:30 iter=1 rc=0 ciclos=1 timeouts=1 dur=5.9s faults=0 | 10:51:30 uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2154.190837] Bluetooth: hci0: QCA cont
+10:51:34 iter=2 rc=0 ciclos=1 timeouts=0 dur=3.8s faults=0 | 10:51:34 uke-bt-up: VERDE: [ 2157.970990] Bluetooth: hci0: QCA controller version 0x01200102|[ 2158.
+10:51:40 iter=3 rc=0 ciclos=1 timeouts=1 dur=6.0s faults=0 | 10:51:40 uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2164.108451] Bluetooth: hci0: QCA cont
+10:51:44 iter=4 rc=0 ciclos=1 timeouts=0 dur=3.8s faults=0 | 10:51:44 uke-bt-up: VERDE: [ 2167.875786] Bluetooth: hci0: QCA controller version 0x01200102|[ 2168.
+10:52:12 iter=5 rc=0 ciclos=2 timeouts=5 dur=28.0s faults=0 | 10:52:12 uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2196.037194] Bluetooth: hci0: QCA cont
+10:52:18 iter=6 rc=0 ciclos=1 timeouts=1 dur=5.9s faults=0 | 10:52:18 uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2202.031605] Bluetooth: hci0: QCA cont
+10:52:24 iter=7 rc=0 ciclos=1 timeouts=1 dur=6.0s faults=0 | 10:52:24 uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2208.080569] Bluetooth: hci0: QCA cont
+10:52:28 iter=8 rc=0 ciclos=1 timeouts=0 dur=3.9s faults=0 | 10:52:28 uke-bt-up: VERDE: [ 2211.992779] Bluetooth: hci0: QCA controller version 0x01200102|[ 2212.
+10:52:34 iter=9 rc=0 ciclos=1 timeouts=1 dur=6.1s faults=0 | 10:52:34 uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2218.257394] Bluetooth: hci0: QCA cont
+10:52:38 iter=10 rc=0 ciclos=1 timeouts=0 dur=3.8s faults=0 | 10:52:38 uke-bt-up: VERDE: [ 2222.080927] Bluetooth: hci0: QCA controller version 0x01200102|[ 2222.
+10:52:42 iter=11 rc=0 ciclos=1 timeouts=0 dur=4.0s faults=0 | 10:52:42 uke-bt-up: VERDE: [ 2226.159450] Bluetooth: hci0: QCA controller version 0x01200102|[ 2226.
+10:52:46 iter=12 rc=0 ciclos=1 timeouts=0 dur=4.0s faults=0 | 10:52:46 uke-bt-up: VERDE: [ 2230.214638] Bluetooth: hci0: QCA controller version 0x01200102|[ 2230.
+FIN

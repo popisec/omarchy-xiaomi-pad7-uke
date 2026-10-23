@@ -1,0 +1,64 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -12,6 +12,7 @@
+ #include <soc/qcom/cmd-db.h>
+ #include <soc/qcom/tcs.h>
+ #include <drm/drm_gem.h>
++#include <linux/io.h>	/* UKE-L3: ioremap/iounmap + writel_relaxed/wmb del voto RDPM */
+ 
+ #include "a6xx_gpu.h"
+ #include <linux/uke-poke.h>
+@@ -1788,6 +1789,53 @@
+ 	a6xx_gmu_gxpd_get(gmu);
+ 	uke_poke("H2-gx");
+ 
++	/* UKE-L3 (2026-10-09, BISECT-L3): voto CX estilo vendor, FAIL-OPEN.
++	 * Adaptacion de k69-planC-C1.diff al contexto L0 (sin includes K61,
++	 * sin bloque K68; testigos UKE-C1 renombrados a UKE-L3 para distinguir
++	 * el artefacto L3 del k69 en auditorias binarias).
++	 * Replica de gen7_gmu_enable_clks (vendor adreno_gen7_gmu.c:1868):
++	 *   gen7_rdpm_cx_freq_update(gmu, freqs[level]/1000)
++	 *     -> writel_relaxed(freq/1000, rdpm_cx_virt + 0xf14); wmb();
++	 * ANTES de cualquier set_rate/enable.
++	 * Sin D1/D2 no hay rate objetivo: se vota el HEREDADO XBL leido con
++	 * clk_get_rate (si es 0, minimo vendor 220 MHz).
++	 * Si el recurso "rdpm_cx" NO existe en este DT (caso esperado E0),
++	 * pr_err + sigue SIN tocar MMIO ni rates.
++	 * L3 NO sube ningun rate (core/hub = stock L0 200M/150M) y NO lleva
++	 * K64 (register_config ausente).
++	 */
++	{
++		/* El recurso rdpm_cx en el vendor cuelga del pdev del GMU
++		 * (gen7_gmu_rdpm_probe: device->pdev). Aqui igual:
++		 * a6xx_gmu_rpmh_init hace to_platform_device(gmu->dev). */
++		struct platform_device *gpdev = to_platform_device(gmu->dev);
++		struct resource *rdpm = platform_get_resource_byname(gpdev,
++				IORESOURCE_MEM, "rdpm_cx");
++		unsigned long r = clk_get_rate(gmu->core_clk);
++		u32 mhz = r ? (u32)(r / 1000000) : 220;
++
++		pr_err("UKE-L3: voto CX pre-rate: rdpm_cx %s core_heredado=%lu mhz_votado=%u\n",
++		       rdpm ? "PRESENTE" : "ausente(fail-open, sin MMIO)",
++		       r, mhz);
++		if (rdpm) {
++			void __iomem *b = ioremap(rdpm->start,
++					resource_size(rdpm));
++			if (!b) {
++				pr_err("UKE-L3: ioremap rdpm_cx@%pa FAIL (fail-open, sigo)\n",
++				       &rdpm->start);
++			} else {
++				/* Replica exacta vendor: MHz en +0xf14, wmb. */
++				writel_relaxed(mhz, b + 0xf14);
++				wmb();
++				pr_err("UKE-L3: writel(%u) -> rdpm_cx@%pa+0xf14 OK\n",
++				       mhz, &rdpm->start);
++				iounmap(b);
++			}
++		}
++		pr_flush(120, false);
++	}
++	uke_poke("H2-L3voto");
++
+ 	/* Use a known rate to bring up the GMU */
+ 	clk_set_rate(gmu->core_clk, 200000000);
+ 	clk_set_rate(gmu->hub_clk, adreno_is_a740_family(adreno_gpu) ?

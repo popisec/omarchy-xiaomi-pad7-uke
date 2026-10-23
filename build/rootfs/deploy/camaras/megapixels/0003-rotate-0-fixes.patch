@@ -1,0 +1,30 @@
+# Parche para Megapixels 1.8.3 (https://gitlab.com/megapixels-org/Megapixels).
+# Derivado de Megapixels, que es GPL-3.0-or-later; este parche hereda esa licencia.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+diff --git a/src/gles2_debayer.c b/src/gles2_debayer.c
+index db56207..f498986 100644
+--- a/src/gles2_debayer.c
++++ b/src/gles2_debayer.c
+@@ -118,7 +118,7 @@ gles2_debayer_configure(GLES2Debayer *self,
+         check_gl();
+ 
+         GLfloat rotation_list[4] = { 0, -1, 0, 1 };
+-        int rotation_index = 4 - rotation / 90;
++        int rotation_index = (4 - rotation / 90) % 4;  /* uke: con rotation=0 leia rotation_list[4] */
+ 
+         GLfloat sin_rot = rotation_list[rotation_index];
+         GLfloat cos_rot = rotation_list[(rotation_index + 1) % 4];
+diff --git a/src/process_pipeline.c b/src/process_pipeline.c
+index cbe374d..5a5069e 100644
+--- a/src/process_pipeline.c
++++ b/src/process_pipeline.c
+@@ -994,7 +994,7 @@ on_output_changed(bool format_changed)
+         output_buffer_width = mode.width / 2;
+         output_buffer_height = mode.height / 2;
+ 
+-        if (camera->rotate != 0 || camera->rotate != 180) {
++        if (camera->rotate != 0 && camera->rotate != 180) {  /* uke: con || siempre giraba (rotate=0 daba una franja) */
+                 int tmp = output_buffer_width;
+                 output_buffer_width = output_buffer_height;
+                 output_buffer_height = tmp;

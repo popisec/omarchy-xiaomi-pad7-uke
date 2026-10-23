@@ -1,0 +1,33 @@
+[Unit]
+Description=uke: arrancar el escritorio Omarchy (sddm) pese a systemd.unit=multi-user.target
+Documentation=file:///etc/uke/LEEME file:///usr/local/sbin/uke-bootguard
+# INTERRUPTORES (sin reflashear; ver /etc/uke/LEEME):
+#   touch /etc/uke/no-desktop   -> no arranca el escritorio (WiFi sigue)
+#   touch /etc/uke/safe-mode    -> ni escritorio ni WiFi
+# Ademas uke-bootguard lo omite solo tras 2 arranques seguidos que no llegaron a 'ok' (cuelgue).
+# 'uke-session start' / 'systemctl start sddm' a mano siguen funcionando con los interruptores puestos.
+ConditionPathExists=!/etc/uke/no-desktop
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionPathExists=/usr/bin/sddm
+ConditionPathExists=/usr/local/sbin/uke-bootguard
+ConditionPathExists=/usr/local/sbin/uke-desktop-start
+# Un componente arriesgado cada vez: carga (ADSP) -> WiFi (WPSS) -> escritorio (GPU/GMU). Los After= sobre
+# unidades que no estan enabled/omitidas no bloquean nada. SSH (usb0) ya existe antes de todos.
+After=local-fs.target systemd-udevd.service systemd-logind.service systemd-user-sessions.service
+After=sshd.service systemd-networkd.service uke-carga.service uke-wifi.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=120
+# exit 1 = omitir (sin marcar la unidad como fallida); 0 = adelante
+ExecCondition=/usr/local/sbin/uke-bootguard begin desktop
+ExecStart=/usr/local/sbin/uke-desktop-start
+# fallo sin cuelgue (uke-desktop-start exit 1) o apagado ordenado = no hubo cuelgue: limpia el 'pending' de la guarda.
+# (si todo va bien, 'ok desktop' lo da el temporizador de 180 s que programa 'begin': cubre el primer uso de la GPU)
+ExecStopPost=/usr/local/sbin/uke-bootguard ok desktop
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

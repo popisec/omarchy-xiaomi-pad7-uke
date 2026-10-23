@@ -1,0 +1,12 @@
+#!/bin/bash
+# uke-sensors-import — deja las rutas absolutas que pide el PD de sensores apuntando a copias locales (patron piano-sensors).
+# Origen: /var/lib/uke-sensors/{odm,vendor,persist} (descomprimir uke-sensors-android.tar.gz alli). El ADSP ESCRIBE en persist/sensors:
+# por eso es una copia, nunca la particion de Android.
+set -Eeuo pipefail
+B=/var/lib/uke-sensors
+[ -f $B/odm/etc/sensors/config/json.lst ] || { echo "falta $B/odm/.../json.lst"; exit 1; }
+mkdir -p /odm/etc/sensors /vendor/etc/sensors /vendor/dsp/adsp /mnt/vendor/persist
+ln -sfn $B/odm/etc/sensors/config /odm/etc/sensors/config
+ln -sf  $B/vendor/etc/sensors/sns_reg_config /vendor/etc/sensors/sns_reg_config
+[ -f $B/vendor/dsp/adsp/sns_tppe.so ] && ln -sf $B/vendor/dsp/adsp/sns_tppe.so /vendor/dsp/adsp/sns_tppe.so
+ln -sfn $B/persist/sensors /mnt/vendor/persist/sensors

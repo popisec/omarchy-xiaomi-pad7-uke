@@ -1,0 +1,32 @@
+--- build/kernel-pokes/k52L33-tree/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ build/kernel-pokes/k52L33-tree/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -615,12 +615,23 @@
+ 	/* Vendor: video mode, non_burst_sync_event, LP tx for commands,
+ 	 * EOT append (default in msm).
+ 	 */
+-	/* K48-A (#507): lp11-init del vendor — sin CLOCK_NON_CONTINUOUS,
+-	 * dsi_ctrl_enable (dsi_host.c:909-916) fuerza bitclk HS CONTINUO en el
+-	 * carril de clock desde power_on, ANTES de rieles y reset; el vendor
+-	 * tiene LP11 durante toda la secuencia de reset. */
+-	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_LPM |
+-		      MIPI_DSI_CLOCK_NON_CONTINUOUS,
++	/*
++	 * L37 (13-oct): sin CLOCK_NON_CONTINUOUS -> clock HS continuo.
++	 *
++	 * Evidencia: el vendor gobierna clock continuo por callback en cada
++	 * voto de clocks (_dsi_display_continuous_clk_ctrl: hs_req_sel BIT24 +
++	 * set_continuous_clk BIT28 = CLKLN_HS_FORCE_REQUEST) y programa
++	 * LANE_CTRL en consecuencia; con NON_CONTINUOUS, dsi_ctrl_enable
++	 * (dsi_host.c:909-917) salta ese bloque y el carril de clock no queda
++	 * en HS estable para las primeras tramas. Es la accion P0 aceptada y
++	 * pendiente (H3) y lo que K48-A ya contemplaba. El comentario K48-A
++	 * decia que se quito, pero el flag seguia puesto (regresion).
++	 * No se toca VIDEO_BURST: el vendor o82 declara
++	 * traffic-mode="non_burst_sync_event" y Android funciona asi; sheng
++	 * usa BURST pero es otro panel (LCD Tianma vs AMOLED o82).
++	 * Ver ANDROID-DSI-ENABLE-COMPARISON-20261013.md H3.
++	 */
++	.mode_flags = MIPI_DSI_MODE_VIDEO | MIPI_DSI_MODE_LPM,
+ 	.format = MIPI_DSI_FMT_RGB888,
+ 	.is_dual_dsi = true,
+ 	.freq_reg_b3 = 0x40,

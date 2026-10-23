@@ -1,0 +1,11 @@
+[Unit]
+Description=uke: log de bateria cada 60 s (/var/log/uke-bateria)
+After=uke-perfil.service
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/uke-bateria-log
+Restart=always
+RestartSec=10
+Nice=10
+[Install]
+WantedBy=multi-user.target

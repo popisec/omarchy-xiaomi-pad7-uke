@@ -1,0 +1,69 @@
+BORRADOR (19-oct-2026) — se aplica DESPUES de 0005 y 0006 a una COPIA al compilar (q6apm-port/build.sh). Parametro uke_tdm_lane (0644, defecto 0 = no cambia nada): si N>0, el sumidero TDM recibe ademas PARAM_ID_TDM_LANE_CFG con lane_mask=N (1=SD0/gpio8, 2=SD1/gpio9, 3=ambas), para probar si los amplificadores cuelgan de otra linea de datos.
+
+--- a/sound/soc/qcom/qdsp6/audioreach.h
++++ b/sound/soc/qcom/qdsp6/audioreach.h
+@@ -558,6 +558,13 @@
+ 	uint16_t reserved;
+ } __packed;
+ 
++/* uke (19-oct-2026): PARAM_ID_TDM_LANE_CFG (pcm_tdm_api.h, BSD-3): carriles de datos activos (opcional con un solo carril; el ACDB lleva 1) */
++#define PARAM_ID_TDM_LANE_CFG			0x0800106A
++struct param_id_tdm_lane_cfg {
++	uint16_t lane_mask;
++	uint16_t reserved;
++} __packed;
++
+ #define PORT_ID_I2S_INPUT		2
+ #define PORT_ID_I2S_OUPUT		1
+ #define I2S_STACK_SIZE			2048
+--- a/sound/soc/qcom/qdsp6/audioreach.c
++++ b/sound/soc/qcom/qdsp6/audioreach.c
+@@ -159,6 +159,17 @@
+ 
+ #define APM_TDM_INTF_CFG_PSIZE ALIGN(sizeof(struct apm_tdm_module_intf_cfg), 8)
+ 
++struct apm_tdm_module_lane_cfg {
++	struct apm_module_param_data param_data;
++	struct param_id_tdm_lane_cfg cfg;
++} __packed;
++
++#define APM_TDM_LANE_CFG_PSIZE ALIGN(sizeof(struct apm_tdm_module_lane_cfg), 8)
++
++static unsigned int uke_tdm_lane;
++module_param(uke_tdm_lane, uint, 0644);
++MODULE_PARM_DESC(uke_tdm_lane, "uke: 0 = no enviar TDM_LANE_CFG (defecto); N>0 = lane_mask (1 = SD0, 2 = SD1, 3 = ambas)");
++
+ struct apm_module_hw_ep_mf_cfg {
+ 	struct apm_module_param_data param_data;
+ 	struct param_id_hw_ep_mf mf;
+@@ -1020,7 +1031,8 @@
+ 	int ic_sz = APM_TDM_INTF_CFG_PSIZE;
+ 	int ep_sz = APM_HW_EP_CFG_PSIZE;
+ 	int fs_sz = APM_FS_CFG_PSIZE;
+-	int size = ic_sz + ep_sz + fs_sz;
++	int ln_sz = uke_tdm_lane ? APM_TDM_LANE_CFG_PSIZE : 0;
++	int size = ic_sz + ep_sz + fs_sz + ln_sz;
+ 	void *p;
+ 
+ 	struct gpr_pkt *pkt __free(kfree) = audioreach_alloc_apm_cmd_pkt(size, APM_CMD_SET_CFG, 0);
+@@ -1070,6 +1082,20 @@
+ 	param_data->param_size = fs_sz - APM_MODULE_PARAM_DATA_SIZE;
+ 	fs_cfg->frame_size_factor = 1;
+ 
++	if (uke_tdm_lane) {
++		struct apm_tdm_module_lane_cfg *ln_cfg;
++
++		p += fs_sz;
++		ln_cfg = p;
++		param_data = &ln_cfg->param_data;
++		param_data->module_instance_id = module->instance_id;
++		param_data->error_code = 0;
++		param_data->param_id = PARAM_ID_TDM_LANE_CFG;
++		param_data->param_size = ln_sz - APM_MODULE_PARAM_DATA_SIZE;
++		ln_cfg->cfg.lane_mask = uke_tdm_lane;
++		ln_cfg->cfg.reserved = 0;
++	}
++
+ 	return q6apm_send_cmd_sync(graph->apm, pkt, 0);
+ }
+ 

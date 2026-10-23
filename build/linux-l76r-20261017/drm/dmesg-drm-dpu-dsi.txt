@@ -1,0 +1,606 @@
+[    0.066953] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.066989] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.067032] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.067063] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.067122] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.067165] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.067209] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.067241] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.112072] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.112105] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.112140] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.112168] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.112214] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.112249] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.112309] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.112337] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.308625] disp_cc_mdss_mdp_clk_src: rcg didn't update its configuration.
+[    0.316004] msm_serial: driver initialized
+[    0.322761] lr : msm_iommu_gpu_new+0xb0/0x100
+[    0.322797]  msm_gpu_init+0x3ac/0x560
+[    0.322805]  msm_drm_init+0xfc/0x1b8
+[    0.322810]  msm_gpu_probe+0x6c/0x90
+[    0.322841]  msm_drm_register+0x5c/0x80
+[    0.323276] UKE-K39: fault handler instalado en el dominio propio de 3d68000.qcom,gmu (msm_iommu_new, antes solo msm_iommu_gpu_new lo tenia)
+[    0.326783] platform 3d68000.qcom,gmu: [drm:a6xx_gmu_pwrlevels_probe] GMU OPP table OK: 2 opps
+[    0.498033] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.498039] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.498071] UKE-POKE: K48-mdss-en-in
+[    0.498179] UKE-POKE: K48-mdss-en-ok
+[    0.498315] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.498338] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.498343] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.498396] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.498401] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.498893] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.498904] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.498923] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.498927] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.499299] msm_dsi ae96000.dsi: [drm:dsi_dev_probe] *ERROR* dsi_get_phy: phy driver is not ready
+[    0.499741] UKE-POKE: K48-mdss-susp
+[    0.534016] UKE-POKE: K48-mdss-en-in
+[    0.534187] UKE-POKE: K48-mdss-en-ok
+[    0.534299] X9WAVE-try ae94000.dsi
+[    0.534300] UKE-POKE: W:ae94000.dsi
+[    0.534363] X9WAVE-poked ae94000.dsi
+[    0.534625] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.534817] X9WAVE-try ae96000.dsi
+[    0.534818] UKE-POKE: W:ae96000.dsi
+[    0.534880] X9WAVE-poked ae96000.dsi
+[    0.536313] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 0 -> irq 86 ARMADA val=1
+[    0.536912] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 1 -> irq 87 ARMADA val=1
+[    0.537481] UKE-POKE: K48-mdss-susp
+[    0.538195] UKE-POKE: K48-mdss-en-in
+[    0.538358] UKE-POKE: K48-mdss-en-ok
+[    0.538465] X9WAVE-try ae94000.dsi.0
+[    0.538466] UKE-POKE: W:ae94000.dsi.0
+[    0.538541] X9WAVE-poked ae94000.dsi.0
+[    0.539607] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 0 -> irq 86 ARMADA val=1
+[    0.540527] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 1 -> irq 87 ARMADA val=1
+[    0.541106] UKE-POKE: K48-mdss-susp
+[    3.662991] UKE-POKE: K48-mdss-en-in
+[    3.663161] UKE-POKE: K48-mdss-en-ok
+[    3.663277] X9WAVE-try ae94000.dsi.0
+[    3.663277] UKE-POKE: W:ae94000.dsi.0
+[    3.663342] X9WAVE-poked ae94000.dsi.0
+[    3.663730] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 0 -> irq 86 ARMADA val=1
+[    3.663836] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 1 -> irq 87 ARMADA val=1
+[    3.665527] UKE-POKE: K48-mdss-susp
+[    4.016794] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_ife sid=0x800 mask=0x20) -> 10
+[    4.016801] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=10 dev=soc:qcom,cam_smmu:msm_cam_smmu_ife -> SMR=0x80200800 (id=0x800 mask=0x20 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016811] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=10 dev=soc:qcom,cam_smmu:msm_cam_smmu_ife (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016857] platform soc:qcom,cam_smmu:msm_cam_smmu_ife: Adding to iommu group 11
+[    4.016890] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_jpeg sid=0x18a0 mask=0x0) -> 11
+[    4.016897] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=11 dev=soc:qcom,cam_smmu:msm_cam_smmu_jpeg -> SMR=0x800018a0 (id=0x18a0 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.016906] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=11 dev=soc:qcom,cam_smmu:msm_cam_smmu_jpeg (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.016952] platform soc:qcom,cam_smmu:msm_cam_smmu_jpeg: Adding to iommu group 12
+[    4.016995] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1820 mask=0x0) -> 12
+[    4.017001] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x18c0 mask=0x0) -> 13
+[    4.017006] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1800 mask=0x0) -> 14
+[    4.017012] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1840 mask=0x0) -> 15
+[    4.017017] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_icp sid=0x1880 mask=0x0) -> 16
+[    4.017022] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=12 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001820 (id=0x1820 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017032] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=12 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017038] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=13 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x800018c0 (id=0x18c0 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017048] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=13 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017054] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=14 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001800 (id=0x1800 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017063] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=14 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017069] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=15 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001840 (id=0x1840 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017079] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=15 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017085] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=16 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp -> SMR=0x80001880 (id=0x1880 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017094] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=16 dev=soc:qcom,cam_smmu:msm_cam_smmu_icp (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017141] platform soc:qcom,cam_smmu:msm_cam_smmu_icp: Adding to iommu group 13
+[    4.017175] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_cdm sid=0x1860 mask=0x0) -> 17
+[    4.017180] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=17 dev=soc:qcom,cam_smmu:msm_cam_smmu_cdm -> SMR=0x80001860 (id=0x1860 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017190] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=17 dev=soc:qcom,cam_smmu:msm_cam_smmu_cdm (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017235] platform soc:qcom,cam_smmu:msm_cam_smmu_cdm: Adding to iommu group 14
+[    4.017267] arm-smmu: UKE-POKE: attach: find_sme(dev=soc:qcom,cam_smmu:msm_cam_smmu_cre sid=0x18e0 mask=0x0) -> 18
+[    4.017272] arm-smmu: UKE-POKE: attach: ESCRIBIR SME idx=18 dev=soc:qcom,cam_smmu:msm_cam_smmu_cre -> SMR=0x800018e0 (id=0x18e0 mask=0x0 valid=1) | S2CR nominal=0x00010000 (type=1 cbndx=0) [impl->write_s2cr: quirk qcom reescribe]
+[    4.017282] arm-smmu: UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=18 dev=soc:qcom,cam_smmu:msm_cam_smmu_cre (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto
+[    4.017330] platform soc:qcom,cam_smmu:msm_cam_smmu_cre: Adding to iommu group 15
+[    4.020148] UKE-POKE: K48-mdss-en-in
+[    4.020753] UKE-POKE: K48-mdss-en-ok
+[    4.021437] clk: couldn't set disp_cc_mdss_vsync_clk clk rate to 19200000 (-22), current rate: 38400000
+[    4.022812] X9WAVE-try ae94000.dsi.0
+[    4.022818] UKE-POKE: W:ae94000.dsi.0
+[    4.023110] UKE-POKE: K48-mdss-susp
+[    4.023252] X9WAVE-poked ae94000.dsi.0
+[    4.023260] UKE-POKE: K48-mdss-en-in
+[    4.023829] UKE-POKE: K48-mdss-en-ok
+[    4.025148] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 0 -> irq 86 ARMADA val=1
+[    4.025526] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 1 -> irq 87 ARMADA val=1
+[    4.027220] UKE-POKE: K48-mdss-susp
+[    6.980407] systemd[1]: Load Kernel Module drm skipped, unmet condition check ConditionKernelModuleLoaded=!drm
+[   47.290522] novatek-nt36xxx-spi spi0.0: chip SIGUE mudo tras handshake (-110): revisar alimentacion TDDI (panel), bus SPI o IRQ; continuando sin chip
+[   47.303877] X9WAVE-try ae94000.dsi.0
+[   47.303888] UKE-POKE: W:ae94000.dsi.0
+[   47.304329] X9WAVE-poked ae94000.dsi.0
+[   47.304341] UKE-POKE: K48-mdss-en-in
+[   47.304932] UKE-POKE: K48-mdss-en-ok
+[   47.307633] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 0 -> irq 86 ARMADA val=1
+[   47.307752] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-K49: esd gpio 1 -> irq 87 ARMADA val=1
+[   47.308158] panel-xiaomi-o82-dualdsi ae94000.dsi.0: UKE-L45: backlight externo resuelto (KTZ8866)
+[   47.308163] UKE-L76: widebus ON (upstream: dsc && DSI>=2.5; vendor ON)
+[   47.308367] msm_dpu ae01000.display-controller: bound ae94000.dsi (ops dsi_ops)
+[   47.308380] msm_dpu ae01000.display-controller: bound ae96000.dsi (ops dsi_ops)
+[   47.308573] [drm:dpu_kms_init:1330] UKE-POKE: K48-opp-rate core=514000000 (esperado 514000000)
+[   47.309314] UKE-POKE: K47-dpu-hw-in
+[   47.309442] UKE-POKE: K47-dpu-res
+[   47.310220] [drm:dpu_kms_hw_init:1173] dpu hardware revision:0xa0010000
+[   47.310232] msm_dpu ae01000.display-controller: [drm] UKE-K13: msm_kms_init_vm: iommu_dev=ae01000.display-controller (mdp=mapeado mdss=no)
+[   47.310237] UKE-K39: fault handler instalado en el dominio propio de ae01000.display-controller (msm_iommu_new, antes solo msm_iommu_gpu_new lo tenia)
+[   47.310507] lr : msm_iommu_disp_new+0x40/0x60
+[   47.310546]  msm_kms_init_vm+0xc0/0x190
+[   47.310550]  dpu_kms_hw_init+0x14c/0xcf8
+[   47.310562]  msm_drm_kms_init+0xec/0x220
+[   47.310564]  msm_drm_init+0x178/0x1b8
+[   47.310572]  msm_drm_bind+0x40/0x58
+[   47.310587]  dsi_dev_attach+0x28/0x40
+[   47.310597]  dsi_host_attach+0xa0/0x190
+[   47.310602]  devm_mipi_dsi_attach+0x40/0xd0
+[   47.310613]  mipi_dsi_drv_probe+0x28/0x40
+[   47.311283] UKE-POKE: K48-dpu-susp
+[   47.312061] UKE-POKE: K47-dpu-res
+[   47.312817] UKE-POKE: K48-dpu-susp
+[   47.313741] [drm] Initialized msm-kms 1.13.0 for ae01000.display-controller on minor 1
+[   47.314805] UKE-POKE: K48-mdss-susp
+[   47.316400] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to ae00000.qcom,mdss_mdp
+[   47.316402] gcc-palawan 100000.clock-controller: sync_state() pending due to ae00000.qcom,mdss_mdp
+[   47.316403] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to ae94000.qcom,mdss_dsi_ctrl0
+[   47.316405] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to ae96000.qcom,mdss_dsi_ctrl1
+[   47.316425] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to soc:qcom,dsi-display-primary
+[  171.426818] [drm] Loaded GMU firmware v4.5.1
+[  171.426820] platform 3d68000.qcom,gmu: [drm:a6xx_gmu_resume] UKE-CM3DBG: fw-map icache iova=0x4000 (3ff0 KiB) dummy=0x60000000 debug=0x60400000 hfi=0x60008000 log=0x60004000
+[  171.453058] msm_dpu ae01000.display-controller: no GPU device was found
+[  181.388013] UKE-POKE: K48-mdss-en-in
+[  181.388221] UKE-POKE: K48-mdss-en-ok
+[  181.388328] UKE-POKE: K47-dpu-res
+[  181.415989] UKE-L76-DSI: id=0 power_on CTRL=0x000001f1 (v 0x000001f1/0x000001f3) VIDCFG0=0x02009140 (v 0x02009140) COMP=0x03200b51 (v 0x03200b51)
+[  181.415996] UKE-L76-DSI: id=0 AH=0x01cb0020 (v 0x01cb0020) AV=0x08ec0094 (v 0x08ec0094) TOT=0x0905023b (v 0x0905023b)
+[  181.416003] UKE-L76-DSI: id=0 CLKOUT=0x00000000 (v 0) TRIG=0x80001004 (v 0x80000004) LANE_CTRL=0x01000000 (v 0x01000000) DBMODE=0x00000000 (v 0) LMAP30c=0x00008421 (v 0x00008421)
+[  181.438558] UKE-L76-DSI: id=1 power_on CTRL=0x000001f1 (v 0x000001f1/0x000001f3) VIDCFG0=0x02009140 (v 0x02009140) COMP=0x03200b51 (v 0x03200b51)
+[  181.438564] UKE-L76-DSI: id=1 AH=0x01cb0020 (v 0x01cb0020) AV=0x08ec0094 (v 0x08ec0094) TOT=0x0905023b (v 0x0905023b)
+[  181.438571] UKE-L76-DSI: id=1 CLKOUT=0x00000000 (v 0) TRIG=0x80001004 (v 0x80000004) LANE_CTRL=0x01000000 (v 0x01000000) DBMODE=0x00000000 (v 0) LMAP30c=0x00008421 (v 0x00008421)
+[  182.330099] UKE-L76: VID ON tras PPS (dsi0->dsi1) dt_0x29=1906 us
+[  182.413340] [drm:dpu_encoder_phys_vid_handle_post_kickoff:695] UKE-L76: INTF1 TE ON role=1 t=182406846 us (vendor: INTF1=1 maestro, INTF2=0)
+[  182.413351] [drm:dpu_encoder_phys_vid_handle_post_kickoff:695] UKE-L76: INTF2 TE OFF(esclavo) role=2 t=182406857 us (vendor: INTF1=1 maestro, INTF2=0)
+[ 1369.767425] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x0] <= 0x0
+[ 1369.767438] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x40] <= 0x0
+[ 1369.767442] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x70] <= 0x0
+[ 1369.767445] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA0] <= 0x0
+[ 1369.767449] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x4] <= 0x0
+[ 1369.767451] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x44] <= 0x0
+[ 1369.767454] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x74] <= 0x0
+[ 1369.767457] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA4] <= 0x0
+[ 1369.767460] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x8] <= 0x0
+[ 1369.767463] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x48] <= 0x0
+[ 1369.767466] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x78] <= 0x0
+[ 1369.767469] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA8] <= 0x0
+[ 1369.767472] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0xC] <= 0x0
+[ 1369.767475] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x4C] <= 0x0
+[ 1369.767477] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x7C] <= 0x0
+[ 1369.767480] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xAC] <= 0x0
+[ 1369.767483] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.767486] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.767489] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x0] <= 0x0
+[ 1369.767492] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x40] <= 0x0
+[ 1369.767495] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x70] <= 0x0
+[ 1369.767497] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA0] <= 0x0
+[ 1369.767522] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x4] <= 0x0
+[ 1369.767526] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x44] <= 0x0
+[ 1369.767528] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x74] <= 0x0
+[ 1369.767531] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA4] <= 0x0
+[ 1369.767534] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x8] <= 0x0
+[ 1369.767537] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x48] <= 0x0
+[ 1369.767540] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x78] <= 0x0
+[ 1369.767543] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA8] <= 0x0
+[ 1369.767546] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0xC] <= 0x0
+[ 1369.767549] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x4C] <= 0x0
+[ 1369.767552] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x7C] <= 0x0
+[ 1369.767554] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xAC] <= 0x0
+[ 1369.767557] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.767560] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.767565] [drm:dpu_reg_write] [LM_BLEND0_CONST_ALPHA + stage_off:0x24] <= 0xFF0000
+[ 1369.767568] [drm:dpu_reg_write] [LM_BLEND0_OP + stage_off:0x20] <= 0x100
+[ 1369.767571] [drm:dpu_reg_write] [LM_BLEND0_CONST_ALPHA + stage_off:0x24] <= 0xFF0000
+[ 1369.767574] [drm:dpu_reg_write] [LM_BLEND0_OP + stage_off:0x20] <= 0x100
+[ 1369.767578] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x1
+[ 1369.767582] [drm:dpu_reg_write] [LM_OUT_SIZE:0x4] <= 0x8580640
+[ 1369.767584] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x0
+[ 1369.767589] [drm:dpu_reg_write] [LM_OUT_SIZE:0x4] <= 0x8580640
+[ 1369.767591] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x80000000
+[ 1369.767595] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x2
+[ 1369.767598] [drm:dpu_reg_write] [CTL_LAYER(lm):0x0] <= 0x1080000
+[ 1369.767600] [drm:dpu_reg_write] [CTL_LAYER_EXT(lm):0x40] <= 0x0
+[ 1369.767603] [drm:dpu_reg_write] [CTL_LAYER_EXT2(lm):0x70] <= 0x200
+[ 1369.767606] [drm:dpu_reg_write] [CTL_LAYER_EXT3(lm):0xA0] <= 0x0
+[ 1369.767609] [drm:dpu_reg_write] [CTL_LAYER_EXT4(lm):0xB8] <= 0x0
+[ 1369.767614] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x80000002
+[ 1369.767616] [drm:dpu_reg_write] [CTL_LAYER(lm):0x4] <= 0x1080000
+[ 1369.767619] [drm:dpu_reg_write] [CTL_LAYER_EXT(lm):0x44] <= 0x0
+[ 1369.767621] [drm:dpu_reg_write] [CTL_LAYER_EXT2(lm):0x74] <= 0x200
+[ 1369.767624] [drm:dpu_reg_write] [CTL_LAYER_EXT3(lm):0xA4] <= 0x0
+[ 1369.767627] [drm:dpu_reg_write] [CTL_LAYER_EXT4(lm):0xBC] <= 0x0
+[ 1369.767631] [drm:dpu_reg_write] [SSPP_SRC0_ADDR:0x14] <= 0x3000
+[ 1369.767633] [drm:dpu_reg_write] [SSPP_SRC2_ADDR:0x1C] <= 0x0
+[ 1369.767638] [drm:dpu_reg_write] [SSPP_SRC_YSTRIDE0:0x24] <= 0x32003200
+[ 1369.767640] [drm:dpu_reg_write] [SSPP_SRC_YSTRIDE1:0x28] <= 0x0
+[ 1369.767643] [drm:dpu_reg_write] [src_size_off:0x0] <= 0x8580640
+[ 1369.767646] [drm:dpu_reg_write] [src_xy_off:0x8] <= 0x0
+[ 1369.767649] [drm:dpu_reg_write] [out_size_off:0xC] <= 0x8580640
+[ 1369.767652] [drm:dpu_reg_write] [out_xy_off:0x10] <= 0x0
+[ 1369.767656] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C0_LR:0x100] <= 0x0
+[ 1369.767658] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C0_TB:0x104] <= 0x0
+[ 1369.767661] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C0_REQ_PIXELS:0x108] <= 0x8580640
+[ 1369.767664] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C1C2_LR:0x110] <= 0x0
+[ 1369.767667] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C1C2_TB:0x114] <= 0x0
+[ 1369.767670] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C1C2_REQ_PIXELS:0x118] <= 0x8580640
+[ 1369.767673] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C3_LR:0x120] <= 0x0
+[ 1369.767676] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C3_TB:0x124] <= 0x0
+[ 1369.767679] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C3_REQ_PIXELS:0x128] <= 0x8580640
+[ 1369.767684] [drm:dpu_reg_write] [op_mode_off:0x170] <= 0x1
+[ 1369.767688] [drm:dpu_reg_write] [format_off:0x30] <= 0x236FF
+[ 1369.767690] [drm:dpu_reg_write] [unpack_pat_off:0x34] <= 0x3020001
+[ 1369.767693] [drm:dpu_reg_write] [op_mode_off:0x38] <= 0x80000000
+[ 1369.767696] [drm:dpu_reg_write] [ubwc_error_off:0x138] <= 0x80000000
+[ 1369.767699] [drm:dpu_setup_cdp] [offset:0x134] <= 0x9
+[ 1369.767703] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_DANGER_LUT:0x60] <= 0x3FFFF
+[ 1369.767706] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_SAFE_LUT:0x64] <= 0xFE00
+[ 1369.767710] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_CREQ_LUT_0:0x74] <= 0x22335777
+[ 1369.767713] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_CREQ_LUT_1:0x78] <= 0x112222
+[ 1369.767716] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_QOS_CTRL:0x6C] <= 0x1
+[ 1369.767721] [drm:dpu_hw_clk_force_ctrl] [clk_ctrl_reg->reg_off:0x330] <= 0x5
+[ 1369.767725] [drm:dpu_hw_clk_force_ctrl] [clk_ctrl_reg->reg_off:0x330] <= 0x4
+[ 1369.767727] [drm:dpu_reg_write] [SSPP_SRC1_ADDR:0x18] <= 0x3000
+[ 1369.767730] [drm:dpu_reg_write] [SSPP_SRC3_ADDR:0x20] <= 0x0
+[ 1369.767735] [drm:dpu_reg_write] [SSPP_SRC_YSTRIDE0:0x24] <= 0x32003200
+[ 1369.767737] [drm:dpu_reg_write] [SSPP_SRC_YSTRIDE1:0x28] <= 0x0
+[ 1369.767740] [drm:dpu_reg_write] [src_size_off:0x16C] <= 0x8580640
+[ 1369.767743] [drm:dpu_reg_write] [src_xy_off:0x168] <= 0x640
+[ 1369.767746] [drm:dpu_reg_write] [out_size_off:0x160] <= 0x8580640
+[ 1369.767749] [drm:dpu_reg_write] [out_xy_off:0x164] <= 0x640
+[ 1369.767752] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C0_LR:0x100] <= 0x0
+[ 1369.767754] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C0_TB:0x104] <= 0x0
+[ 1369.767757] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C0_REQ_PIXELS:0x108] <= 0x8580640
+[ 1369.767760] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C1C2_LR:0x110] <= 0x0
+[ 1369.767763] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C1C2_TB:0x114] <= 0x0
+[ 1369.767766] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C1C2_REQ_PIXELS:0x118] <= 0x8580640
+[ 1369.767769] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C3_LR:0x120] <= 0x0
+[ 1369.767772] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C3_TB:0x124] <= 0x0
+[ 1369.767775] [drm:dpu_reg_write] [SSPP_SW_PIX_EXT_C3_REQ_PIXELS:0x128] <= 0x8580640
+[ 1369.767779] [drm:dpu_reg_write] [op_mode_off:0x170] <= 0x3
+[ 1369.767783] [drm:dpu_reg_write] [format_off:0x174] <= 0x236FF
+[ 1369.767785] [drm:dpu_reg_write] [unpack_pat_off:0x178] <= 0x3020001
+[ 1369.767788] [drm:dpu_reg_write] [op_mode_off:0x17C] <= 0x80000000
+[ 1369.767791] [drm:dpu_reg_write] [ubwc_error_off:0x1C8] <= 0x80000000
+[ 1369.767794] [drm:dpu_setup_cdp] [offset:0x13C] <= 0x9
+[ 1369.767797] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_DANGER_LUT:0x60] <= 0x3FFFF
+[ 1369.767800] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_SAFE_LUT:0x64] <= 0xFE00
+[ 1369.767803] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_CREQ_LUT_0:0x74] <= 0x22335777
+[ 1369.767806] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_CREQ_LUT_1:0x78] <= 0x112222
+[ 1369.767809] [drm:_dpu_hw_setup_qos_lut] [offset + QOS_QOS_CTRL:0x6C] <= 0x1
+[ 1369.767814] [drm:dpu_hw_clk_force_ctrl] [clk_ctrl_reg->reg_off:0x330] <= 0x5
+[ 1369.767817] [drm:dpu_hw_clk_force_ctrl] [clk_ctrl_reg->reg_off:0x330] <= 0x4
+[ 1369.767842] [drm:dpu_reg_write] [DSC_CMN_MAIN_CNF:0x0] <= 0x101
+[ 1369.767846] [drm:dpu_reg_write] [sblk->enc.base + ENC_DF_CTRL:0x100] <= 0x95C1203
+[ 1369.767849] [drm:dpu_reg_write] [sblk->enc.base + DSC_MAIN_CONF:0x130] <= 0x101202DA
+[ 1369.767852] [drm:dpu_reg_write] [sblk->enc.base + DSC_PICTURE_SIZE:0x134] <= 0x8580C80
+[ 1369.767855] [drm:dpu_reg_write] [sblk->enc.base + DSC_SLICE_SIZE:0x138] <= 0x180320
+[ 1369.767858] [drm:dpu_reg_write] [sblk->enc.base + DSC_MISC_SIZE:0x13C] <= 0x320
+[ 1369.767861] [drm:dpu_reg_write] [sblk->enc.base + DSC_HRD_DELAYS:0x140] <= 0x2B20200
+[ 1369.767864] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE:0x144] <= 0x20
+[ 1369.767867] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE_INC_DEC:0x148] <= 0xB029F
+[ 1369.767870] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_1:0x14C] <= 0xD
+[ 1369.767873] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_2:0x150] <= 0x2DC0486
+[ 1369.767876] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_3:0x154] <= 0x10F01800
+[ 1369.767879] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_4:0x158] <= 0x0
+[ 1369.767882] [drm:dpu_reg_write] [sblk->enc.base + DSC_FLATNESS_QP:0x15C] <= 0x2207
+[ 1369.767885] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MODEL_SIZE:0x160] <= 0x2000
+[ 1369.767888] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_CONFIG:0x164] <= 0x331EF06
+[ 1369.767891] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CFG:0xF04] <= 0x1001
+[ 1369.767894] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_0:0x168] <= 0x382A1C0E
+[ 1369.767897] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_1:0x16C] <= 0x69625446
+[ 1369.767901] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_2:0x170] <= 0x7B797770
+[ 1369.767903] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_3:0x174] <= 0x7E7D
+[ 1369.767906] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_0:0x178] <= 0x729480
+[ 1369.767909] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_0:0x184] <= 0xB52508
+[ 1369.767912] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_0:0x190] <= 0x3CF80002
+[ 1369.767916] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_1:0x17C] <= 0x739CE7
+[ 1369.767919] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_1:0x188] <= 0xE6B16B
+[ 1369.767922] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_1:0x194] <= 0x36E38E3A
+[ 1369.767925] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_2:0x180] <= 0x115A529
+[ 1369.767927] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_2:0x18C] <= 0x138C60F
+[ 1369.767930] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_2:0x198] <= 0x34D34D36
+[ 1369.767934] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CTL:0xF00] <= 0x0
+[ 1369.767937] [drm:dpu_reg_write] [DSC_CMN_MAIN_CNF:0x0] <= 0x101
+[ 1369.767939] [drm:dpu_reg_write] [sblk->enc.base + ENC_DF_CTRL:0x200] <= 0x95C1203
+[ 1369.767942] [drm:dpu_reg_write] [sblk->enc.base + DSC_MAIN_CONF:0x230] <= 0x101202DA
+[ 1369.767945] [drm:dpu_reg_write] [sblk->enc.base + DSC_PICTURE_SIZE:0x234] <= 0x8580C80
+[ 1369.767948] [drm:dpu_reg_write] [sblk->enc.base + DSC_SLICE_SIZE:0x238] <= 0x180320
+[ 1369.767951] [drm:dpu_reg_write] [sblk->enc.base + DSC_MISC_SIZE:0x23C] <= 0x320
+[ 1369.767954] [drm:dpu_reg_write] [sblk->enc.base + DSC_HRD_DELAYS:0x240] <= 0x2B20200
+[ 1369.767957] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE:0x244] <= 0x20
+[ 1369.767960] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE_INC_DEC:0x248] <= 0xB029F
+[ 1369.767963] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_1:0x24C] <= 0xD
+[ 1369.767966] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_2:0x250] <= 0x2DC0486
+[ 1369.767968] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_3:0x254] <= 0x10F01800
+[ 1369.767971] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_4:0x258] <= 0x0
+[ 1369.767974] [drm:dpu_reg_write] [sblk->enc.base + DSC_FLATNESS_QP:0x25C] <= 0x2207
+[ 1369.767977] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MODEL_SIZE:0x260] <= 0x2000
+[ 1369.767980] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_CONFIG:0x264] <= 0x331EF06
+[ 1369.767983] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CFG:0xF84] <= 0x1001
+[ 1369.767986] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_0:0x268] <= 0x382A1C0E
+[ 1369.767989] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_1:0x26C] <= 0x69625446
+[ 1369.767992] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_2:0x270] <= 0x7B797770
+[ 1369.767995] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_3:0x274] <= 0x7E7D
+[ 1369.767997] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_0:0x278] <= 0x729480
+[ 1369.768000] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_0:0x284] <= 0xB52508
+[ 1369.768003] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_0:0x290] <= 0x3CF80002
+[ 1369.768006] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_1:0x27C] <= 0x739CE7
+[ 1369.768009] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_1:0x288] <= 0xE6B16B
+[ 1369.768012] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_1:0x294] <= 0x36E38E3A
+[ 1369.768015] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_2:0x280] <= 0x115A529
+[ 1369.768017] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_2:0x28C] <= 0x138C60F
+[ 1369.768020] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_2:0x298] <= 0x34D34D36
+[ 1369.768024] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CTL:0xF80] <= 0x1
+[ 1369.768028] [drm:dpu_reg_write] [VBIF_XIN_CLR_ERR:0x19C] <= 0x0
+[ 1369.768032] [drm:dpu_reg_write] [CTL_DSC_FLUSH:0x104] <= 0x3
+[ 1369.768034] [drm:dpu_reg_write] [CTL_FLUSH:0x18] <= 0x4208C0
+[ 1369.768038] [drm:dpu_reg_write] [CTL_DSC_FLUSH:0x104] <= 0x3
+[ 1369.768040] [drm:dpu_reg_write] [CTL_FLUSH:0x18] <= 0x4208C0
+[ 1369.772051] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x0] <= 0x0
+[ 1369.772056] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x40] <= 0x0
+[ 1369.772060] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x70] <= 0x0
+[ 1369.772063] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA0] <= 0x0
+[ 1369.772066] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x4] <= 0x0
+[ 1369.772069] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x44] <= 0x0
+[ 1369.772072] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x74] <= 0x0
+[ 1369.772075] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA4] <= 0x0
+[ 1369.772078] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x8] <= 0x0
+[ 1369.772081] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x48] <= 0x0
+[ 1369.772083] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x78] <= 0x0
+[ 1369.772086] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA8] <= 0x0
+[ 1369.772089] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0xC] <= 0x0
+[ 1369.772092] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x4C] <= 0x0
+[ 1369.772095] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x7C] <= 0x0
+[ 1369.772097] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xAC] <= 0x0
+[ 1369.772100] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.772104] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.772107] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x0] <= 0x0
+[ 1369.772109] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x40] <= 0x0
+[ 1369.772112] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x70] <= 0x0
+[ 1369.772115] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA0] <= 0x0
+[ 1369.772118] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x4] <= 0x0
+[ 1369.772120] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x44] <= 0x0
+[ 1369.772123] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x74] <= 0x0
+[ 1369.772126] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA4] <= 0x0
+[ 1369.772129] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x8] <= 0x0
+[ 1369.772132] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x48] <= 0x0
+[ 1369.772134] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x78] <= 0x0
+[ 1369.772137] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA8] <= 0x0
+[ 1369.772140] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0xC] <= 0x0
+[ 1369.772143] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x4C] <= 0x0
+[ 1369.772146] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x7C] <= 0x0
+[ 1369.772149] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xAC] <= 0x0
+[ 1369.772151] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.772154] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.772158] [drm:dpu_reg_write] [LM_BLEND0_CONST_ALPHA + stage_off:0x24] <= 0xFF0000
+[ 1369.772161] [drm:dpu_reg_write] [LM_BLEND0_OP + stage_off:0x20] <= 0x100
+[ 1369.772164] [drm:dpu_reg_write] [LM_BLEND0_CONST_ALPHA + stage_off:0x24] <= 0xFF0000
+[ 1369.772167] [drm:dpu_reg_write] [LM_BLEND0_OP + stage_off:0x20] <= 0x100
+[ 1369.772170] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x1
+[ 1369.772174] [drm:dpu_reg_write] [LM_OUT_SIZE:0x4] <= 0x8580640
+[ 1369.772176] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x2
+[ 1369.772180] [drm:dpu_reg_write] [LM_OUT_SIZE:0x4] <= 0x8580640
+[ 1369.772182] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x80000002
+[ 1369.772187] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x2
+[ 1369.772189] [drm:dpu_reg_write] [CTL_LAYER(lm):0x0] <= 0x1080000
+[ 1369.772192] [drm:dpu_reg_write] [CTL_LAYER_EXT(lm):0x40] <= 0x0
+[ 1369.772195] [drm:dpu_reg_write] [CTL_LAYER_EXT2(lm):0x70] <= 0x200
+[ 1369.772198] [drm:dpu_reg_write] [CTL_LAYER_EXT3(lm):0xA0] <= 0x0
+[ 1369.772201] [drm:dpu_reg_write] [CTL_LAYER_EXT4(lm):0xB8] <= 0x0
+[ 1369.772205] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x80000002
+[ 1369.772207] [drm:dpu_reg_write] [CTL_LAYER(lm):0x4] <= 0x1080000
+[ 1369.772210] [drm:dpu_reg_write] [CTL_LAYER_EXT(lm):0x44] <= 0x0
+[ 1369.772213] [drm:dpu_reg_write] [CTL_LAYER_EXT2(lm):0x74] <= 0x200
+[ 1369.772216] [drm:dpu_reg_write] [CTL_LAYER_EXT3(lm):0xA4] <= 0x0
+[ 1369.772218] [drm:dpu_reg_write] [CTL_LAYER_EXT4(lm):0xBC] <= 0x0
+[ 1369.772228] [drm:dpu_reg_write] [DSC_CMN_MAIN_CNF:0x0] <= 0x101
+[ 1369.772231] [drm:dpu_reg_write] [sblk->enc.base + ENC_DF_CTRL:0x100] <= 0x95C1203
+[ 1369.772234] [drm:dpu_reg_write] [sblk->enc.base + DSC_MAIN_CONF:0x130] <= 0x101202DA
+[ 1369.772237] [drm:dpu_reg_write] [sblk->enc.base + DSC_PICTURE_SIZE:0x134] <= 0x8580C80
+[ 1369.772240] [drm:dpu_reg_write] [sblk->enc.base + DSC_SLICE_SIZE:0x138] <= 0x180320
+[ 1369.772243] [drm:dpu_reg_write] [sblk->enc.base + DSC_MISC_SIZE:0x13C] <= 0x320
+[ 1369.772245] [drm:dpu_reg_write] [sblk->enc.base + DSC_HRD_DELAYS:0x140] <= 0x2B20200
+[ 1369.772248] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE:0x144] <= 0x20
+[ 1369.772251] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE_INC_DEC:0x148] <= 0xB029F
+[ 1369.772254] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_1:0x14C] <= 0xD
+[ 1369.772257] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_2:0x150] <= 0x2DC0486
+[ 1369.772260] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_3:0x154] <= 0x10F01800
+[ 1369.772263] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_4:0x158] <= 0x0
+[ 1369.772266] [drm:dpu_reg_write] [sblk->enc.base + DSC_FLATNESS_QP:0x15C] <= 0x2207
+[ 1369.772269] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MODEL_SIZE:0x160] <= 0x2000
+[ 1369.772272] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_CONFIG:0x164] <= 0x331EF06
+[ 1369.772275] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CFG:0xF04] <= 0x1001
+[ 1369.772278] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_0:0x168] <= 0x382A1C0E
+[ 1369.772281] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_1:0x16C] <= 0x69625446
+[ 1369.772284] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_2:0x170] <= 0x7B797770
+[ 1369.772287] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_3:0x174] <= 0x7E7D
+[ 1369.772290] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_0:0x178] <= 0x729480
+[ 1369.772292] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_0:0x184] <= 0xB52508
+[ 1369.772295] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_0:0x190] <= 0x3CF80002
+[ 1369.772298] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_1:0x17C] <= 0x739CE7
+[ 1369.772301] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_1:0x188] <= 0xE6B16B
+[ 1369.772304] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_1:0x194] <= 0x36E38E3A
+[ 1369.772307] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_2:0x180] <= 0x115A529
+[ 1369.772310] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_2:0x18C] <= 0x138C60F
+[ 1369.772312] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_2:0x198] <= 0x34D34D36
+[ 1369.772315] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CTL:0xF00] <= 0x0
+[ 1369.772318] [drm:dpu_reg_write] [DSC_CMN_MAIN_CNF:0x0] <= 0x101
+[ 1369.772321] [drm:dpu_reg_write] [sblk->enc.base + ENC_DF_CTRL:0x200] <= 0x95C1203
+[ 1369.772324] [drm:dpu_reg_write] [sblk->enc.base + DSC_MAIN_CONF:0x230] <= 0x101202DA
+[ 1369.772327] [drm:dpu_reg_write] [sblk->enc.base + DSC_PICTURE_SIZE:0x234] <= 0x8580C80
+[ 1369.772330] [drm:dpu_reg_write] [sblk->enc.base + DSC_SLICE_SIZE:0x238] <= 0x180320
+[ 1369.772332] [drm:dpu_reg_write] [sblk->enc.base + DSC_MISC_SIZE:0x23C] <= 0x320
+[ 1369.772335] [drm:dpu_reg_write] [sblk->enc.base + DSC_HRD_DELAYS:0x240] <= 0x2B20200
+[ 1369.772338] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE:0x244] <= 0x20
+[ 1369.772341] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE_INC_DEC:0x248] <= 0xB029F
+[ 1369.772344] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_1:0x24C] <= 0xD
+[ 1369.772347] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_2:0x250] <= 0x2DC0486
+[ 1369.772350] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_3:0x254] <= 0x10F01800
+[ 1369.772353] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_4:0x258] <= 0x0
+[ 1369.772355] [drm:dpu_reg_write] [sblk->enc.base + DSC_FLATNESS_QP:0x25C] <= 0x2207
+[ 1369.772358] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MODEL_SIZE:0x260] <= 0x2000
+[ 1369.772361] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_CONFIG:0x264] <= 0x331EF06
+[ 1369.772364] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CFG:0xF84] <= 0x1001
+[ 1369.772367] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_0:0x268] <= 0x382A1C0E
+[ 1369.772370] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_1:0x26C] <= 0x69625446
+[ 1369.772373] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_2:0x270] <= 0x7B797770
+[ 1369.772376] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_3:0x274] <= 0x7E7D
+[ 1369.772379] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_0:0x278] <= 0x729480
+[ 1369.772382] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_0:0x284] <= 0xB52508
+[ 1369.772385] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_0:0x290] <= 0x3CF80002
+[ 1369.772387] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_1:0x27C] <= 0x739CE7
+[ 1369.772390] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_1:0x288] <= 0xE6B16B
+[ 1369.772393] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_1:0x294] <= 0x36E38E3A
+[ 1369.772396] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_2:0x280] <= 0x115A529
+[ 1369.772399] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_2:0x28C] <= 0x138C60F
+[ 1369.772402] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_2:0x298] <= 0x34D34D36
+[ 1369.772405] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CTL:0xF80] <= 0x1
+[ 1369.772410] [drm:dpu_reg_write] [VBIF_XIN_CLR_ERR:0x19C] <= 0x0
+[ 1369.772413] [drm:dpu_reg_write] [CTL_DSC_FLUSH:0x104] <= 0x3
+[ 1369.772415] [drm:dpu_reg_write] [CTL_FLUSH:0x18] <= 0x4208C0
+[ 1369.772419] [drm:dpu_reg_write] [CTL_DSC_FLUSH:0x104] <= 0x3
+[ 1369.772421] [drm:dpu_reg_write] [CTL_FLUSH:0x18] <= 0x4208C0
+[ 1369.780705] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x0] <= 0x0
+[ 1369.780718] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x40] <= 0x0
+[ 1369.780722] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x70] <= 0x0
+[ 1369.780725] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA0] <= 0x0
+[ 1369.780729] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x4] <= 0x0
+[ 1369.780732] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x44] <= 0x0
+[ 1369.780734] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x74] <= 0x0
+[ 1369.780737] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA4] <= 0x0
+[ 1369.780740] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x8] <= 0x0
+[ 1369.780743] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x48] <= 0x0
+[ 1369.780746] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x78] <= 0x0
+[ 1369.780749] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA8] <= 0x0
+[ 1369.780752] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0xC] <= 0x0
+[ 1369.780754] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x4C] <= 0x0
+[ 1369.780757] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x7C] <= 0x0
+[ 1369.780760] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xAC] <= 0x0
+[ 1369.780763] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.780766] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.780769] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x0] <= 0x0
+[ 1369.780772] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x40] <= 0x0
+[ 1369.780774] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x70] <= 0x0
+[ 1369.780777] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA0] <= 0x0
+[ 1369.780780] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x4] <= 0x0
+[ 1369.780783] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x44] <= 0x0
+[ 1369.780786] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x74] <= 0x0
+[ 1369.780788] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA4] <= 0x0
+[ 1369.780791] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0x8] <= 0x0
+[ 1369.780794] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x48] <= 0x0
+[ 1369.780797] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x78] <= 0x0
+[ 1369.780800] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xA8] <= 0x0
+[ 1369.780802] [drm:dpu_reg_write] [CTL_LAYER(mixer_id):0xC] <= 0x0
+[ 1369.780805] [drm:dpu_reg_write] [CTL_LAYER_EXT(mixer_id):0x4C] <= 0x0
+[ 1369.780808] [drm:dpu_reg_write] [CTL_LAYER_EXT2(mixer_id):0x7C] <= 0x0
+[ 1369.780811] [drm:dpu_reg_write] [CTL_LAYER_EXT3(mixer_id):0xAC] <= 0x0
+[ 1369.780813] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.780816] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x0
+[ 1369.780821] [drm:dpu_reg_write] [LM_BLEND0_CONST_ALPHA + stage_off:0x24] <= 0xFF0000
+[ 1369.780823] [drm:dpu_reg_write] [LM_BLEND0_OP + stage_off:0x20] <= 0x100
+[ 1369.780827] [drm:dpu_reg_write] [LM_BLEND0_CONST_ALPHA + stage_off:0x24] <= 0xFF0000
+[ 1369.780830] [drm:dpu_reg_write] [LM_BLEND0_OP + stage_off:0x20] <= 0x100
+[ 1369.780833] [drm:dpu_reg_write] [CTL_FETCH_PIPE_ACTIVE:0xFC] <= 0x1
+[ 1369.780837] [drm:dpu_reg_write] [LM_OUT_SIZE:0x4] <= 0x8580640
+[ 1369.780839] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x2
+[ 1369.780844] [drm:dpu_reg_write] [LM_OUT_SIZE:0x4] <= 0x8580640
+[ 1369.780846] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x80000002
+[ 1369.780850] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x2
+[ 1369.780852] [drm:dpu_reg_write] [CTL_LAYER(lm):0x0] <= 0x1080000
+[ 1369.780855] [drm:dpu_reg_write] [CTL_LAYER_EXT(lm):0x40] <= 0x0
+[ 1369.780858] [drm:dpu_reg_write] [CTL_LAYER_EXT2(lm):0x70] <= 0x200
+[ 1369.780861] [drm:dpu_reg_write] [CTL_LAYER_EXT3(lm):0xA0] <= 0x0
+[ 1369.780864] [drm:dpu_reg_write] [CTL_LAYER_EXT4(lm):0xB8] <= 0x0
+[ 1369.780868] [drm:dpu_reg_write] [LM_OP_MODE:0x0] <= 0x80000002
+[ 1369.780870] [drm:dpu_reg_write] [CTL_LAYER(lm):0x4] <= 0x1080000
+[ 1369.780873] [drm:dpu_reg_write] [CTL_LAYER_EXT(lm):0x44] <= 0x0
+[ 1369.780876] [drm:dpu_reg_write] [CTL_LAYER_EXT2(lm):0x74] <= 0x200
+[ 1369.780879] [drm:dpu_reg_write] [CTL_LAYER_EXT3(lm):0xA4] <= 0x0
+[ 1369.780882] [drm:dpu_reg_write] [CTL_LAYER_EXT4(lm):0xBC] <= 0x0
+[ 1369.780892] [drm:dpu_reg_write] [DSC_CMN_MAIN_CNF:0x0] <= 0x101
+[ 1369.780894] [drm:dpu_reg_write] [sblk->enc.base + ENC_DF_CTRL:0x100] <= 0x95C1203
+[ 1369.780897] [drm:dpu_reg_write] [sblk->enc.base + DSC_MAIN_CONF:0x130] <= 0x101202DA
+[ 1369.780900] [drm:dpu_reg_write] [sblk->enc.base + DSC_PICTURE_SIZE:0x134] <= 0x8580C80
+[ 1369.780903] [drm:dpu_reg_write] [sblk->enc.base + DSC_SLICE_SIZE:0x138] <= 0x180320
+[ 1369.780906] [drm:dpu_reg_write] [sblk->enc.base + DSC_MISC_SIZE:0x13C] <= 0x320
+[ 1369.780909] [drm:dpu_reg_write] [sblk->enc.base + DSC_HRD_DELAYS:0x140] <= 0x2B20200
+[ 1369.780912] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE:0x144] <= 0x20
+[ 1369.780915] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE_INC_DEC:0x148] <= 0xB029F
+[ 1369.780918] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_1:0x14C] <= 0xD
+[ 1369.780921] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_2:0x150] <= 0x2DC0486
+[ 1369.780925] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_3:0x154] <= 0x10F01800
+[ 1369.780927] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_4:0x158] <= 0x0
+[ 1369.780931] [drm:dpu_reg_write] [sblk->enc.base + DSC_FLATNESS_QP:0x15C] <= 0x2207
+[ 1369.780934] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MODEL_SIZE:0x160] <= 0x2000
+[ 1369.780936] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_CONFIG:0x164] <= 0x331EF06
+[ 1369.780940] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CFG:0xF04] <= 0x1001
+[ 1369.780943] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_0:0x168] <= 0x382A1C0E
+[ 1369.780946] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_1:0x16C] <= 0x69625446
+[ 1369.780949] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_2:0x170] <= 0x7B797770
+[ 1369.780951] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_3:0x174] <= 0x7E7D
+[ 1369.780955] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_0:0x178] <= 0x729480
+[ 1369.780957] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_0:0x184] <= 0xB52508
+[ 1369.780960] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_0:0x190] <= 0x3CF80002
+[ 1369.780964] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_1:0x17C] <= 0x739CE7
+[ 1369.780967] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_1:0x188] <= 0xE6B16B
+[ 1369.780970] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_1:0x194] <= 0x36E38E3A
+[ 1369.780973] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_2:0x180] <= 0x115A529
+[ 1369.780976] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_2:0x18C] <= 0x138C60F
+[ 1369.780979] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_2:0x198] <= 0x34D34D36
+[ 1369.780983] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CTL:0xF00] <= 0x0
+[ 1369.780986] [drm:dpu_reg_write] [DSC_CMN_MAIN_CNF:0x0] <= 0x101
+[ 1369.780988] [drm:dpu_reg_write] [sblk->enc.base + ENC_DF_CTRL:0x200] <= 0x95C1203
+[ 1369.780991] [drm:dpu_reg_write] [sblk->enc.base + DSC_MAIN_CONF:0x230] <= 0x101202DA
+[ 1369.780994] [drm:dpu_reg_write] [sblk->enc.base + DSC_PICTURE_SIZE:0x234] <= 0x8580C80
+[ 1369.780997] [drm:dpu_reg_write] [sblk->enc.base + DSC_SLICE_SIZE:0x238] <= 0x180320
+[ 1369.781000] [drm:dpu_reg_write] [sblk->enc.base + DSC_MISC_SIZE:0x23C] <= 0x320
+[ 1369.781003] [drm:dpu_reg_write] [sblk->enc.base + DSC_HRD_DELAYS:0x240] <= 0x2B20200
+[ 1369.781006] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE:0x244] <= 0x20
+[ 1369.781009] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_SCALE_INC_DEC:0x248] <= 0xB029F
+[ 1369.781012] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_1:0x24C] <= 0xD
+[ 1369.781015] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_2:0x250] <= 0x2DC0486
+[ 1369.781017] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_3:0x254] <= 0x10F01800
+[ 1369.781020] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_OFFSETS_4:0x258] <= 0x0
+[ 1369.781023] [drm:dpu_reg_write] [sblk->enc.base + DSC_FLATNESS_QP:0x25C] <= 0x2207
+[ 1369.781026] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MODEL_SIZE:0x260] <= 0x2000
+[ 1369.781029] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_CONFIG:0x264] <= 0x331EF06
+[ 1369.781032] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CFG:0xF84] <= 0x1001
+[ 1369.781035] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_0:0x268] <= 0x382A1C0E
+[ 1369.781038] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_1:0x26C] <= 0x69625446
+[ 1369.781041] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_2:0x270] <= 0x7B797770
+[ 1369.781044] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_BUF_THRESH_3:0x274] <= 0x7E7D
+[ 1369.781047] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_0:0x278] <= 0x729480
+[ 1369.781049] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_0:0x284] <= 0xB52508
+[ 1369.781052] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_0:0x290] <= 0x3CF80002
+[ 1369.781055] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_1:0x27C] <= 0x739CE7
+[ 1369.781058] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_1:0x288] <= 0xE6B16B
+[ 1369.781061] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_1:0x294] <= 0x36E38E3A
+[ 1369.781064] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MIN_QP_2:0x280] <= 0x115A529
+[ 1369.781067] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_MAX_QP_2:0x28C] <= 0x138C60F
+[ 1369.781070] [drm:dpu_reg_write] [sblk->enc.base + DSC_RC_RANGE_BPG_OFFSETS_2:0x298] <= 0x34D34D36
+[ 1369.781073] [drm:dpu_reg_write] [sblk->ctl.base + DSC_CTL:0xF80] <= 0x1
+[ 1369.781078] [drm:dpu_reg_write] [VBIF_XIN_CLR_ERR:0x19C] <= 0x0
+[ 1369.781082] [drm:dpu_reg_write] [CTL_DSC_FLUSH:0x104] <= 0x3
+[ 1369.781084] [drm:dpu_reg_write] [CTL_FLUSH:0x18] <= 0x4208C0
+[ 1369.781088] [drm:dpu_reg_write] [CTL_DSC_FLUSH:0x104] <= 0x3
+[ 1369.781090] [drm:dpu_reg_write] [CTL_FLUSH:0x18] <= 0x4208C0
+[ 1814.935473] WARNING: ../k52-L16-tree/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c:628 at dpu_crtc_debugfs_state_show+0x118/0x128, CPU#3: cat/35558
+[ 1814.935506] pc : dpu_crtc_debugfs_state_show+0x118/0x128
+[ 1814.935508] lr : dpu_crtc_debugfs_state_show+0x54/0x128
+[ 1814.935540]  dpu_crtc_debugfs_state_show+0x118/0x128 (P)
+[ 1814.939280] WARNING: ../k52-L16-tree/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c:628 at dpu_crtc_debugfs_state_show+0x118/0x128, CPU#6: cat/35564
+[ 1814.939310] pc : dpu_crtc_debugfs_state_show+0x118/0x128
+[ 1814.939312] lr : dpu_crtc_debugfs_state_show+0x54/0x128
+[ 1814.939344]  dpu_crtc_debugfs_state_show+0x118/0x128 (P)

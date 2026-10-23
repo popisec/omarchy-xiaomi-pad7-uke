@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: GPL-2.0
+# Modulos de camara de la uke. Los construye ../build.sh (make -C <senemos-build> M=<stage>). Las fuentes de camcc-cliffs-uke.c,
+# uke_ov13b10.c, uke_ov08d10.c y camss*.c las genera patches/gen-modules.py en <stage> (copias parcheadas del arbol senemos, solo lectura).
+# UKE_OVL_DIR (ruta absoluta de los .dtbo) y UKE_OVL_INC (ruta de uke-ovl.h/uke-ovl-patch.h, la del BT) llegan por entorno.
+obj-m += uke_cam_camcc.o uke_cam_rear.o uke_cam_camss.o uke_cam_front.o
+obj-m += camcc-cliffs-uke.o uke_ov13b10.o uke_ov08d10.o uke-camss.o
+
+CFLAGS_uke_cam_camcc.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-cam-camcc.dtbo\"
+CFLAGS_uke_cam_rear.o  := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-cam-rear.dtbo\"
+CFLAGS_uke_cam_camss.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-cam-camss.dtbo\"
+CFLAGS_uke_cam_front.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-cam-front.dtbo\"
+ccflags-y += -I$(src) -I$(UKE_OVL_INC)
+
+uke-camss-y := camss.o camss-csid.o camss-csid-4-1.o camss-csid-4-7.o camss-csid-340.o camss-csid-680.o \
+	camss-csid-gen2.o camss-csid-gen3.o camss-csiphy.o camss-csiphy-2ph-1-0.o camss-csiphy-3ph-1-0.o \
+	camss-format.o camss-ispif.o camss-tpg.o camss-tpg-gen1.o camss-vfe.o camss-vfe-4-1.o camss-vfe-4-7.o \
+	camss-vfe-4-8.o camss-vfe-17x.o camss-vfe-340.o camss-vfe-480.o camss-vfe-680.o camss-vfe-gen1.o \
+	camss-vfe-gen3.o camss-vfe-vbif.o camss-video.o

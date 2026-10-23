@@ -1,0 +1,67 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -435,6 +435,23 @@
+ module_param_cb(uke_protect_smr0, &uke_protect_smr0_ops, &uke_protect_smr0, 0644);
+ MODULE_PARM_DESC(uke_protect_smr0,
+ 	"UKE (K5): 1 = si find_sme elige un indice con smrs[idx].valid del bootloader (vivo), escribe en un indice libre alto en vez de tocar el vivo; 0 (defecto) = comportamiento K4. Solo apps-smmu.");
++/*
++ * UKE-FIX-A1 (14-oct-2026, sesion FIX): RECLAIM opt-in del SID del display.
++ * El BL deja el SID del display (0x1c00/0x2, el del splash) vivo en HW en un
++ * idx bajo PINADO (medido idx 2, dmesg ~1799), y el SMMU da prioridad al idx
++ * MAS BAJO que casa: programar solo un idx libre alto (20) no desvia el
++ * trafico (el fetch seguiria al CB del BL). Con =1, el claimant del display
++ * reutiliza la entrada del BL: se localiza por LECTURA de SMR (medida segura,
++ * #P9; el S2CR no se lee, #P13), se des-pinea SOLO ese idx y el camino normal
++ * lo reescribe (write_sme via wmask bit6, install_s2cr via bit7, CB69 via
++ * bit8). 0 (defecto) = comportamiento K8/K12 intacto. Solo apps-smmu.
++ * Requiere uke_write_mask=0x1C0. Mutuamente excluyente con uke_disp_bypass.
++ */
++static bool uke_disp_reclaim;
++
++module_param(uke_disp_reclaim, bool, 0644);
++MODULE_PARM_DESC(uke_disp_reclaim,
++	"UKE (FIX-A1): 1 = el attach del SID del display (0x1c00/0x2) reutiliza su entrada PINADA del BL en vez de un idx libre. 0 = K8/K12. Requiere wmask 0x1C0.");
+ 
+ /*
+  * Bitmap de indices ya preservados por uke_attach_log=2: evita que un segundo
+@@ -2342,6 +2359,40 @@
+ 		idx = ret;
+ 
+ 		/*
++		 * UKE-FIX-A1: reclaim del display (ver param). Solo si el
++		 * claimant es el SID del display y hay entrada BL reutilizable.
++		 * Sin param, sin smrs, o sin entrada del BL: idx intacto.
++		 */
++		if (uke_disp_reclaim && uke_smmu_es_apps(smmu) &&
++		    sid == 0x1c00 && mask == 0x2 && smmu->smrs) {
++			int uke_r;
++
++			for (uke_r = 0; uke_r < (int)smmu->num_mapping_groups; uke_r++) {
++				u32 uke_h = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(uke_r));
++
++				if (!FIELD_GET(ARM_SMMU_SMR_VALID, uke_h))
++					continue;
++				if ((u16)FIELD_GET(ARM_SMMU_SMR_ID, uke_h) != sid)
++					continue;
++				if ((u16)uke_smr_mask_leido(uke_h) != mask)
++					continue;
++				break;
++			}
++			if (uke_r < (int)smmu->num_mapping_groups && uke_r != idx) {
++				pr_info("UKE-POKE: FIX-A1: reclaim display: SMR(%d) del BL casa sid=0x%x mask=0x%x (pinado=%d): %s lo reutiliza en vez de idx=%d; se des-pinea y se reescribe a TRANS->CB nuevo (wmask 6+7+8)\n",
++					uke_r, sid, mask,
++					uke_pinado(smmu, uke_r) ? 1 : 0,
++					dev_name(dev), idx);
++				pr_flush(500, false);
++				smmu->s2crs[uke_r].pinned = false;
++				idx = uke_r;
++			} else {
++				pr_info("UKE-POKE: FIX-A1: reclaim display: sin entrada BL reutilizable (r=%d idx=%d): se sigue con idx=%d (K8/K12)\n",
++					uke_r, idx, idx);
++			}
++		}
++
++		/*
+ 		 * UKE-SMMU-K8: HANDOFF por indice y por DT. Si find_sme ha
+ 		 * devuelto un indice PINADO (por el barrido: SMR VALID=1 vivo del
+ 		 * BL, hoy solo idx 0 sid 0x60 UFS), este maestro hereda el mapeo

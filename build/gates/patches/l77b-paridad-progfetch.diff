@@ -1,0 +1,255 @@
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+@@ -603,6 +603,11 @@
+ 	cfg.en = true;
+ 	cfg.mode = phys_enc->intf_mode;
+ 	cfg.intf = interface;
++	/* L77b-3 (uke): acotado a video dual-DSI con DSC + widebus en DPU >= 10 */
++	cfg.uke_l77 = phys_enc->intf_mode == INTF_MODE_VIDEO &&
++		      phys_enc->dpu_kms->catalog->mdss_ver->core_major_ver >= 10 &&
++		      dpu_encoder_is_dsc_enabled(phys_enc->parent) &&
++		      dpu_encoder_is_widebus_enabled(phys_enc->parent);
+ 
+ 	if (cfg.en && phys_enc->ops.needs_single_flush &&
+ 			phys_enc->ops.needs_single_flush(phys_enc))
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_vid.c
+@@ -230,6 +230,35 @@
+  *
+  * @timing: Pointer to the intf timing information for the requested mode
+  */
++/*
++ * L77b-1 (uke, 17-oct-2026): prog-fetch como el vendor en el panel o82.
++ * Mainline lo desactiva porque vbp+vsw = 148 >= prog_fetch_lines_worst_case
++ * (24). El vendor lo deja ON con PROG_FETCH_START = 0x0014272d e INTF_CONFIG
++ * bit31+bit23 (0x80800000) en INTF_1 e INTF_2, y es lo que acompana a C4
++ * (ENC_DF_CTRL initial_lines 3 + bit12, L76). Formula: vfp_fetch_lines = 1 =>
++ * fetch_start = (vtotal - 1) * htotal + 1 = 2309 * 572 + 1 = 1320749 =
++ * 0x0014272d (vtotal 2136+26+2+146 = 2310; htotal INTF = 427+113+16+16 = 572,
++ * el mismo periodo que HSYNC_CTL 0x023c0010) = arranque del fetch en la
++ * ULTIMA linea del front porch, fuera de la zona activa.
++ * Acotado: DSI + DSC + widebus + split (dual-DSI), DPU >= 10, 1600x2136 por
++ * INTF. Param 0 = mainline (prog-fetch off, INTF_CONFIG RMW).
++ */
++static bool uke_l77_progfetch = true;
++module_param(uke_l77_progfetch, bool, 0444);
++MODULE_PARM_DESC(uke_l77_progfetch, "UKE-L77: INTF prog-fetch vendor o82 (CONFIG 0x80800000, PROG_FETCH_START 0x0014272d)");
++
++static bool uke_l77_pf_applies(struct dpu_encoder_phys *phys_enc,
++			       const struct drm_display_mode *mode,
++			       const struct dpu_hw_intf_timing_params *t)
++{
++	return uke_l77_progfetch &&
++	       phys_enc->hw_intf->cap->type == INTF_DSI &&
++	       phys_enc->dpu_kms->catalog->mdss_ver->core_major_ver >= 10 &&
++	       phys_enc->split_role != ENC_ROLE_SOLO &&
++	       t->compression_en && t->wide_bus_en &&
++	       mode->hdisplay == 1600 && mode->vdisplay == 2136;
++}
++
+ static void programmable_fetch_config(struct dpu_encoder_phys *phys_enc,
+ 				      const struct dpu_hw_intf_timing_params *timing)
+ {
+@@ -243,7 +272,12 @@
+ 	if (WARN_ON_ONCE(!phys_enc->hw_intf->ops.setup_prg_fetch))
+ 		return;
+ 
+-	vfp_fetch_lines = programmable_fetch_get_num_lines(phys_enc, timing);
++	if (timing->uke_l77_pf) {
++		vfp_fetch_lines = 1;	/* L77b-1: vendor 0x0014272d */
++		f.uke_l77_log = true;
++	} else {
++		vfp_fetch_lines = programmable_fetch_get_num_lines(phys_enc, timing);
++	}
+ 	if (vfp_fetch_lines) {
+ 		vert_total = get_vertical_total(timing);
+ 		horiz_total = get_horizontal_total(timing);
+@@ -305,6 +339,8 @@
+ 	}
+ 
+ 	drm_mode_to_intf_timing_params(phys_enc, &mode, &timing_params);
++	timing_params.uke_l77_pf = uke_l77_pf_applies(phys_enc, &mode,
++						      &timing_params);
+ 
+ 	fmt = mdp_get_format(&phys_enc->dpu_kms->base, fmt_fourcc, 0);
+ 	DPU_DEBUG_VIDENC(phys_enc, "fmt_fourcc 0x%X\n", fmt_fourcc);
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_dsc_1_2.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_dsc_1_2.c
+@@ -70,6 +70,12 @@
+ 	return max_addr - 1;
+ };
+ 
++/* L77b-2: param 0 = mainline (DSC_CLK_CTRL sin tocar). */
++static bool uke_l77_dsc_clk = true;
++module_param(uke_l77_dsc_clk, bool, 0444);
++MODULE_PARM_DESC(uke_l77_dsc_clk, "UKE-L77: DSC_CLK_CTRL 0xc0000000 en DSC_0/DSC_1 (vendor o82)");
++static unsigned int uke_l77_dsc_logs;
++
+ static void dpu_hw_dsc_disable_1_2(struct dpu_hw_dsc *hw_dsc)
+ {
+ 	struct dpu_hw_blk_reg_map *hw;
+@@ -81,6 +87,9 @@
+ 	hw = &hw_dsc->hw;
+ 	sblk = hw_dsc->caps->sblk;
+ 	DPU_REG_WRITE(hw, sblk->ctl.base + DSC_CFG, 0);
++	/* L77b-2: deshacer DSC_CLK_CTRL (reset 0; DSC_2 vendor = 0) */
++	if (uke_l77_dsc_clk)
++		DPU_REG_WRITE(hw, sblk->ctl.base + DSC_CLK_CTRL, 0);
+ 
+ 	DPU_REG_WRITE(hw, sblk->enc.base + ENC_DF_CTRL, 0);
+ 	DPU_REG_WRITE(hw, sblk->enc.base + DSC_MAIN_CONF, 0);
+@@ -272,6 +281,23 @@
+ 		data |= BIT(17);
+ 
+ 	DPU_REG_WRITE(hw, sblk->ctl.base + DSC_CFG, data);
++
++	/*
++	 * L77b-2 (uke, 17-oct-2026): DSC_CLK_CTRL (ctl + 0xC) = 0xc0000000 en
++	 * DSC_0/DSC_1 como el vendor (sde-blocks-raw-awake: MDSS 0x81f0c y
++	 * 0x81f8c = MDP 0x80000 + ctl 0xF00/0xF80 + 0xC; DSC_2 = 0). Mainline
++	 * nunca lo escribe. Va con C4 (mismo filtro que el quirk L76).
++	 */
++	if (uke_l77_dsc_clk && quirk &&
++	    (hw_dsc->idx == DSC_0 || hw_dsc->idx == DSC_1)) {
++		DPU_REG_WRITE(hw, sblk->ctl.base + DSC_CLK_CTRL, 0xc0000000);
++		if (uke_l77_dsc_logs < 4) {
++			uke_l77_dsc_logs++;
++			pr_info("UKE-L77-DSC: DSC%d CLK_CTRL=0x%08x (v 0xc0000000)\n",
++				hw_dsc->idx - DSC_0,
++				DPU_REG_READ(hw, sblk->ctl.base + DSC_CLK_CTRL));
++		}
++	}
+ }
+ 
+ static void dpu_hw_dsc_config_thresh_1_2(struct dpu_hw_dsc *hw_dsc,
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.c
+@@ -240,6 +240,23 @@
+ 				(BPC8 << 4) |
+ 				(0x21 << 8));
+ 
++	/*
++	 * L77b-1 (uke, 17-oct-2026): INTF_CONFIG como el vendor (INTF_1 e
++	 * INTF_2 = 0x80800000, sde-blocks-raw-awake / sde-regwrites:201-209).
++	 * Mainline hace RMW del valor heredado (bootloader/cont_splash) y
++	 * solo toca 29/30/31: bit23 queda a lo que dejara el BL y los
++	 * ACTIVE_H/V_EN heredados (el vendor escribe 0x60800000 y luego los
++	 * quita) podrian quedarse puestos. Con uke_l77_pf: valor construido
++	 * desde 0 = BIT(23) + los EN que calcula mainline (0 aqui: width ==
++	 * xres, height == yres). bit31 (prog-fetch) lo pone despues
++	 * dpu_hw_intf_setup_prg_fetch junto con PROG_FETCH_START.
++	 */
++	if (p->uke_l77_pf && p->compression_en && !dp_intf) {
++		intf_cfg &= (active_h_end ? INTF_CFG_ACTIVE_H_EN : 0) |
++			    (active_v_end ? INTF_CFG_ACTIVE_V_EN : 0);
++		intf_cfg |= BIT(23);
++	}
++
+ 	DPU_REG_WRITE(c, INTF_HSYNC_CTL, hsync_ctl);
+ 	DPU_REG_WRITE(c, INTF_VSYNC_PERIOD_F0, vsync_period * hsync_period);
+ 	DPU_REG_WRITE(c, INTF_VSYNC_PULSE_WIDTH_F0,
+@@ -315,6 +332,15 @@
+ 	}
+ 
+ 	DPU_REG_WRITE(c, INTF_CONFIG, fetch_enable);
++
++	/* L77b-1 (uke): readback de lo que acabamos de escribir, valor vendor
++	 * INTF_1/INTF_2 al lado (REGDIFF §B: 0x004 / 0x170). */
++	if (fetch->uke_l77_log)
++		pr_info("UKE-L77-INTF: INTF%d CONFIG=0x%08x (v 0x80800000) PROG_FETCH_START=0x%08x (v 0x0014272d) en=%u\n",
++			intf->idx - INTF_0,
++			DPU_REG_READ(c, INTF_CONFIG),
++			DPU_REG_READ(c, INTF_PROG_FETCH_START),
++			fetch->enable);
+ }
+ 
+ static void dpu_hw_intf_bind_pingpong_blk(
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.h
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.h
+@@ -36,12 +36,17 @@
+ 	bool wide_bus_en;
+ 	bool compression_en;
+ 	u32 dce_bytes_per_line;
++	/* L77b (uke): paridad vendor INTF_CONFIG (bit23 + prog-fetch). Lo
++	 * decide dpu_encoder_phys_vid (msm.uke_l77_progfetch + panel o82). */
++	bool uke_l77_pf;
+ };
+ 
+ struct dpu_hw_intf_prog_fetch {
+ 	u8 enable;
+ 	/* vsync counter for the front porch pixel line */
+ 	u32 fetch_start;
++	/* L77b (uke): imprimir readback UKE-L77-INTF tras programar */
++	bool uke_l77_log;
+ };
+ 
+ struct dpu_hw_intf_status {
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_top.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_top.c
+@@ -3,6 +3,7 @@
+  */
+ 
+ #include <linux/bitfield.h>
++#include <linux/moduleparam.h>
+ 
+ #include <drm/drm_managed.h>
+ 
+@@ -22,6 +23,20 @@
+ #define TRAFFIC_SHAPER_WR_CLIENT(num)     (0x060 + (num * 4))
+ #define TRAFFIC_SHAPER_FIXPOINT_FACTOR    4
+ 
++/*
++ * L77b-3 (uke, 17-oct-2026): split en TOP como el vendor en video dual-DSI
++ * (sde-regwrites-decoded:210-213): SSPP_SPARE=1, LOWER(0x3F0)=0,
++ * UPPER(0x2F8)=0, SPLIT_DISPLAY_EN(0x2F4)=1. Mainline en video con maestro
++ * INTF_1 escribe LOWER=BIT(8) (INTF_2_SW_TRG_MUX) y UPPER=BIT(4)
++ * (INTF_1_SW_TRG_MUX), y SSPP_SPARE=0 en DPU >= 5 (needs_single_flush
++ * false). Con C7 (TE solo en el maestro) el esclavo vive del split.
++ * 0 = mainline; 1 = UPPER/LOWER 0/0 (vendor); 2 = 1 + SSPP_SPARE=1 (vendor
++ * completo; el analisis L77 suponia SPARE=1 en mainline, pero el codigo da 0).
++ */
++static int uke_l77_split = 1;
++module_param(uke_l77_split, int, 0444);
++MODULE_PARM_DESC(uke_l77_split, "UKE-L77: split TOP vendor en video (1 = UPPER/LOWER 0/0, 2 = + SSPP_SPARE 1)");
++
+ static void dpu_hw_setup_split_pipe(struct dpu_hw_mdp *mdp,
+ 		struct split_pipe_cfg *cfg)
+ {
+@@ -54,10 +69,26 @@
+ 		}
+ 	}
+ 
++	if (uke_l77_split > 0 && cfg->uke_l77 && cfg->en &&
++	    cfg->mode == INTF_MODE_VIDEO) {
++		lower_pipe = 0;
++		upper_pipe = 0;
++		if (uke_l77_split >= 2)
++			cfg->split_flush_en = true;
++	}
++
+ 	DPU_REG_WRITE(c, SSPP_SPARE, cfg->split_flush_en ? 0x1 : 0x0);
+ 	DPU_REG_WRITE(c, SPLIT_DISPLAY_LOWER_PIPE_CTRL, lower_pipe);
+ 	DPU_REG_WRITE(c, SPLIT_DISPLAY_UPPER_PIPE_CTRL, upper_pipe);
+ 	DPU_REG_WRITE(c, SPLIT_DISPLAY_EN, cfg->en & 0x1);
++
++	/* L77b-3: readback de lo recien escrito, vendor al lado */
++	if (cfg->uke_l77)
++		pr_info("UKE-L77-SPLIT: EN=%u (v 1) UPPER=0x%x (v 0x0) LOWER=0x%x (v 0x0) SPARE=%u (v 1) param=%d\n",
++			DPU_REG_READ(c, SPLIT_DISPLAY_EN),
++			DPU_REG_READ(c, SPLIT_DISPLAY_UPPER_PIPE_CTRL),
++			DPU_REG_READ(c, SPLIT_DISPLAY_LOWER_PIPE_CTRL),
++			DPU_REG_READ(c, SSPP_SPARE), uke_l77_split);
+ }
+ 
+ static bool dpu_hw_setup_clk_force_ctrl(struct dpu_hw_mdp *mdp,
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_top.h
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_top.h
+@@ -40,6 +40,8 @@
+ 	enum dpu_intf_mode mode;
+ 	enum dpu_intf intf;
+ 	bool split_flush_en;
++	/* L77b-3 (uke): video dual-DSI DSC+widebus en DPU >= 10 (o82) */
++	bool uke_l77;
+ };
+ 
+ /**

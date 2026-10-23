@@ -1,0 +1,24 @@
+#!/bin/sh
+# uke-rtc-offset — hora correcta sin red en la uke (19-oct-2026).
+# El RTC de la PMIC (rtc-pm8xxx, pmk8550) corre siempre (apagada y en suspension) pero Linux no puede escribirlo
+# (Qualcomm lo deja de solo lectura para el AP: marca 1970). Como Android, se guarda el desfase hora_real - RTC y se
+# aplica al arrancar. Uso: uke-rtc-offset restore | save [--force] | status
+F=/var/lib/uke/rtc-offset
+RTC=/sys/class/rtc/rtc0/since_epoch
+[ -r "$RTC" ] || { echo "uke-rtc-offset: sin $RTC"; exit 0; }
+rtc=$(cat "$RTC"); now=$(date +%s)
+synced() { [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" = yes ]; }
+case "$1" in
+restore)
+	[ -s "$F" ] || { echo "uke-rtc-offset: sin desfase guardado; hora sin tocar ($(date))"; exit 0; }
+	t=$((rtc + $(cat "$F")))
+	d=$((t - now)); [ ${d#-} -le 2 ] && { echo "uke-rtc-offset: hora ya correcta"; exit 0; }
+	date -s "@$t" >/dev/null && echo "uke-rtc-offset: hora restaurada desde el RTC ($d s): $(date)" ;;
+save)
+	# solo si la hora es fiable: NTP sincronizado, ya derivada de un desfase guardado, o --force (puesta a mano)
+	if [ "$2" = --force ] || synced || [ -s "$F" ]; then
+		mkdir -p "${F%/*}"; echo $((now - rtc)) > "$F.tmp" && mv "$F.tmp" "$F" && echo "uke-rtc-offset: desfase $((now - rtc)) guardado"
+	else echo "uke-rtc-offset: hora no fiable (sin NTP ni desfase previo): no guardo"; fi ;;
+status) echo "rtc=$rtc ahora=$now desfase_actual=$((now - rtc)) guardado=$(cat "$F" 2>/dev/null || echo -) ntp=$(synced && echo si || echo no)" ;;
+*) echo "uso: $0 restore|save [--force]|status"; exit 2 ;;
+esac

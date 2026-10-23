@@ -1,0 +1,46 @@
+--- a/kernel
++++ b/kernel	2026-10-11 02:34:06.535441718 +0200
+@@ -15,6 +15,13 @@
+ #include <linux/pm_domain.h>
+ #include <linux/soc/qcom/llcc-qcom.h>
+ 
++/* UKE-r3d (11-oct-2026): conmutador de la telemetria L6/L7. Definido en
++ * a6xx_gmu.c (module_param uke_gmu_trace, 0444; token cmdline
++ * msm.uke_gmu_trace). Por defecto 0: los guards de abajo no se ejecutan,
++ * pero las CADENAS de marcadores quedan en el binario (los gates del
++ * repack cuentan UKE-L6). */
++extern int uke_gmu_trace;
++
+ #define GPU_PAS_ID 13
+ 
+ static u64 a6xx_gmu_get_timestamp(struct msm_gpu *gpu)
+@@ -2136,9 +2143,11 @@
+ 	int ret;
+ 
+ 	/* UKE-L6 (10-oct-2026): discriminador pm_resume: corre la via GMU. */
+-	uke_poke("L6-gmupm");
+-	pr_err("UKE-L6: gmu-pm-resume-enter\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L6-gmupm");
++		pr_err("UKE-L6: gmu-pm-resume-enter\n");
++		pr_flush(120, false);
++	}
+ 
+ 	gpu->needs_hw_init = true;
+ 
+@@ -2174,9 +2183,11 @@
+ 	int ret;
+ 
+ 	/* UKE-L6 (10-oct-2026): discriminador pm_resume: corre la via SIN-GMU. */
+-	uke_poke("L6-pm");
+-	pr_err("UKE-L6: pm-resume-enter\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L6-pm");
++		pr_err("UKE-L6: pm-resume-enter\n");
++		pr_flush(120, false);
++	}
+ 
+ 	gpu->needs_hw_init = true;
+ 

@@ -1,0 +1,239 @@
+=== uname
+Linux uke-arch 7.2.9-senemos.1.4054.3-ouke2 #2 SMP PREEMPT 2026-10-17 22:00:00 UTC aarch64 GNU/Linux
+=== cmdline
+loglevel=6 kpti=0 log_buf_len=256K swiotlb=noforce loop.max_part=7 pcie_ports=compat irqaffinity=0-2 cpufreq.default_governor=performance sysctl.kernel.sched_pelt_multiplier=4 kasan=off cgroup.memory=nokmem,nosocket disable_dma32=on kernel.panic_on_rcu_stall=1 fw_devlink.strict=1 service_locator.enable=1 rcupdate.rcu_expedited=1 rcu_nocbs=0-7 no-steal-acc printk.console_no_auto_verbose=0 can.stats_timer=0 ftrace_dump_on_oops firmware_class.path=/vendor/firmware_mnt/image,/vendor/firmware_mnt/image/kiwi,/vendor/vm-system/oemvm/boot,/vendor/vm-system/trustedvm/boot,/vendor/firmware,/vendor/firmware/wlan/qca_cld/kiwi_v2 pci-msm-drv.pcie_sm_regs=0x1D07000,0x1040,0x1048,0x3000,0x1 video=vfb:640x400,bpp=32,memsize=3072000 swinfo.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user mtdoops.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user bootconfig rdinit=/ukeinit panic=10 console=tty0 fbcon=map:0 fbcon=font:TER16x32 consoleblank=0 console=ttyGS0,115200 hung_task_timeout_secs=20 hung_task_panic=0 watchdog_thresh=10 clk_ignore_unused pd_ignore_unused regulator_ignore_unused fw_devlink.strict=0 msm.separate_gpu_kms=1 systemd.unit=multi-user.target printk.always_kmsg_dump=0 plymouth.enable=0 iomem=relaxed bootinfo.pureason=0x800001 bootinfo.pdreason=0x2 msm_sharedmem.cma_already_panic=0 debug_ext.initrd_size=62921 spidev.bufsiz=16384 hwid.hwid_value=1638400 hwid.project=11 hwid.build_adc=51237 hwid.project_adc=81 msm_drm.dsi_display0=qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid: msm_drm.oled_wp=99807e msm_drm.debugpolicy=0x20 msm_drm.build_id=c3 rootwait ro init=/init silent_boot.mode=nonsilent log_buf_len=2M loglevel=6 console=ttynull block2mtd.block2mtd=/dev/block/by-name/oops,2097152 mtdoops.mtddev=0 mtdoops.record_size=2097152 mtdoops.dump_oops=1 printk.always_kmsg_dump=1 mtdoops.boot_mode=1 mtdoops.boot_index=1576
+=== devices_deferred
+3d00000.qcom,kgsl-3d0	adreno: /soc/qcom,kgsl-3d0@3d00000: Failed to get clk index: 2 (ahb)
+regulator.7.bdev	
+arm-scmi.0.auto	arm-scmi: failed to setup channels
+=== lsmod
+Module                  Size  Used by
+=== uptime
+ 20:00:59 up 6 min,  1 user,  load average: 0.01, 0.07, 0.03
+0.01 0.07 0.03 1/181 1819
+=== backlight
+/sys/class/backlight/uke-backlight 372 / 2047 bl_power=0
+=== platform devices display
+1400000.interconnect
+1500000.interconnect
+15000000.apps-smmu
+1600000.interconnect
+1680000.interconnect
+16c0000.interconnect
+16e0000.interconnect
+1700000.interconnect
+17a00000.rsc
+17a00000.rsc:drv@2:bcm_voter
+17a00000.rsc:drv@2:clock-controller
+17a00000.rsc:drv@2:qcom,dcvs-fp
+17a00000.rsc:drv@2:rpmh-regulator-bobb1
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl
+17a00000.rsc:drv@2:rpmh-regulator-ebilvl
+17a00000.rsc:drv@2:rpmh-regulator-gfxlvl
+17a00000.rsc:drv@2:rpmh-regulator-lcxlvl
+17a00000.rsc:drv@2:rpmh-regulator-ldob1
+17a00000.rsc:drv@2:rpmh-regulator-ldob10
+17a00000.rsc:drv@2:rpmh-regulator-ldob11
+17a00000.rsc:drv@2:rpmh-regulator-ldob12
+17a00000.rsc:drv@2:rpmh-regulator-ldob13
+17a00000.rsc:drv@2:rpmh-regulator-ldob14
+17a00000.rsc:drv@2:rpmh-regulator-ldob15
+17a00000.rsc:drv@2:rpmh-regulator-ldob16
+17a00000.rsc:drv@2:rpmh-regulator-ldob17
+17a00000.rsc:drv@2:rpmh-regulator-ldob18
+17a00000.rsc:drv@2:rpmh-regulator-ldob19
+17a00000.rsc:drv@2:rpmh-regulator-ldob2
+17a00000.rsc:drv@2:rpmh-regulator-ldob20
+17a00000.rsc:drv@2:rpmh-regulator-ldob21
+17a00000.rsc:drv@2:rpmh-regulator-ldob22
+17a00000.rsc:drv@2:rpmh-regulator-ldob23
+17a00000.rsc:drv@2:rpmh-regulator-ldob3
+17a00000.rsc:drv@2:rpmh-regulator-ldob4
+17a00000.rsc:drv@2:rpmh-regulator-ldob5
+17a00000.rsc:drv@2:rpmh-regulator-ldob7
+17a00000.rsc:drv@2:rpmh-regulator-ldob8
+17a00000.rsc:drv@2:rpmh-regulator-ldob9
+17a00000.rsc:drv@2:rpmh-regulator-ldoc1
+17a00000.rsc:drv@2:rpmh-regulator-ldoc3
+17a00000.rsc:drv@2:rpmh-regulator-ldod1
+17a00000.rsc:drv@2:rpmh-regulator-ldod3
+17a00000.rsc:drv@2:rpmh-regulator-ldoe1
+17a00000.rsc:drv@2:rpmh-regulator-ldoe2
+17a00000.rsc:drv@2:rpmh-regulator-ldoe3
+17a00000.rsc:drv@2:rpmh-regulator-ldoe4
+17a00000.rsc:drv@2:rpmh-regulator-ldoe5
+17a00000.rsc:drv@2:rpmh-regulator-ldoe6
+17a00000.rsc:drv@2:rpmh-regulator-ldoe7
+17a00000.rsc:drv@2:rpmh-regulator-ldom1
+17a00000.rsc:drv@2:rpmh-regulator-ldom2
+17a00000.rsc:drv@2:rpmh-regulator-ldom3
+17a00000.rsc:drv@2:rpmh-regulator-ldom4
+17a00000.rsc:drv@2:rpmh-regulator-ldom6
+17a00000.rsc:drv@2:rpmh-regulator-ldom7
+17a00000.rsc:drv@2:rpmh-regulator-ldon1
+17a00000.rsc:drv@2:rpmh-regulator-ldon2
+17a00000.rsc:drv@2:rpmh-regulator-ldon3
+17a00000.rsc:drv@2:rpmh-regulator-ldon4
+17a00000.rsc:drv@2:rpmh-regulator-ldon5
+17a00000.rsc:drv@2:rpmh-regulator-ldon6
+17a00000.rsc:drv@2:rpmh-regulator-ldon7
+17a00000.rsc:drv@2:rpmh-regulator-lmxlvl
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl
+17a00000.rsc:drv@2:rpmh-regulator-msslvl
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl
+17a00000.rsc:drv@2:rpmh-regulator-nsplvl
+17a00000.rsc:drv@2:rpmh-regulator-smpb1
+17a00000.rsc:drv@2:rpmh-regulator-smpb2
+17a00000.rsc:drv@2:rpmh-regulator-smpb3
+17a00000.rsc:drv@2:rpmh-regulator-smpe1
+17a00000.rsc:drv@2:rpmh-regulator-smpe2
+17a00000.rsc:drv@2:rpmh-regulator-smpe3
+17a00000.rsc:drv@2:rpmh-regulator-smpj1
+24100000.interconnect
+320c0000.interconnect
+3da0000.kgsl-smmu
+7400000.interconnect
+7430000.interconnect
+7e40000.interconnect
+816e0000.dump_display_region
+add4000.rsc
+ae00000.display-subsystem
+ae01000.display-controller
+ae94000.dsi
+ae95000.phy
+ae96000.dsi
+ae97000.phy
+af20000.qcom,sde_rscc
+af20000.rsc
+soc:display_gpio_regulator@0
+soc:display_gpio_regulator_vsn
+soc:display_gpio_regulator_vsp
+soc:interconnect@0
+soc:interconnect@1
+soc:qcom,cam_smmu
+soc:qcom,cam_smmu:msm_cam_smmu_secure
+soc:qcom,dsi-display-primary
+soc:qcom,msm-ext-disp
+soc:qcom,wb-display@1
+soc:qcom,wb-display@2
+soc:qti,smmu-proxy
+=== driver binding
+ae00000.display-subsystem -> ../../../../bus/platform/drivers/msm-mdss
+ae01000.display-controller -> ../../../../../bus/platform/drivers/msm_dpu
+ae94000.dsi -> ../../../../../bus/platform/drivers/msm_dsi
+ae96000.dsi -> ../../../../../bus/platform/drivers/msm_dsi
+af00000.clock-controller -> ../../../../bus/platform/drivers/disp_cc-sm8550
+=== kernel config display
+CONFIG_DRM_MSM=y
+CONFIG_DRM_MSM_GPU_STATE=y
+CONFIG_DRM_MSM_KMS=y
+CONFIG_DRM_MSM_KMS_FBDEV=y
+CONFIG_DRM_MSM_MDSS=y
+CONFIG_DRM_MSM_MDP4=y
+CONFIG_DRM_MSM_MDP5=y
+CONFIG_DRM_MSM_DPU=y
+CONFIG_DRM_MSM_DP=y
+CONFIG_DRM_MSM_DSI=y
+CONFIG_DRM_MSM_DSI_28NM_PHY=y
+CONFIG_DRM_MSM_DSI_20NM_PHY=y
+CONFIG_DRM_MSM_DSI_28NM_8960_PHY=y
+CONFIG_DRM_MSM_DSI_14NM_PHY=y
+CONFIG_DRM_MSM_DSI_10NM_PHY=y
+CONFIG_DRM_MSM_DSI_7NM_PHY=y
+CONFIG_DRM_MSM_HDMI=y
+CONFIG_DRM_MSM_HDMI_HDCP=y
+# CONFIG_SM_DISPCC_4450 is not set
+CONFIG_SM_DISPCC_6115=m
+CONFIG_SM_DISPCC_8250=y
+CONFIG_SM_DISPCC_6350=m
+CONFIG_SM_DISPCC_MILOS=m
+CONFIG_SM_DISPCC_8450=m
+CONFIG_SM_DISPCC_8550=y
+CONFIG_SM_DISPCC_8750=m
+CONFIG_ARM_SMMU=y
+# CONFIG_ARM_SMMU_LEGACY_DT_BINDINGS is not set
+CONFIG_ARM_SMMU_DISABLE_BYPASS_BY_DEFAULT=y
+CONFIG_ARM_SMMU_MMU_500_CPRE_ERRATA=y
+CONFIG_ARM_SMMU_QCOM=y
+# CONFIG_ARM_SMMU_QCOM_DEBUG is not set
+CONFIG_ARM_SMMU_V3=y
+# CONFIG_ARM_SMMU_V3_SVA is not set
+CONFIG_QCOM_COMMAND_DB=y
+CONFIG_QCOM_RPMH=y
+CONFIG_QCOM_ICC_BWMON=m
+CONFIG_QCOM_RPMH_UKE=y
+CONFIG_QCOM_RPMHPD=y
+# CONFIG_PHY_QCOM_APQ8064_SATA is not set
+CONFIG_PHY_QCOM_EDP=m
+# CONFIG_PHY_QCOM_IPQ4019_USB is not set
+# CONFIG_PHY_QCOM_IPQ806X_SATA is not set
+CONFIG_PHY_QCOM_PCIE2=m
+CONFIG_PHY_QCOM_QMP=y
+CONFIG_PHY_QCOM_QMP_COMBO=m
+CONFIG_PHY_QCOM_QMP_PCIE=m
+CONFIG_PHY_QCOM_QMP_PCIE_8996=m
+CONFIG_PHY_QCOM_QMP_UFS=y
+CONFIG_PHY_QCOM_QMP_USB=m
+# CONFIG_PHY_QCOM_QMP_USB_LEGACY is not set
+CONFIG_PHY_QCOM_QUSB2=m
+CONFIG_PHY_QCOM_EUSB2_REPEATER=m
+CONFIG_PHY_QCOM_M31_USB=m
+# CONFIG_PHY_QCOM_UNIPHY_PCIE_28LP is not set
+CONFIG_PHY_QCOM_M31_EUSB=m
+CONFIG_PHY_QCOM_USB_HS=m
+CONFIG_PHY_QCOM_USB_SNPS_FEMTO_V2=m
+# CONFIG_PHY_QCOM_USB_HSIC is not set
+CONFIG_PHY_QCOM_USB_HS_28NM=m
+CONFIG_PHY_QCOM_USB_SS=m
+# CONFIG_PHY_QCOM_IPQ806X_USB is not set
+CONFIG_PHY_QCOM_SGMII_ETH=m
+CONFIG_ARM_SMMU_V3_PMU=m
+CONFIG_INTERCONNECT=y
+CONFIG_INTERCONNECT_QCOM=y
+CONFIG_INTERCONNECT_QCOM_BCM_VOTER=y
+CONFIG_INTERCONNECT_QCOM_ELIZA=y
+CONFIG_INTERCONNECT_QCOM_GLYMUR=y
+# CONFIG_INTERCONNECT_QCOM_HAWI is not set
+CONFIG_INTERCONNECT_QCOM_KAANAPALI=y
+CONFIG_INTERCONNECT_QCOM_MSM8916=m
+# CONFIG_INTERCONNECT_QCOM_MSM8937 is not set
+# CONFIG_INTERCONNECT_QCOM_MSM8939 is not set
+CONFIG_INTERCONNECT_QCOM_MSM8953=y
+# CONFIG_INTERCONNECT_QCOM_MSM8976 is not set
+CONFIG_INTERCONNECT_QCOM_MSM8996=y
+# CONFIG_INTERCONNECT_QCOM_NORD is not set
+CONFIG_INTERCONNECT_QCOM_OSM_L3=m
+CONFIG_INTERCONNECT_QCOM_QCM2290=y
+CONFIG_INTERCONNECT_QCOM_QCS404=m
+CONFIG_INTERCONNECT_QCOM_QCS615=y
+CONFIG_INTERCONNECT_QCOM_QCS8300=y
+CONFIG_INTERCONNECT_QCOM_QDU1000=y
+CONFIG_INTERCONNECT_QCOM_RPMH_POSSIBLE=y
+CONFIG_INTERCONNECT_QCOM_RPMH=y
+CONFIG_INTERCONNECT_QCOM_CLIFFS_USB=y
+CONFIG_INTERCONNECT_QCOM_SA8775P=y
+# CONFIG_INTERCONNECT_QCOM_SAR2130P is not set
+CONFIG_INTERCONNECT_QCOM_SC7180=y
+CONFIG_INTERCONNECT_QCOM_SC7280=y
+CONFIG_INTERCONNECT_QCOM_SC8180X=y
+CONFIG_INTERCONNECT_QCOM_SC8280XP=y
+# CONFIG_INTERCONNECT_QCOM_SDM660 is not set
+# CONFIG_INTERCONNECT_QCOM_SDM670 is not set
+CONFIG_INTERCONNECT_QCOM_SDM845=y
+CONFIG_INTERCONNECT_QCOM_SDX75=y
+# CONFIG_INTERCONNECT_QCOM_SHIKRA is not set
+CONFIG_INTERCONNECT_QCOM_SM6115=y
+CONFIG_INTERCONNECT_QCOM_SM6350=y
+# CONFIG_INTERCONNECT_QCOM_SM7150 is not set
+CONFIG_INTERCONNECT_QCOM_MILOS=y
+CONFIG_INTERCONNECT_QCOM_SM8150=y
+CONFIG_INTERCONNECT_QCOM_SM8250=y
+CONFIG_INTERCONNECT_QCOM_SM8350=y
+CONFIG_INTERCONNECT_QCOM_SM8450=y
+CONFIG_INTERCONNECT_QCOM_SM8550=y
+CONFIG_INTERCONNECT_QCOM_SM8650=y
+CONFIG_INTERCONNECT_QCOM_SM8750=y
+CONFIG_INTERCONNECT_QCOM_X1E80100=y
+CONFIG_INTERCONNECT_QCOM_SMD_RPM=y
+CONFIG_INTERCONNECT_CLK=y

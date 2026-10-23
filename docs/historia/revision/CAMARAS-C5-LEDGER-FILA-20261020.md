@@ -1,0 +1,13 @@
+# Fila de ledger lista para pegar — C5b / "v6" = ouke5 + 0046 (20-oct-2026)
+
+**No está escrita en `~/proyectos/ubuntu-permanente/docs/FLASH-LEDGER.md`**: se pega (con el número y la fecha) cuando el dueño decida flashear. El flash lo ejecuta `build/gates/flash-senemos-v6-gated.sh` (solo `--check` ejecutado, 20-oct: GATES DE PC OK).
+
+---
+**#NNN · AAAA-MM-DD · FLASH KERNEL "V6" = OUKE5 + 0046 (1 escritura): `fastboot flash boot_a` ← `omarchy-uke/build/bootimg/boot-uke-senemos-7.2.9-v6.img` — PRE-REGISTRO, ESTADO: PENDIENTE.**
+- Motivo: poder capturar el primer frame RAW de la cámara trasera (C5b): parche `0046-uke-smmu-camera-ife` en `arm-smmu-qcom.c`/`uke-display-smmu.c` (admite el SID del IFE `0x200800` en la lista blanca del SMMU boot y escribe su ACTLR `0x1` con relectura, solo para el dispositivo `qcom,cliffs-camss`). Revisión: `docs/historia/revision/CAMARAS-SMMU-0046-REVISION-20261020.md`. Un solo cambio de código frente a ouke5; misma `.config`.
+- Imagen: `boot-uke-senemos-7.2.9-v6.img`, 100 663 296 B, **sha256 `a9641556168fbbe3055264b8a6456064d209e4c75df702e23863a36397ed9577`** (repack G0–G8 OK; `Image.gz` v6 `…`; banner `Linux version 7.2.9-senemos.1.4054.3-ouke5 … #6`; contiene el mensaje «camera ACTLR write did not stick»). Relectura hasheando al tamaño exacto (patrón #241).
+- **Misma release que ouke5**: los `.ko` de audio/BT/cámara y `/lib/modules/…ouke5` ya instalados siguen valiendo (`CONFIG_MODVERSIONS` desactivado; `System.map` (tipo,nombre) y los 14 858 `__ksymtab_` idénticos a ouke5). **No hay `--pre`.**
+- Par: `dtbo_a` stock `27e61d21fd6a0858135e322eef9e8a223f6612ad24b1913fd7d9d680d602b3d8` (no se escribe). Escrituras: 1 (`boot_a`); slot b intacto.
+- Gates previos (el script los exige): `fastboot getvar` (battery-voltage ≥ 3700 mV **con cargador de pared**; en fastboot no carga), `slot-retry-count:b ≥ 3`, `slot-unbootable` no, un único lector ACM armado (`uke-consola-lector.sh`), ≤ 2 escrituras ese día, semáforo inter-proyecto libre, **fastboot a mano por el dueño** (Power + Vol-). Vigía `uke-fastboot-watch.sh` NO se arma (apunta al par de septiembre).
+- Criterio PASA: arranca (SSH + panel, `uname -r` = `…-ouke5`, banner `#6`), `verify` 19/0, `boot_a` releído == sha, sin `Unhandled context fault`, G8 de los 3 rieles de cámara como en #668, WiFi/BT/audio como antes. El frame RAW se prueba **después, a mano** (plan de prueba en la revisión, §6: primero 2104×1560, un frame, con aborto por fault/ACTLR/oops).
+- Rollback: `flash-senemos-v6-gated.sh --rollback v5` = `boot_a` ← `f3d3bc82b19e3a59bd5cab3351dc0a8317117a446f9e6f1d25e349ad1249d99b` (1 escritura; mismos módulos).

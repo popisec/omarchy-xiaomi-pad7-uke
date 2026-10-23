@@ -1,0 +1,14 @@
+#!/bin/sh
+# uke-drawer-toggle [toggle|start|open|close] — lanzador tactil (nwg-drawer residente, -r).
+#  toggle (defecto): SIGUSR1 al residente; si no corre, lo arranca (queda visible).  start: arranca el residente (autostart).
+# Como root/SSH se reejecuta como 'omarchy'.
+U=$(id -u omarchy 2>/dev/null) || exit 1
+[ "$(id -u)" = "$U" ] || exec sudo -u omarchy env XDG_RUNTIME_DIR=/run/user/$U WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-1} HYPRLAND_INSTANCE_SIGNATURE="$(ls /run/user/$U/hypr 2>/dev/null | head -1)" "$0" "$@"
+run() { setsid nwg-drawer -r -ovl -k -nocats -nofs -is 96 -c 5 -spacing 24 -closebtn right -wm uwsm -term foot -fm nautilus >/dev/null 2>&1 & }
+case "${1:-toggle}" in
+start) pgrep -x nwg-drawer >/dev/null || run ;;
+open) pgrep -x nwg-drawer >/dev/null && exec nwg-drawer -open || run ;;
+close) exec nwg-drawer -close ;;
+toggle) if pgrep -x nwg-drawer >/dev/null; then exec pkill -USR1 -x nwg-drawer; else run; fi ;;
+*) echo "uso: $0 [toggle|start|open|close]" >&2; exit 2 ;;
+esac

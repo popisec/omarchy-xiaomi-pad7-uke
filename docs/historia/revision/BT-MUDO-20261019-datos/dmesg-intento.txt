@@ -1,0 +1,32 @@
+[  524.184630] uke_bt_b: overlay retirado
+[  525.266769] uke_bt_b: local-bd-address fijada por el parametro bdaddr
+[  525.272157] uke_bt_b: overlay aplicado (id 3, 2217 B)
+[  525.313202] Bluetooth: HCI UART driver ver 2.3
+[  525.313219] Bluetooth: HCI UART protocol H4 registered
+[  525.313270] Bluetooth: HCI UART protocol LL registered
+[  525.313691] Bluetooth: HCI UART protocol Broadcom registered
+[  525.313722] Bluetooth: HCI UART protocol QCA registered
+[  525.313738] Bluetooth: HCI UART protocol Marvell registered
+[  525.315906] hci_uart_qca serial0-0: supply vddrfa2p2 not found, using dummy regulator
+[  525.316033] hci_uart_qca serial0-0: supply vddasd not found, using dummy regulator
+[  525.316931] Bluetooth: hci0: setting up wcn6750
+[  527.438972] Bluetooth: hci0: command 0xfc00 tx timeout
+[  527.439044] Bluetooth: hci0: Reading QCA version information failed (-110)
+[  527.543310] Bluetooth: hci0: Retry BT power ON:0
+[  529.682950] Bluetooth: hci0: command 0xfc00 tx timeout
+[  529.683004] Bluetooth: hci0: Reading QCA version information failed (-110)
+[  529.791002] Bluetooth: hci0: Retry BT power ON:1
+[  531.919137] Bluetooth: hci0: command 0xfc00 tx timeout
+[  531.919248] Bluetooth: hci0: Reading QCA version information failed (-110)
+[  532.023061] Bluetooth: hci0: Retry BT power ON:2
+[  532.140234] Bluetooth: hci0: QCA Product ID   :0x00000015
+[  532.140265] Bluetooth: hci0: QCA SOC Version  :0x40140120
+[  532.140276] Bluetooth: hci0: QCA ROM Version  :0x00000102
+[  532.140285] Bluetooth: hci0: QCA Patch Version:0x00005639
+[  532.151632] Bluetooth: hci0: QCA controller version 0x01200102
+[  532.151855] Bluetooth: hci0: unexpected event for opcode 0xfc48
+[  532.152291] Bluetooth: hci0: QCA Downloading qca/msbtfw12.mbn
+[  532.739115] Bluetooth: hci0: QCA Downloading qca/msnv12.bin
+[  532.857389] Bluetooth: hci0: QCA FW build version: BTFW.MOSELLE.1.2.0-00268.2-PATCHZ-1.76686.25 NVM_LABEL:BTFW.MOSELLE.1.2.0-00268.2-PATCHZ-1.76686.25
+[  532.858051] Bluetooth: hci0: QCA setup on UART is completed
+[  532.893717] Bluetooth: MGMT ver 1.23

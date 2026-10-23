@@ -1,0 +1,72 @@
+# k52L7-s2s3.diff — L7 = L6 + 7 pokes UKE-L7 en el tramo K44→S3
+# (10-oct-2026, SOLO-PC, sin flashear). Generado por `diff -U4` L6->L7
+# (no escrito a mano). Cada poke = uke_poke + pr_err + pr_flush(120,false)
+# para que sobreviva al cuelgue en la ACM (la traza L6 muere tras K44-A
+# initres=0, antes de S3-rst0). Sitios: tras CADA linea K44 B/C/D/E +
+# tras el bloque K25 + ANTES del gmu_write(SYSRESET,0) + OTRO entre el
+# write y el poke S3 (pre-rst sale + post-rst no => mata el write;
+# post-rst sale + S4 no => mata el poll).
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -696,20 +696,36 @@
+ 		gmu_read(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT));
+ 	pr_err("UKE-K44 B: itcm0=%08x itcm1=%08x (esp 10007f80/00000105)\n",
+ 		gmu_read(gmu, REG_A6XX_GMU_CM3_ITCM_START),
+ 		gmu_read(gmu, REG_A6XX_GMU_CM3_ITCM_START + 1));
++	/* UKE-L7 (10-oct-2026): tras K44-B con flush (si B cuelga, A ya salio). */
++	uke_poke("L7-k44b");
++	pr_err("UKE-L7: k44b-ok\n");
++	pr_flush(120, false);
+ 	pr_err("UKE-K44 C: icache=%08x dcache=%08x sysbus=%08x (esp 1/1/1)\n",
+ 		gmu_read(gmu, REG_A6XX_GMU_ICACHE_CONFIG),
+ 		gmu_read(gmu, REG_A6XX_GMU_DCACHE_CONFIG),
+ 		gmu_read(gmu, REG_A6XX_GMU_SYS_BUS_CONFIG));
++	/* UKE-L7 (10-oct-2026): tras K44-C con flush. */
++	uke_poke("L7-k44c");
++	pr_err("UKE-L7: k44c-ok\n");
++	pr_flush(120, false);
+ 	pr_err("UKE-K44 D: hfi_info=%08x hfi_addr=%08x (esp 1/%08llx)\n",
+ 		gmu_read(gmu, REG_A6XX_GMU_HFI_QTBL_INFO),
+ 		gmu_read(gmu, REG_A6XX_GMU_HFI_QTBL_ADDR),
+ 		gmu->hfi.iova);
++	/* UKE-L7 (10-oct-2026): tras K44-D con flush. */
++	uke_poke("L7-k44d");
++	pr_err("UKE-L7: k44d-ok\n");
++	pr_flush(120, false);
+ 	pr_err("UKE-K44 E: fence=%08x fence_r0=%08x (esp 0/8c8008a0)\n",
+ 		gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_STATUS),
+ 		gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_RANGE_0));
+ 	pr_flush(120, false);
++	/* UKE-L7 (10-oct-2026): tras K44-E con flush (si E cuelga, D ya salio). */
++	uke_poke("L7-k44e");
++	pr_err("UKE-L7: k44e-ok\n");
++	pr_flush(120, false);
+ 
+ 	/* UKE-K25 (1-oct-2026, sesion #458) — TEST H2.
+ 	 *
+ 	 * H2: el volcado SMMU es (parte de) el wedge. Este codigo hace, aqui, EN CADA
+@@ -730,10 +746,24 @@
+ 	else
+ 		pr_info("UKE-K25: volcado SMMU DESACTIVADO (uke_smmu_dump=0) — "
+ 			"test H2: NO se lee el SMMU en este resume\n");
+ 	uke_poke("K19-dumpOK");
++	/* UKE-L7 (10-oct-2026): tras el bloque K25 con flush. */
++	uke_poke("L7-k25ok");
++	pr_err("UKE-L7: k25-ok\n");
++	pr_flush(120, false);
+ 
++	/* UKE-L7 (10-oct-2026): ANTES del write SYSRESET=0 (si el write mata,
++	 * pre-rst sale y post-rst no). */
++	uke_poke("L7-pre-rst");
++	pr_err("UKE-L7: pre-rst\n");
++	pr_flush(120, false);
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
++	/* UKE-L7 (10-oct-2026): ENTRE el write y S3 (si el poll mata, post-rst
++	 * sale y S4 no; si el write mata, ni post-rst sale). */
++	uke_poke("L7-post-rst");
++	pr_err("UKE-L7: post-rst\n");
++	pr_flush(120, false);
+ 	uke_poke("S3-rst0");
+ 	/* UKE-K23b: uke_poke() solo escribe en el framebuffer y hace pr_info SIN
+ 	 * pr_flush (uke-panic-fb.c:250). Si el write de arriba deja la CPU en
+ 	 * D-state, S3-rst0 se pierde y la rama F (S3 sin S4) queda

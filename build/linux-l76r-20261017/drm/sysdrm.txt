@@ -1,0 +1,53 @@
+=== /sys/class/drm/card0
+=== /sys/class/drm/card1
+=== /sys/class/drm/card1-DSI-1
+-- status
+connected
+-- enabled
+enabled
+-- dpms
+On
+-- modes
+3200x2136
+=== /sys/class/drm/card1-Writeback-1
+-- status
+connected
+-- enabled
+disabled
+-- dpms
+On
+-- modes
+2560x1600
+2560x1600
+1920x1440
+1856x1392
+1792x1344
+2048x1152
+1920x1200
+1920x1200
+1920x1080
+1600x1200
+1680x1050
+1680x1050
+1400x1050
+1400x1050
+1600x900
+1280x1024
+1440x900
+1440x900
+1280x960
+1366x768
+1366x768
+1360x768
+1280x800
+1280x800
+1280x768
+1280x768
+1280x720
+1024x768
+800x600
+800x600
+848x480
+640x480
+=== /sys/class/drm/renderD128
+=== /sys/class/drm/version

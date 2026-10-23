@@ -1,0 +1,23 @@
+# k52L9-minuswrite.diff — L9 = L8 MINUS write (10-oct-2026, SOLO-PC, sin flashear).
+# Generado por `diff -U4` L8->L9 (no escrito a mano). Comenta SOLO la linea
+# `gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0)` en a6xx_gmu_start():
+# los 3 pokes+flushes (pre-rst, write-done, post-rst), S3 y el goto
+# nopoll-ok quedan intactos. Lectura prevista: nopoll-ok => CERRADO
+# (el write era el asesino, a por L10-fix C1+C2); muerte en pre-rst =>
+# REFUTADO (el asesino es el flush/entorno).
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -756,9 +756,12 @@
+ 	 * pre-rst sale y post-rst no). */
+ 	uke_poke("L7-pre-rst");
+ 	pr_err("UKE-L7: pre-rst\n");
+ 	pr_flush(120, false);
+-	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
++	/* UKE-L9 (10-oct-2026): MINUS-write — el write SYSRESET=0 COMENTADO
++	 * (vs L8, que lo mantiene). SOLO esta linea; pokes+flushes, S3 y el
++	 * goto nopoll-ok quedan intactos. */
++	/* gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0); */
+ 	/* UKE-L8 (10-oct-2026): write-done INMEDIATO tras el write (si el
+ 	 * write mata, pre-rst sale y write-done no). */
+ 	uke_poke("L8-write-done");
+ 	pr_err("UKE-L8: write-done\n");

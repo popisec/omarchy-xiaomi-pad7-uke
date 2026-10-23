@@ -1,0 +1,22 @@
+#!/bin/bash
+# uke-refresco [auto|60|90|120] — fija solo el refresco del panel conservando resolucion, transform (uke-rotate) y escala. 20-oct-2026.
+# auto: 120 Hz con cargador conectado (qcom-battmgr-usb online=1), 60 Hz en bateria (orden del dueno 20-oct).
+# Se dispara por eventos (regla udev de power_supply y uke-perfil), no por sondeo; solo toca Hyprland si el valor cambia.
+U=/sys/class/power_supply/qcom-battmgr-usb
+arg=${1:-auto}
+if [ "$arg" = auto ]; then [ "$(cat $U/online 2>/dev/null)" = 1 ] && hz=120 || hz=60; else hz=$arg; fi
+as_user() {
+	if [ "$(id -u)" = 1001 ]; then "$@"; else
+		sig=$(ls /run/user/1001/hypr 2>/dev/null | head -1); [ -n "$sig" ] || exit 0
+		setpriv --reuid=1001 --regid=1001 --init-groups env HOME=/home/omarchy USER=omarchy XDG_RUNTIME_DIR=/run/user/1001 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus HYPRLAND_INSTANCE_SIGNATURE="$sig" "$@"; fi
+}
+mon=$(as_user hyprctl monitors -j 2>/dev/null) || exit 0
+[ -n "$mon" ] || exit 0
+cur=$(echo "$mon" | jq -r '.[0].refreshRate|floor')
+[ "$cur" = "$hz" ] && exit 0
+name=$(echo "$mon" | jq -r '.[0].name'); tf=$(echo "$mon" | jq -r '.[0].transform'); sc=$(echo "$mon" | jq -r '.[0].scale')
+# resolucion sin rotar: de availableModes (Hyprland ya da el modo nativo), el modo que lleva ese refresco
+mode=$(echo "$mon" | jq -r --arg hz "$hz" '.[0].availableModes | map(select(test("@" + $hz + "\\.[0-9]+Hz$"))) | first // empty' | sed 's/\.[0-9]*Hz$//')
+[ -n "$mode" ] || { echo "uke-refresco: sin modo de $hz Hz" >&2; exit 1; }
+as_user hyprctl eval "hl.monitor({output=\"$name\",mode=\"$mode\",position=\"0x0\",scale=$sc,transform=$tf})" >/dev/null
+echo "uke-refresco: $name $mode (transform $tf, escala $sc)"

@@ -1,0 +1,193 @@
+digraph {
+	rankdir = LR
+	node [shape = record]
+	subgraph cluster_1 {
+		label = "soc:interconnect@0"
+		"100000:qup0_core_master@soc:interconnect@0" [label="100000:qup0_core_master@soc:interconnect@0
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100002:qup1_core_master@soc:interconnect@0" [label="100002:qup1_core_master@soc:interconnect@0
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100001:qup0_core_slave@soc:interconnect@0" [label="100001:qup0_core_slave@soc:interconnect@0
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100003:qup1_core_slave@soc:interconnect@0" [label="100003:qup1_core_slave@soc:interconnect@0
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100000:qup0_core_master@soc:interconnect@0" -> "100001:qup0_core_slave@soc:interconnect@0"
+		"100002:qup1_core_master@soc:interconnect@0" -> "100003:qup1_core_slave@soc:interconnect@0"
+	}
+	subgraph cluster_2 {
+		label = "soc:interconnect@1"
+		"100004:llcc_mc@soc:interconnect@1" [label="100004:llcc_mc@soc:interconnect@1
+			|avg_bw=2147723647kBps
+			|peak_bw=2147483647kBps"]
+		"100005:ebi@soc:interconnect@1" [label="100005:ebi@soc:interconnect@1
+			|avg_bw=2147723647kBps
+			|peak_bw=2147483647kBps"]
+		"100004:llcc_mc@soc:interconnect@1" -> "100005:ebi@soc:interconnect@1"
+	}
+	subgraph cluster_3 {
+		label = "16e0000.interconnect"
+		"100006:qhm_qup0@16e0000.interconnect" [label="100006:qhm_qup0@16e0000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100008:xm_ufs_mem@16e0000.interconnect" [label="100008:xm_ufs_mem@16e0000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100009:xm_usb3_0@16e0000.interconnect" [label="100009:xm_usb3_0@16e0000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100007:qns_a1noc_snoc@16e0000.interconnect" [label="100007:qns_a1noc_snoc@16e0000.interconnect
+			|avg_bw=2147723647kBps
+			|peak_bw=2147483647kBps"]
+		"100006:qhm_qup0@16e0000.interconnect" -> "100007:qns_a1noc_snoc@16e0000.interconnect"
+		"100008:xm_ufs_mem@16e0000.interconnect" -> "100007:qns_a1noc_snoc@16e0000.interconnect"
+		"100009:xm_usb3_0@16e0000.interconnect" -> "100007:qns_a1noc_snoc@16e0000.interconnect"
+	}
+	subgraph cluster_4 {
+		label = "1700000.interconnect"
+		"100011:qhm_qup1@1700000.interconnect" [label="100011:qhm_qup1@1700000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100012:qns_a2noc_snoc@1700000.interconnect" [label="100012:qns_a2noc_snoc@1700000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100011:qhm_qup1@1700000.interconnect" -> "100012:qns_a2noc_snoc@1700000.interconnect"
+	}
+	subgraph cluster_5 {
+		label = "1600000.interconnect"
+		"100014:qsm_cfg@1600000.interconnect" [label="100014:qsm_cfg@1600000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100019:qhs_display_cfg@1600000.interconnect" [label="100019:qhs_display_cfg@1600000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100015:qhs_qup0@1600000.interconnect" [label="100015:qhs_qup0@1600000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100016:qhs_qup1@1600000.interconnect" [label="100016:qhs_qup1@1600000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100018:qhs_ufs_mem_cfg@1600000.interconnect" [label="100018:qhs_ufs_mem_cfg@1600000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100017:qhs_usb3_0@1600000.interconnect" [label="100017:qhs_usb3_0@1600000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100014:qsm_cfg@1600000.interconnect" -> "100015:qhs_qup0@1600000.interconnect"
+		"100014:qsm_cfg@1600000.interconnect" -> "100016:qhs_qup1@1600000.interconnect"
+		"100014:qsm_cfg@1600000.interconnect" -> "100017:qhs_usb3_0@1600000.interconnect"
+		"100014:qsm_cfg@1600000.interconnect" -> "100018:qhs_ufs_mem_cfg@1600000.interconnect"
+		"100014:qsm_cfg@1600000.interconnect" -> "100019:qhs_display_cfg@1600000.interconnect"
+	}
+	subgraph cluster_6 {
+		label = "1500000.interconnect"
+		"100020:qnm_gemnoc_cnoc@1500000.interconnect" [label="100020:qnm_gemnoc_cnoc@1500000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100021:qss_cfg@1500000.interconnect" [label="100021:qss_cfg@1500000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100020:qnm_gemnoc_cnoc@1500000.interconnect" -> "100021:qss_cfg@1500000.interconnect"
+	}
+	subgraph cluster_7 {
+		label = "24100000.interconnect"
+		"100022:chm_apps@24100000.interconnect" [label="100022:chm_apps@24100000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100025:qnm_gpu@24100000.interconnect" [label="100025:qnm_gpu@24100000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100026:qnm_lpass_gemnoc@24100000.interconnect" [label="100026:qnm_lpass_gemnoc@24100000.interconnect
+			|avg_bw=0kBps
+			|peak_bw=0kBps"]
+		"100027:qnm_mnoc_hf@24100000.interconnect" [label="100027:qnm_mnoc_hf@24100000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100028:qnm_snoc_sf@24100000.interconnect" [label="100028:qnm_snoc_sf@24100000.interconnect
+			|avg_bw=2147723647kBps
+			|peak_bw=2147483647kBps"]
+		"100023:qns_gem_noc_cnoc@24100000.interconnect" [label="100023:qns_gem_noc_cnoc@24100000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100024:qns_llcc@24100000.interconnect" [label="100024:qns_llcc@24100000.interconnect
+			|avg_bw=2147723647kBps
+			|peak_bw=2147483647kBps"]
+		"100022:chm_apps@24100000.interconnect" -> "100023:qns_gem_noc_cnoc@24100000.interconnect"
+		"100022:chm_apps@24100000.interconnect" -> "100024:qns_llcc@24100000.interconnect"
+		"100025:qnm_gpu@24100000.interconnect" -> "100023:qns_gem_noc_cnoc@24100000.interconnect"
+		"100025:qnm_gpu@24100000.interconnect" -> "100024:qns_llcc@24100000.interconnect"
+		"100026:qnm_lpass_gemnoc@24100000.interconnect" -> "100023:qns_gem_noc_cnoc@24100000.interconnect"
+		"100026:qnm_lpass_gemnoc@24100000.interconnect" -> "100024:qns_llcc@24100000.interconnect"
+		"100027:qnm_mnoc_hf@24100000.interconnect" -> "100023:qns_gem_noc_cnoc@24100000.interconnect"
+		"100027:qnm_mnoc_hf@24100000.interconnect" -> "100024:qns_llcc@24100000.interconnect"
+		"100028:qnm_snoc_sf@24100000.interconnect" -> "100023:qns_gem_noc_cnoc@24100000.interconnect"
+		"100028:qnm_snoc_sf@24100000.interconnect" -> "100024:qns_llcc@24100000.interconnect"
+	}
+	subgraph cluster_8 {
+		label = "7e40000.interconnect"
+		"100029:qnm_lpiaon_noc@7e40000.interconnect" [label="100029:qnm_lpiaon_noc@7e40000.interconnect
+			|avg_bw=0kBps
+			|peak_bw=0kBps"]
+		"100030:qns_lpass_ag_noc_gemnoc@7e40000.interconnect" [label="100030:qns_lpass_ag_noc_gemnoc@7e40000.interconnect
+			|avg_bw=0kBps
+			|peak_bw=0kBps"]
+		"100029:qnm_lpiaon_noc@7e40000.interconnect" -> "100030:qns_lpass_ag_noc_gemnoc@7e40000.interconnect"
+	}
+	subgraph cluster_9 {
+		label = "7400000.interconnect"
+		"100031:qnm_lpass_lpinoc@7400000.interconnect" [label="100031:qnm_lpass_lpinoc@7400000.interconnect
+			|avg_bw=0kBps
+			|peak_bw=0kBps"]
+		"100032:qns_lpass_aggnoc@7400000.interconnect" [label="100032:qns_lpass_aggnoc@7400000.interconnect
+			|avg_bw=0kBps
+			|peak_bw=0kBps"]
+		"100031:qnm_lpass_lpinoc@7400000.interconnect" -> "100032:qns_lpass_aggnoc@7400000.interconnect"
+	}
+	subgraph cluster_10 {
+		label = "7430000.interconnect"
+		"100033:qxm_lpinoc_dsp_axim@7430000.interconnect" [label="100033:qxm_lpinoc_dsp_axim@7430000.interconnect
+			|avg_bw=0kBps
+			|peak_bw=0kBps"]
+		"100034:qns_lpi_aon_noc@7430000.interconnect" [label="100034:qns_lpi_aon_noc@7430000.interconnect
+			|avg_bw=0kBps
+			|peak_bw=0kBps"]
+		"100033:qxm_lpinoc_dsp_axim@7430000.interconnect" -> "100034:qns_lpi_aon_noc@7430000.interconnect"
+	}
+	subgraph cluster_11 {
+		label = "1400000.interconnect"
+		"100035:qnm_mdp@1400000.interconnect" [label="100035:qnm_mdp@1400000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100036:qns_mem_noc_hf@1400000.interconnect" [label="100036:qns_mem_noc_hf@1400000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100035:qnm_mdp@1400000.interconnect" -> "100036:qns_mem_noc_hf@1400000.interconnect"
+	}
+	subgraph cluster_12 {
+		label = "1680000.interconnect"
+		"100010:qnm_aggre1_noc@1680000.interconnect" [label="100010:qnm_aggre1_noc@1680000.interconnect
+			|avg_bw=2147723647kBps
+			|peak_bw=2147483647kBps"]
+		"100013:qnm_aggre2_noc@1680000.interconnect" [label="100013:qnm_aggre2_noc@1680000.interconnect
+			|avg_bw=2147483647kBps
+			|peak_bw=2147483647kBps"]
+		"100037:qns_gemnoc_sf@1680000.interconnect" [label="100037:qns_gemnoc_sf@1680000.interconnect
+			|avg_bw=2147723647kBps
+			|peak_bw=2147483647kBps"]
+		"100010:qnm_aggre1_noc@1680000.interconnect" -> "100037:qns_gemnoc_sf@1680000.interconnect"
+		"100013:qnm_aggre2_noc@1680000.interconnect" -> "100037:qns_gemnoc_sf@1680000.interconnect"
+	}
+	"100007:qns_a1noc_snoc@16e0000.interconnect" -> "100010:qnm_aggre1_noc@1680000.interconnect"
+	"100012:qns_a2noc_snoc@1700000.interconnect" -> "100013:qnm_aggre2_noc@1680000.interconnect"
+	"100021:qss_cfg@1500000.interconnect" -> "100014:qsm_cfg@1600000.interconnect"
+	"100023:qns_gem_noc_cnoc@24100000.interconnect" -> "100020:qnm_gemnoc_cnoc@1500000.interconnect"
+	"100024:qns_llcc@24100000.interconnect" -> "100004:llcc_mc@soc:interconnect@1"
+	"100030:qns_lpass_ag_noc_gemnoc@7e40000.interconnect" -> "100026:qnm_lpass_gemnoc@24100000.interconnect"
+	"100032:qns_lpass_aggnoc@7400000.interconnect" -> "100029:qnm_lpiaon_noc@7e40000.interconnect"
+	"100034:qns_lpi_aon_noc@7430000.interconnect" -> "100031:qnm_lpass_lpinoc@7400000.interconnect"
+	"100036:qns_mem_noc_hf@1400000.interconnect" -> "100027:qnm_mnoc_hf@24100000.interconnect"
+	"100037:qns_gemnoc_sf@1680000.interconnect" -> "100028:qnm_snoc_sf@24100000.interconnect"
+}

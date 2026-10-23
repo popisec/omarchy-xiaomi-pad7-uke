@@ -1,0 +1,278 @@
+domain                          status          children        performance
+    /device                         runtime status                  managed by
+------------------------------------------------------------------------------
+mdss_int2_gdsc                  off-0                           0
+mdss_gdsc                       on                              0
+    ae00000.display-subsystem       active                      0           SW
+cluster-pd                      on                              0
+                                                cpu-pd0, cpu-pd1, cpu-pd2, cpu-pd3, cpu-pd4, cpu-pd5, cpu-pd6, cpu-pd7
+    17a00000.rsc                    suspended                   0           SW
+cpu-pd7                         on                              0
+    genpd:0:cpu7                    active                      0           SW
+cpu-pd6                         on                              0
+    genpd:0:cpu6                    active                      0           SW
+cpu-pd5                         on                              0
+    genpd:0:cpu5                    active                      0           SW
+cpu-pd4                         on                              0
+    genpd:0:cpu4                    active                      0           SW
+cpu-pd3                         on                              0
+    genpd:0:cpu3                    active                      0           SW
+cpu-pd2                         off-0                           0
+    genpd:0:cpu2                    suspended                   0           SW
+cpu-pd1                         off-0                           0
+    genpd:0:cpu1                    suspended                   0           SW
+cpu-pd0                         on                              0
+    genpd:0:cpu0                    active                      0           SW
+=== /sys/kernel/debug/pm_genpd/cluster-pd/active_time
+436127 ms
+
+=== /sys/kernel/debug/pm_genpd/cluster-pd/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cluster-pd/devices
+17a00000.rsc
+
+=== /sys/kernel/debug/pm_genpd/cluster-pd/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     0              0          0          0          0          0
+S1     0              0          0          0          0          0
+S2     0              0          0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cluster-pd/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     3100         9144           l3-off
+S1     4362         8550           cx-ret
+S2     7200         10150          llcc-off
+
+=== /sys/kernel/debug/pm_genpd/cluster-pd/sub_domains
+cpu-pd0
+cpu-pd1
+cpu-pd2
+cpu-pd3
+cpu-pd4
+cpu-pd5
+cpu-pd6
+cpu-pd7
+
+=== /sys/kernel/debug/pm_genpd/cluster-pd/total_idle_time
+0 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd0/active_time
+26057 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd0/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd0/devices
+genpd:0:cpu0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd0/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     410080         18548      0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd0/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd0/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd0/total_idle_time
+410080 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd1/active_time
+15813 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd1/current_state
+off-0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd1/devices
+genpd:0:cpu1
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd1/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     420343         6532       0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd1/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd1/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd1/total_idle_time
+420346 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd2/active_time
+17596 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd2/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd2/devices
+genpd:0:cpu2
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd2/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     418567         7643       0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd2/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd2/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd2/total_idle_time
+418567 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd3/active_time
+53241 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd3/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd3/devices
+genpd:0:cpu3
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd3/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     382931         2975       0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd3/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd3/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd3/total_idle_time
+382931 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd4/active_time
+77851 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd4/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd4/devices
+genpd:0:cpu4
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd4/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     358332         2739       0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd4/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd4/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd4/total_idle_time
+358332 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd5/active_time
+47043 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd5/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd5/devices
+genpd:0:cpu5
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd5/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     389153         2329       0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd5/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd5/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd5/total_idle_time
+389153 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd6/active_time
+26752 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd6/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd6/devices
+genpd:0:cpu6
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd6/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     409457         2066       0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd6/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd6/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd6/total_idle_time
+409457 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd7/active_time
+21229 ms
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd7/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd7/devices
+genpd:0:cpu7
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd7/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     414994         4200       0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd7/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd7/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/cpu-pd7/total_idle_time
+414994 ms
+
+=== /sys/kernel/debug/pm_genpd/mdss_gdsc/active_time
+436096 ms
+
+=== /sys/kernel/debug/pm_genpd/mdss_gdsc/current_state
+on
+
+=== /sys/kernel/debug/pm_genpd/mdss_gdsc/devices
+ae00000.display-subsystem
+
+=== /sys/kernel/debug/pm_genpd/mdss_gdsc/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     0              0          0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/mdss_gdsc/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/mdss_gdsc/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/mdss_gdsc/total_idle_time
+0 ms
+
+=== /sys/kernel/debug/pm_genpd/mdss_int2_gdsc/active_time
+0 ms
+
+=== /sys/kernel/debug/pm_genpd/mdss_int2_gdsc/current_state
+off-0
+
+=== /sys/kernel/debug/pm_genpd/mdss_int2_gdsc/devices
+
+=== /sys/kernel/debug/pm_genpd/mdss_int2_gdsc/idle_states
+State  Time(ms)       Usage      Rejected   Above      Below      S2idle
+S0     436116         0          0          0          0          0
+
+=== /sys/kernel/debug/pm_genpd/mdss_int2_gdsc/idle_states_desc
+State  Latency(us)  Residency(us)  Name
+S0     0            0              N/A
+
+=== /sys/kernel/debug/pm_genpd/mdss_int2_gdsc/sub_domains
+
+=== /sys/kernel/debug/pm_genpd/mdss_int2_gdsc/total_idle_time
+436121 ms
+

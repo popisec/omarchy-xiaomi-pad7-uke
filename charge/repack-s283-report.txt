@@ -1,0 +1,21 @@
+=== G0 pins ===
+  OK  pins y herramientas
+=== G1: extraer payload s282 ===
+  OK  payload s282 (153 frags, max=2200)
+=== G2: injertar fragment@2300 (phandle) + @2301 (backlight) ===
+  OK  compila con 2 fragments añadidos
+=== G3: fdtoverlay (gate 1) ===
+  OK  fdtoverlay verde (s283 y s282)
+=== G4: G-BACKLIGHT (el gate que importa) ===
+  OK  panel.backlight = 1804 = phandle real del ktz (libfdt reasigno el 0x2001 pedido)
+  OK  compatible del ktz correcto: ktz,ktz8866
+  OK  nodo panel legible en el merged
+=== G5: paridad s282 (nada mas puede haber cambiado) ===
+  OK  gpr disabled + OPP 148648750 + panel identico: paridad s282
+=== G6: dt_table + roundtrip ===
+  OK  dt_table (1 entrada) + roundtrip; 607905 B
+=== G7: gate 2 (uke-dtbo-check.py) ===
+  OK  uke-dtbo-check.py limpio
+
+PUBLICADO: ~/proyectos/omarchy-uke/build/bootimg/s283-boot-dtbo-gpu-display-opp148-nogpr-bl.img
+sha256 = a8e7d4c06af2733445ccf40d15f2efcd1d076cc3702698665c3e5ff076c610d7

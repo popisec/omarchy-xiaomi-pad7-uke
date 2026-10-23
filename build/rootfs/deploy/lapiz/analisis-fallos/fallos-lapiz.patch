@@ -1,0 +1,118 @@
+--- a/uke_pen.py
++++ b/uke_pen.py
+@@ -12,7 +12,7 @@
+ Mensajes BLE (JSON por linea en el socket de datagramas /run/uke-lapiz.sock, escritos por el cliente BLE):
+   {"connected": true|false}  {"attached": true|false}  {"pressure": 0..8191}  {"btn": "small|big_up|big_down", "down": true|false}
+ """
+-import json, os, socket, struct, time
++import json, math, os, socket, struct, time
+ 
+ import thp_pen
+ 
+@@ -36,6 +36,9 @@
+ PRESSURE_MAX = 8191
+ PRESSURE_FLOOR = 100        # ~1,2 %: con el chip en contacto, libinput decide la punta por umbral de presion y el BLE llega con retardo
+ ACTIVITY_S = 1.5            # un lapiz con presion BLE o frames presentes hace menos de ACTIVITY_S NO esta pegado: el aviso de hall «pegado» se ignora
++BTN_MAX_HOLD_S = 15.0       # seguridad (REVISION-FALLOS F1/F2): una tecla de boton sin «soltar» por BLE se suelta sola tras tanto tiempo
++BLE_SILENCE_S = 15.0        # (F3) el cliente BLE reenvia el estado cada 2 s: 15 s sin NINGUN mensaje con connected=True = cliente muerto = desconectado
++PRESSURE_STALE_S = 5.0      # (F4) presion BLE > 0 sin punta (contacto del chip) y sin informes nuevos en tanto tiempo: el «0» se perdio, se da por 0
+ JUMP_X, JUMP_Y = 4000, 6000 # salto maximo de posicion entre frames (~19 % del eje en 4 ms): mayor = ruido hasta que otro frame lo confirme
+ 
+ 
+@@ -110,6 +113,8 @@
+         self._run = 0
+         self._pos = None
+         self._pending_jump = None
++        self.last_ble = None        # ultimo mensaje BLE recibido (liveness del cliente)
++        self.pressure_t = None      # ultimo mensaje de presion
+         self.last_activity = None   # ultimo instante con presion BLE > 0 o frame de lapiz presente
+         self.stats = {"frames": 0, "present": 0, "noise": 0, "bad": 0, "jumps": 0, "hall_ignored": 0, "hall_healed": 0}
+ 
+@@ -165,6 +170,7 @@
+         ev = []
+         if not isinstance(msg, dict):
+             return ev
++        self.last_ble = now
+         was_conn = self.connected
+         if isinstance(msg.get("connected"), bool):
+             self.connected = msg["connected"]
+@@ -174,8 +180,11 @@
+             else:
+                 self.attached = msg["attached"]
+         p = msg.get("pressure")
++        if isinstance(p, float) and not math.isfinite(p):
++            p = None                                         # NaN/Infinity (json.loads los acepta): int() lanzaria y mataria el modo lapiz
+         if isinstance(p, (int, float)) and not isinstance(p, bool):
+             self.pressure = max(0, min(PRESSURE_MAX, int(p)))
++            self.pressure_t = now
+             if self.pressure > 0:
+                 self.last_activity = now
+                 ev += self._heal_hall(now)
+@@ -230,6 +239,10 @@
+ 
+     def tick(self, now):
+         """Llamar periodicamente: libera el lapiz tras HOLD_S sin frames."""
++        if self.connected and self.last_ble is not None and now - self.last_ble > BLE_SILENCE_S:
++            return self.feed_ble({"connected": False}, now)           # cliente BLE mudo/muerto (SIGKILL, crash): sin esto «connected» queda True para siempre
++        if self.pressure > 0 and not self.touching and self.pressure_t is not None and now - self.pressure_t > PRESSURE_STALE_S:
++            self.pressure = 0                                          # se perdio el informe «presion 0»: si no, 200 rearmes seguidos (400 escrituras SPI)
+         if self.in_range and self.last_pen is not None and now - self.last_pen > HOLD_S:
+             return self.release()
+         return []
+@@ -357,6 +370,7 @@
+         self.log = lambda *m: self._log("[%.3f]" % time.monotonic(), *m)      # marca monotonica comun con el cliente BLE y evmon
+         self.to_screen = to_screen
+         self.keys = None
++        self.btn_t = {}              # boton de teclado -> instante de la pulsacion (seguridad BTN_MAX_HOLD_S)
+         self.btn_early = set()       # botones de tableta ya soltados al salir de rango: su «soltar» posterior por BLE se descarta
+         self.btn_route = {}          # boton -> «stylus» (BTN_STYLUS*, lapiz en rango) o «key» (teclado, fuera de rango); el soltar sigue a la pulsacion
+         self.dead = False
+@@ -429,7 +443,10 @@
+                 if down:
+                     self.btn_early.discard(name)
+                     self.btn_route[name] = "stylus" if (self.sess.in_range and name in TABLET_BUTTONS) else "key"
++                    self.btn_t[name] = now
+                 route = self.btn_route.get(name, "key") if down else self.btn_route.pop(name, "key")
++                if not down:
++                    self.btn_t.pop(name, None)
+                 if route == "key":
+                     self.keys.key(name, down)
+                 else:
+@@ -439,12 +456,25 @@
+         if rest:
+             self.ui.apply(rest, self.to_screen)
+ 
++    def _release_keys(self, why, now=None):
++        """Suelta las teclas de boton que siguen pulsadas (el «soltar» no va a llegar: BLE caido, cliente muerto, timeout)."""
++        for name in [n for n, r in self.btn_route.items() if r == "key" and (now is None or now - self.btn_t.get(n, now) > self.BTN_MAX_HOLD_S)]:
++            self.btn_route.pop(name, None)
++            self.btn_t.pop(name, None)
++            self.keys.key(name, False)
++            self.log("lapiz: tecla %s soltada (%s)" % (name, why))
++
++    BTN_MAX_HOLD_S = BTN_MAX_HOLD_S
++
+     def on_socket(self, now):
+         if self.dead:
+             return
+         try:
+             for m in read_ble(self.sock):
++                was = self.sess.connected
+                 self._apply(self.sess.feed_ble(m, now), now)
++                if was and not self.sess.connected:
++                    self._release_keys("BLE desconectado")
+         except Exception as e:           # noqa: BLE001
+             self._kill("socket", e)
+ 
+@@ -472,7 +502,11 @@
+         if self.dead:
+             return
+         try:
++            was = self.sess.connected
+             self._apply(self.sess.tick(now), now)
++            if was and not self.sess.connected:
++                self._release_keys("cliente BLE mudo %.0f s" % BLE_SILENCE_S)
++            self._release_keys("sin «soltar» en %.0f s" % BTN_MAX_HOLD_S, now)
+             if (self.ready and self.sess.want_enable and not self.chip.enabled and now - self.last_try > self.RETRY_S
+                     and self.tries < self.MAX_TRIES):
+                 self._enable(now)                                  # reintento real (revision I3)

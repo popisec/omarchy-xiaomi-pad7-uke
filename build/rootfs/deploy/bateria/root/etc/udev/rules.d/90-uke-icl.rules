@@ -1,0 +1,4 @@
+# al cambiar el estado del puerto USB de carga, subir el ICL de 100 a 500 mA (ver /usr/local/bin/uke-icl)
+SUBSYSTEM=="power_supply", KERNEL=="qcom-battmgr-usb", ACTION=="add|change", RUN+="/usr/local/bin/uke-icl"
+# cargador conectado/desconectado: refresco 120 Hz con cargador, 60 Hz en bateria (uke-refresco solo actua si cambia). 22-oct: era --collector (opcion inexistente: systemd-run fallaba siempre y el refresco nunca cambiaba por evento)
+SUBSYSTEM=="power_supply", KERNEL=="qcom-battmgr-usb", ACTION=="change", RUN+="/usr/bin/systemd-run --no-block --collect -p Nice=10 /usr/local/bin/uke-refresco auto"

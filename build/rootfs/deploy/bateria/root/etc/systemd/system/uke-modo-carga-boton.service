@@ -1,0 +1,9 @@
+[Unit]
+Description=uke: modo carga - esperar boton de encendido para arrancar el escritorio
+After=uke-modo-carga.service
+ConditionPathExists=/run/uke-modo-carga
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/uke-modo-carga boton
+[Install]
+WantedBy=multi-user.target

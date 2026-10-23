@@ -1,0 +1,64 @@
+--- a/drivers/video/backlight/ktz8866.c
++++ b/drivers/video/backlight/ktz8866.c
+@@ -378,6 +378,22 @@
+ 	return regmap_write(ktz->regmap, reg, val);
+ }
+ 
++/* UKE-K53 (14-oct-2026): volcado de registros del KTZ para cazar la config de luz
++ * del ABL (que SI enciende) vs la nuestra. Instrumento inerte (regmap_read+pr_err). */
++static void uke_ktz_dump(struct ktz8866 *ktz, const char *tag)
++{
++	unsigned int r[17];
++	int i;
++
++	for (i = 0; i <= 0x10; i++) {
++		if (regmap_read(ktz->regmap, i, &r[i]))
++			r[i] = 0xdead;
++	}
++	pr_err("UKE-K53: %s: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
++	       tag, r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9],
++	       r[10], r[11], r[12], r[13], r[14], r[15], r[16]);
++}
++
+ /* Two-segment vendor index: input 0..4095 -> table index 0..2047. */
+ static unsigned int ktz8866_remap_index(unsigned int brightness)
+ {
+@@ -393,6 +409,8 @@
+ 	unsigned int level;
+ 	int ret;
+ 
++	uke_ktz_dump(ktz, "update-in");
++
+ 	if (brightness > MAX_BRIGHTNESS) {
+ 		dev_err(&ktz->client->dev,
+ 			"ktz8866 backlight out of 4095 too large!!!\n");
+@@ -432,6 +450,8 @@
+ 		return ret;
+ 	ktz->level = level;
+ 
++	uke_ktz_dump(ktz, "update-out");
++
+ 	return 0;
+ }
+ 
+@@ -510,6 +530,8 @@
+ 	if (IS_ERR(ktz->regmap))
+ 		return dev_err_probe(&client->dev, PTR_ERR(ktz->regmap), "failed to init regmap\n");
+ 
++	uke_ktz_dump(ktz, "probe-entry (estado ABL)");
++
+ 	/* Unlike upstream (mandatory vddpos/vddneg), uke DT has no backlight
+ 	 * supplies (panel power is separate); keep them optional so the stock
+ 	 * node (compatible+reg only) probes. */
+@@ -544,9 +566,11 @@
+ 				"failed to register backlight device\n");
+ 
+ 	ktz8866_init(ktz);
++	uke_ktz_dump(ktz, "post-init");
+ 
+ 	i2c_set_clientdata(client, backlight_dev);
+ 	backlight_update_status(backlight_dev);
++	uke_ktz_dump(ktz, "post-first-update");
+ 
+ 	dev_info(&client->dev, "probe sucess end\n");
+ 

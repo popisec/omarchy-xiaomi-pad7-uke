@@ -1,0 +1,33 @@
+# Parche para Megapixels 1.8.3 (https://gitlab.com/megapixels-org/Megapixels).
+# Derivado de Megapixels, que es GPL-3.0-or-later; este parche hereda esa licencia.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+--- a/src/io_pipeline.c
++++ b/src/io_pipeline.c
+@@ -648,6 +648,26 @@
+         int32_t exp = mp_camera_control_get_int32(info->camera, V4L2_CID_EXPOSURE);
+         int32_t gain = has_gain ? mp_camera_control_get_int32(info->camera, info->gain_ctrl) : 0;
+         float total = (float)exp * (has_gain ? (float)gain / gc.min : 1.0f) * f;
++
++        /* uke (0006): con poca luz, antes de pasar de 4x de ganancia se alarga la trama (V4L2_CID_VBLANK) hasta el doble de su
++         * duracion por defecto (~15 fps si el modo va a 30); con luz de sobra se vuelve al valor por defecto del modo. */
++        MPControl vc;
++        if (has_gain && mp_camera_query_control(info->camera, V4L2_CID_VBLANK, &vc)) {
++                int32_t vbl = mp_camera_control_get_int32(info->camera, V4L2_CID_VBLANK);
++                int32_t def = vc.default_value;
++                int32_t cap = 2 * ((int32_t)mode.height + def) - (int32_t)mode.height;
++                if (cap > vc.max)
++                        cap = vc.max;
++                float knee = 4.0f;  /* ganancia (en multiplos de la minima) a partir de la cual compensa perder fps */
++                int32_t want = (int32_t)(total / knee) + 8 - (int32_t)mode.height;  /* lineas de trama para exponer total/knee */
++                int32_t nv = vbl;
++                if (want > vbl && total > ec.max * knee && vbl < cap)
++                        nv = want < cap ? want : cap;
++                else if (vbl > def && want < vbl)
++                        nv = want > def ? want : def;
++                if (nv != vbl && mp_camera_control_set_int32(info->camera, V4L2_CID_VBLANK, nv))
++                        mp_camera_query_control(info->camera, V4L2_CID_EXPOSURE, &ec);  /* el maximo de exposicion cambia con la trama */
++        }
+         float ne = total;
+         if (ne > ec.max)
+                 ne = ec.max;

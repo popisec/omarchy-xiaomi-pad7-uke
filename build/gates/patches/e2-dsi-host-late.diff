@@ -1,0 +1,126 @@
+--- a/drivers/gpu/drm/msm/dsi/dsi_manager.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_manager.c
+@@ -4,6 +4,7 @@
+  */
+ 
+ #include "drm/drm_bridge_connector.h"
++#include <linux/moduleparam.h>
+ #include <linux/uke-poke.h>
+ 
+ #include "msm_kms.h"
+@@ -35,6 +36,36 @@
+ #define IS_SYNC_NEEDED()	(msm_dsim_glb.is_sync_needed)
+ #define IS_MASTER_DSI_LINK(id)	(msm_dsim_glb.master_dsi_link_id == id)
+ 
++/*
++ * UKE-E2 (11-oct-2026): experimento E2 del informe del panel ("El enigma del
++ * panel: INFORME CERRADO", ESTADO-VIVO.md). Orden mainline del enable:
++ * dsi_mgr_bridge_pre_enable() -> dsi_mgr_bridge_power_on() [phy enable:
++ * dsi_manager.c:224 via dsi_mgr_phy_enable; host power_on: :228; irq: :248]
++ * -> msm_dsi_host_enable() (:300, host1 :307) -> y DESPUES corre el
++ * pre_enable del panel-bridge (o82_prepare: supplies + reset + init DCS).
++ * Es decir, el reset del panel ocurre con el host/PHY ya habilitados y el
++ * motor de video ARRANCADO. En Android/ABL el enable en frio corre con el
++ * host del kernel todavia muerto (carriles LP11). E2 (uke_dsi_host_late=1)
++ * aplaza SOLO el msm_dsi_host_enable() (dsi_op_mode_config: VID_MODE_EN/
++ * CMD_MODE_EN, el arranque del motor de video) al .enable del puente DSI
++ * (dsi_mgr_bridge_enable), que el core DRM ejecuta tras el pre_enable del
++ * panel-bridge (drm_atomic_helper_commit_modeset_enables: crtc ->
++ * pre_enables de la cadena -> encoder commit -> bridge enables). El init
++ * DCS del panel NO necesita host_enable: necesita el power_on (relojes de
++ * link + DSI_CTRL_ENABLE, carriles en LP-11); los writes van por el motor
++ * de comandos DMA (msm_dsi_host_cmd_tx), igual que hoy. 0 (defecto) = orden
++ * mainline intacto. Param del modulo msm: msm.uke_dsi_host_late=1 (bool,
++ * 0444: solo decide en el arranque).
++ */
++static bool uke_dsi_host_late;
++module_param(uke_dsi_host_late, bool, 0444);
++MODULE_PARM_DESC(uke_dsi_host_late,
++	"UKE (E2): 0 (defecto)=host_enable en pre_enable (orden mainline); 1=aplazar host_enable hasta despues del prepare del panel (reset del panel con carriles LP-11 y motor de video apagado).");
++
++/* UKE-E2: aplazamiento pendiente entre el pre_enable y el enable del mismo
++ * commit de modeset. */
++static bool uke_host_en_pending;
++
+ static inline struct msm_dsi *dsi_mgr_get_dsi(int id)
+ {
+ 	return msm_dsim_glb.dsi[id];
+@@ -297,6 +328,18 @@
+ 		return;
+ 	}
+ 
++	/* UKE-E2 (uke_dsi_host_late=1): el phy y el power_on del host ya
++	 * han corrido (carriles LP-11, motor de video APAGADO); se difiere
++	 * el msm_dsi_host_enable() al .enable del puente, que corre tras
++	 * el pre_enable del panel-bridge: el reset/init del panel ocurre
++	 * con el host sin video, orden tipo Android/ABL.
++	 */
++	if (uke_dsi_host_late) {
++		uke_host_en_pending = true;
++		pr_info("UKE-E2: host_enable diferido tras panel prepare\n");
++		return;
++	}
++
+ 	ret = msm_dsi_host_enable(host);
+ 	if (ret) {
+ 		pr_err("%s: enable host %d failed, %d\n", __func__, id, ret);
+@@ -319,6 +362,51 @@
+ 	dsi_mgr_bridge_power_off(bridge);
+ }
+ 
++/* UKE-E2 (uke_dsi_host_late=1): segundo tramo del aplazamiento. El core
++ * DRM llama a los .enable del puente DESPUES de todos los .pre_enable de
++ * la cadena (drm_atomic_helper_commit_encoder_bridge_enable), o sea, tras
++ * el o82_prepare completo (reset + init DCS + sleep-out + display-on).
++ * Aqui se sube de verdad el motor de video (dsi_op_mode_config ->
++ * VID_MODE_EN). Con el param a 0 esta funcion no hace nada: el enable ya
++ * corrio en pre_enable (orden mainline). El disable inverso no cambia:
++ * dsi_mgr_bridge_post_disable sigue haciendo host_disable -> irq ->
++ * power_off -> phy_disable, simetrico con ambos ordenes y sin fugas
++ * (msm_dsi_host_enable no retiene recursos propios; si fallara, el
++ * pr_err deja constancia y el post_disable apaga igual).
++ */
++static void dsi_mgr_bridge_enable(struct drm_bridge *bridge)
++{
++	int id = dsi_mgr_bridge_get_id(bridge);
++	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
++	struct msm_dsi *msm_dsi1 = dsi_mgr_get_dsi(DSI_1);
++	struct mipi_dsi_host *host = msm_dsi->host;
++	bool is_bonded_dsi = IS_BONDED_DSI();
++
++	DBG("id=%d", id);
++
++	/* Espejo del guard de pre_enable: en bonded el puente esclavo no
++	 * lleva hosts propios.
++	 */
++	if (is_bonded_dsi && !IS_MASTER_DSI_LINK(id))
++		return;
++
++	/* Solo hay trabajo si pre_enable aplazo el enable (param=1); el
++	 * flag evita un doble enable si el core llamara a .enable sin
++	 * pre_enable previo.
++	 */
++	if (!uke_host_en_pending)
++		return;
++	uke_host_en_pending = false;
++
++	if (msm_dsi_host_enable(host))
++		pr_err("%s: enable host %d failed\n", __func__, id);
++
++	if (is_bonded_dsi && msm_dsi1) {
++		if (msm_dsi_host_enable(msm_dsi1->host))
++			pr_err("%s: enable host1 failed\n", __func__);
++	}
++}
++
+ void msm_dsi_manager_tpg_enable(void)
+ {
+ 	struct msm_dsi *m_dsi = dsi_mgr_get_dsi(DSI_0);
+@@ -449,6 +537,7 @@
+ static const struct drm_bridge_funcs dsi_mgr_bridge_funcs = {
+ 	.attach = dsi_mgr_bridge_attach,
+ 	.pre_enable = dsi_mgr_bridge_pre_enable,
++	.enable = dsi_mgr_bridge_enable,
+ 	.post_disable = dsi_mgr_bridge_post_disable,
+ 	.mode_set = dsi_mgr_bridge_mode_set,
+ 	.mode_valid = dsi_mgr_bridge_mode_valid,

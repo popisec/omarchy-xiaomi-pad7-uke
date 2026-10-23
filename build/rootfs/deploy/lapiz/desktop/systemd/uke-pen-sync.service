@@ -1,0 +1,11 @@
+# Unidad de USUARIO (omarchy): ~/.config/systemd/user/uke-pen-sync.service
+[Unit]
+Description=Aplicar input.tablet.transform de Hyprland segun uke-rotate
+
+[Service]
+Type=oneshot
+# Reintenta unos 30 s: al iniciar sesion Hyprland aun no responde; tras una rotacion (path unit) acierta a la primera
+ExecStart=/bin/sh -c 'for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do /usr/local/bin/uke-pen-sync && exit 0; sleep 2; done; exit 1'
+
+[Install]
+WantedBy=default.target

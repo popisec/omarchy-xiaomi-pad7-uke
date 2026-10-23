@@ -1,0 +1,73 @@
+#!/bin/bash
+# uke-dictar — dictado por voz OFFLINE para el teclado en pantalla de la uke (22-oct-2026).
+#   uke-dictar run        graba del micro por defecto (PipeWire) hasta leer una linea por stdin:
+#                         "stop" -> transcribe e imprime "texto <frase>"; "cancel" (o EOF) -> descarta.
+#   uke-dictar file X.wav transcribe un wav (16 kHz mono) e imprime "texto <frase>"   (pruebas)
+#   uke-dictar status     motor, modelo y si el servidor residente esta vivo
+# Salida por stdout, una linea por evento: "info <txt>" | "texto <frase>" | "err <txt>".
+# Motor y modelo en /etc/uke/dictado.conf (MOTOR=parakeet|whisper). El micro NO se toca: se graba la fuente por
+# defecto («Micro interno (UKE)», variante siempre abierta) con pw-record.
+set -u
+CONF=/etc/uke/dictado.conf
+MOTOR=parakeet
+BASE=/usr/local/share/uke/dictado
+HILOS=6
+[ -r "$CONF" ] && . "$CONF"
+RT=${XDG_RUNTIME_DIR:-/tmp}
+WAV="$RT/uke-dictado.wav"
+
+say() { printf '%s\n' "$*"; }
+limpia() { tr '\n\r\t' '   ' | sed 's/  */ /g; s/^ //; s/ $//'; }
+
+transcribe() {   # $1 = wav -> texto en una linea por stdout
+	local wav=$1
+	case "$MOTOR" in
+	parakeet)
+		${TASKSET:-} "$BASE/bin/uke-asr" "$BASE/modelos/parakeet" "$HILOS" "$wav" 2>/dev/null | cut -f3- ;;
+	whisper)
+		"$BASE/bin/whisper-cli" -m "$BASE/modelos/${MODELO_WHISPER:-ggml-large-v3-turbo-q5_0.bin}" -l es -t "$HILOS" \
+			-nt -np --prompt "${PROMPT_WHISPER:-Hola, ¿qué tal? Esto es un dictado en español, con puntuación.}" -f "$wav" 2>/dev/null ;;
+	*) echo "motor desconocido: $MOTOR" >&2; return 1 ;;
+	esac
+}
+
+case "${1:-}" in
+run)
+	rm -f "$WAV"
+	pw-record --rate 16000 --channels 1 --format s16 "$WAV" 2>/dev/null &
+	rec=$!
+	say "info grabando"
+	# Parakeet: el modelo se carga MIENTRAS se habla (uke-asr residente durante este dictado)
+	if [ "$MOTOR" = parakeet ]; then
+		coproc ASR { exec ${TASKSET:-} "$BASE/bin/uke-asr" "$BASE/modelos/parakeet" "$HILOS" 2>/dev/null; }
+	fi
+	read -r orden || orden=cancel
+	sleep 0.25    # cola de la ultima palabra
+	kill -INT "$rec" 2>/dev/null; wait "$rec" 2>/dev/null
+	if [ "$orden" != stop ]; then
+		[ -n "${ASR_PID:-}" ] && kill "$ASR_PID" 2>/dev/null
+		rm -f "$WAV"; say "info cancelado"; exit 0
+	fi
+	[ -s "$WAV" ] || { say "err no se grabo audio (¿micro?)"; exit 1; }
+	t0=$(date +%s.%N)
+	if [ "$MOTOR" = parakeet ]; then
+		txt=""
+		while read -r -t 60 -u "${ASR[0]}" l; do
+			case "$l" in listo*) printf '%s\n' "$WAV" >&"${ASR[1]}" ;; texto*) txt=${l#texto}; break ;; err*) say "$l"; break ;; esac
+		done
+		printf 'q\n' >&"${ASR[1]}" 2>/dev/null
+		txt=$(printf '%s' "$txt" | limpia)
+	else
+		txt=$(transcribe "$WAV" | limpia)
+	fi
+	t1=$(date +%s.%N)
+	rm -f "$WAV"
+	if [ -z "$txt" ]; then say "info no se entendio nada"; exit 0; fi
+	say "texto $txt "
+	say "info listo en $(awk "BEGIN{printf \"%.1f\", $t1-$t0}") s" ;;
+file)
+	txt=$(transcribe "${2:?wav}" | limpia); say "texto $txt" ;;
+status)
+	echo "motor=$MOTOR hilos=$HILOS base=$BASE"; ls -la "$BASE/bin" "$BASE/modelos" ;;
+*) sed -n '2,9p' "$0"; exit 2 ;;
+esac

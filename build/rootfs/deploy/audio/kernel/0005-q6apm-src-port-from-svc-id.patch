@@ -1,0 +1,112 @@
+BORRADOR (E2d, 18-oct-2026) — NO aplicado al arbol: se aplica a una COPIA al compilar snd-q6apm.ko como modulo externo (q6apm-port/build.sh).
+q6apm: src_port de los comandos APM = id del servicio GPR (DT reg) en vez de GPR_APM_MODULE_IID fijo (AUDIO-E2c-SONDA-20261018.md); + parametros de diagnostico uke_delay_ms, uke_trace, uke_src_port, uke_async (+ uke_retries: reintenta el estado APM; arranque en frio).
+
+--- a/sound/soc/qcom/qdsp6/audioreach.c	2026-10-18 15:49:50.305751059 +0200
++++ b/sound/soc/qcom/qdsp6/audioreach.c	2026-10-18 15:49:50.334133866 +0200
+@@ -285,9 +285,17 @@
+ }
+ EXPORT_SYMBOL_GPL(audioreach_alloc_cmd_pkt);
+ 
++/*
++ * uke: el SPF de Xiaomi (LANAI palawan.adsp) solo contesta a los puertos de origen que registra su gpr-lite (spf_core=3, prm=7, audio-pkt=0x17);
++ * con src_port=1 (GPR_APM_MODULE_IID) APM_CMD_GET_SPF_STATE no recibe respuesta (AUDIO-E2c-SONDA-20261018.md). q6apm fija este valor en su probe
++ * al id GPR de su servicio (DT reg) para los comandos APM de nivel de servicio.
++ */
++uint32_t audioreach_apm_src_port = GPR_APM_MODULE_IID;
++EXPORT_SYMBOL_GPL(audioreach_apm_src_port);
++
+ void *audioreach_alloc_apm_cmd_pkt(int pkt_size, uint32_t opcode, uint32_t token)
+ {
+-	return __audioreach_alloc_pkt(pkt_size, opcode, token, GPR_APM_MODULE_IID,
++	return __audioreach_alloc_pkt(pkt_size, opcode, token, audioreach_apm_src_port,
+ 				       APM_MODULE_INSTANCE_ID, true);
+ }
+ EXPORT_SYMBOL_GPL(audioreach_alloc_apm_cmd_pkt);
+--- a/sound/soc/qcom/qdsp6/audioreach.h	2026-10-18 15:49:50.310152349 +0200
++++ b/sound/soc/qcom/qdsp6/audioreach.h	2026-10-18 15:49:50.334272339 +0200
+@@ -912,6 +912,7 @@
+ };
+ 
+ /* Packet Allocation routines */
++extern uint32_t audioreach_apm_src_port;
+ void *audioreach_alloc_apm_cmd_pkt(int pkt_size, uint32_t opcode, uint32_t
+ 				    token);
+ void audioreach_set_default_channel_mapping(u8 *ch_map, int num_channels);
+--- a/sound/soc/qcom/qdsp6/q6apm.c	2026-10-18 15:49:50.301398404 +0200
++++ b/sound/soc/qcom/qdsp6/q6apm.c	2026-10-18 16:46:02.104145117 +0200
+@@ -27,6 +27,12 @@
+ 
+ #define APM_GRAPH_MGMT_PSIZE(p, n) ALIGN(struct_size(p, sub_graph_id_list, n), 8)
+ 
++static unsigned int uke_delay_ms;
++module_param(uke_delay_ms, uint, 0444);
++MODULE_PARM_DESC(uke_delay_ms, "uke: espera antes del primer comando APM (ms)");
++static bool uke_trace = true;
++module_param(uke_trace, bool, 0444);
++MODULE_PARM_DESC(uke_trace, "uke: registrar cada paquete GPR recibido por q6apm");
+ static struct q6apm *g_apm;
+ 
+ int q6apm_send_cmd_sync(struct q6apm *apm, const struct gpr_pkt *pkt,
+@@ -856,6 +862,30 @@
+ 	.remove_order   = SND_SOC_COMP_ORDER_LAST,
+ };
+ 
++static unsigned int uke_src_port;
++module_param(uke_src_port, uint, 0444);
++MODULE_PARM_DESC(uke_src_port, "uke: puerto de origen GPR de los comandos APM (0 = el id del servicio q6apm del DT)");
++
++static bool uke_async = true;
++module_param(uke_async, bool, 0444);
++MODULE_PARM_DESC(uke_async, "uke: lanzar el primer comando APM desde un kworker en vez de dentro del probe");
++static struct delayed_work uke_apm_work;
++static struct q6apm *uke_apm_work_apm;
++static unsigned int uke_retries = 15;
++module_param(uke_retries, uint, 0444);
++MODULE_PARM_DESC(uke_retries, "uke: intentos del primer comando APM si el SPF aun no esta listo (arranque en frio: el primero se pierde)");
++static unsigned int uke_apm_tries;
++
++static void uke_apm_work_fn(struct work_struct *w)
++{
++	int st = q6apm_get_apm_state(uke_apm_work_apm);
++
++	dev_info(uke_apm_work_apm->dev, "uke: estado APM (async) = %d (intento %u)\n", st, uke_apm_tries + 1);
++	/* Arranque en frio (medido 18-oct, uke-audio.service ~3,5 s tras arrancar el ADSP): el primer comando se pierde; el SPF contesta mas tarde. */
++	if (!st && ++uke_apm_tries < uke_retries)
++		schedule_delayed_work(&uke_apm_work, msecs_to_jiffies(1000));
++}
++
+ static int apm_probe(gpr_device_t *gdev)
+ {
+ 	struct device *dev = &gdev->dev;
+@@ -883,7 +913,19 @@
+ 
+ 	g_apm = apm;
+ 
+-	q6apm_get_apm_state(apm);
++	/* uke: ver audioreach.c (audioreach_apm_src_port); uke_src_port=N fuerza otro puerto para experimentar */
++	audioreach_apm_src_port = uke_src_port ? uke_src_port : gdev->svc.id;
++	dev_info(dev, "uke: src_port de los comandos APM = %u\n", audioreach_apm_src_port);
++	if (uke_async) {
++		/* uke: diagnostico: el primer comando APM desde un kworker (como la sonda), no dentro del probe */
++		INIT_DELAYED_WORK(&uke_apm_work, uke_apm_work_fn);
++		uke_apm_work_apm = apm;
++		schedule_delayed_work(&uke_apm_work, msecs_to_jiffies(uke_delay_ms));
++	} else {
++		if (uke_delay_ms)
++			msleep(uke_delay_ms);
++		q6apm_get_apm_state(apm);
++	}
+ 
+ 	ret = snd_soc_register_component(dev, &q6apm_audio_component, NULL, 0);
+ 	if (ret < 0) {
+@@ -925,6 +967,10 @@
+ 	int graph_id, is_pos_buf;
+ 
+ 	result = data->payload;
++	if (uke_trace)
++		dev_info(dev, "uke: RX src=%u:%u dest=%u:%u opcode=0x%08x token=0x%x payload=%d B\n",
++			 hdr->src_domain, hdr->src_port, hdr->dest_domain, hdr->dest_port, hdr->opcode,
++			 hdr->token, data->payload_size);
+ 
+ 	switch (hdr->opcode) {
+ 	case APM_CMD_RSP_GET_SPF_STATE:

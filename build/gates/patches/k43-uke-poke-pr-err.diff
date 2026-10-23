@@ -1,0 +1,22 @@
+--- /tmp/uke-panic-fb.c.k42	2026-10-02 22:09:52.923990286 +0200
++++ build/kernel-pokes/k18-tree/drivers/soc/qcom/uke-panic-fb.c	2026-10-02 22:09:52.932555271 +0200
+@@ -247,11 +247,14 @@
+ 		return;
+ 	/* X9 s185 (#387): el poke tambien sale por dmesg, para poder seguir el
+ 	 * probe (GPU) por SSH sin depender de la tarjeta pintada. */
+-	/* UKE-K37 (2-oct, sesion #479): a WARN, no a INFO. Con loglevel=4 el INFO
+-	 * (nivel 6) se ocultaba y con loglevel=6 el gadget USB se desbordaba y perdíamos
+-	 * el arranque entero (130 de >10.000 lineas). A WARN la escalera del CM3 se ve
+-	 * SIN el ruido. Es solo el nivel del printk: no cambia la instrumentacion. */
+-	pr_warn("UKE-POKE: %s\n", tag);
++	/* UKE-K43 (2-oct, sesion #493): a ERR, no a WARN. El tope de consola de K41
++	 * (UKE_CONSOLE_LOGLEVEL_MAX=4, printk.c:1307-1315) suprime level >= 4 en el
++	 * camino de consola, asi que WARN (nivel 4) NO PASA: 39/39 boots de K41/K42
++	 * salieron sin un solo UKE-POKE y el marcador UKE-K42 fue invisible por
++	 * construccion (P170 refutada por su premisa, #492). ERR (nivel 3) pasa el
++	 * tope tal cual, sin tocar printk y sin reabrir la inundacion info.
++	 * Es solo el nivel del printk: no cambia la instrumentacion. */
++	pr_err("UKE-POKE: %s\n", tag);
+ 	if (!uke_fb || !uke_ready || !uke_safe)
+ 		return;
+ 	strscpy(uke_lastpoke, tag, sizeof(uke_lastpoke));

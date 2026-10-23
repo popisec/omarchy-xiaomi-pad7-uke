@@ -1,0 +1,24 @@
+[Unit]
+Description=uke: cliente BLE del Focus Pen (presion, botones, hall) -> /run/uke-lapiz.sock
+Documentation=file:///usr/local/share/uke/lapiz/README.md
+# Solo tiene sentido si uke-touch corre con --pen (drop-in uke-touch.service.d/pen.conf); sin socket envia al vacio sin error.
+After=bluetooth.service uke-touch.service
+Wants=bluetooth.service
+ConditionPathExists=/usr/local/share/uke/lapiz/uke_lapiz_ble.py
+ConditionPathExists=!/etc/uke/no-pen
+
+[Service]
+Type=simple
+# El lapiz solo se anuncia tras pegarlo: al conectar se asume despegado y desde ahi mandan los avisos reales `53 01 xx` (hall)
+Environment=LAPIZ_ASSUME_DETACHED=1
+WorkingDirectory=/usr/local/share/uke/lapiz
+ExecStart=/usr/bin/python3 -u /usr/local/share/uke/lapiz/uke_lapiz_ble.py
+Restart=on-failure
+RestartSec=5
+# Baja prioridad: nunca debe competir con el tactil
+Nice=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

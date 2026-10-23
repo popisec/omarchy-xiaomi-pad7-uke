@@ -1,0 +1,43 @@
+#!/bin/bash
+# uke-bt-wait — espera ACOTADA a que bluetoothd tenga org.bluez en el bus del sistema, para que el escritorio (sddm -> Hyprland ->
+# Quickshell) arranque DESPUES y su panel de Bluetooth vea el adaptador. Lo lanza uke-desktop.service (ExecStartPre con '-').
+# Sale SIEMPRE con 0: nunca puede impedir el escritorio. Espera como mucho UKE_BT_WAIT_MAX segundos (25 por defecto); PASADOS esos 25 s sigue
+# esperando, hasta UKE_BT_WAIT_HARD (70 por defecto), SOLO mientras uke-bt.service siga `activating` (sus ciclos de reintento del encendido del
+# chip, UKE_BT_CYCLES=3, pueden tardar ~20 s cada uno): sin esto el panel arrancaria sin org.bluez justo en los arranques que necesitan 2.o ciclo.
+# uke-desktop.service tiene TimeoutStartSec=120: 70 s de espera dejan margen.
+# OJO: `busctl list` tambien lista los nombres solo ACTIVABLES (PID '-'); solo cuenta org.bluez con PID (servicio en marcha).
+# No espera (sale al instante) si: existe /etc/uke/no-bt o /etc/uke/safe-mode, uke-bt.service o bluetooth.service no estan
+# habilitados, uke-bt.service ha fallado, o la guarda lo ha disparado (/var/lib/uke/guard/bt.tripped).
+# Pruebas en el PC: UKE_BT_ROOT (prefijo falso), UKE_BT_PATH (PATH con mocks), UKE_BT_WAIT_MAX, UKE_BT_TICK (s por vuelta).
+PATH=${UKE_BT_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin}
+ROOT=${UKE_BT_ROOT:-}
+MAX=${UKE_BT_WAIT_MAX:-25}
+HARD=${UKE_BT_WAIT_HARD:-70}
+TICK=${UKE_BT_TICK:-0.5}
+LOG=$ROOT/var/log/uke-bt.log
+say() { local m="uke-bt-wait: $*"; printf '%s\n' "$m"; printf '%s %s\n' "$(date -u +%FT%TZ)" "$m" >> "$LOG" 2>/dev/null; return 0; }
+{ [ -e "$ROOT/etc/uke/no-bt" ] || [ -e "$ROOT/etc/uke/safe-mode" ]; } && { say "interruptor no-bt/safe-mode: no espero"; exit 0; }
+[ -e "$ROOT/var/lib/uke/guard/bt.tripped" ] && { say "guarda bt disparada: no espero"; exit 0; }
+systemctl is-enabled --quiet uke-bt.service 2>/dev/null || { say "uke-bt.service no habilitado: no espero"; exit 0; }
+systemctl is-enabled --quiet bluetooth.service 2>/dev/null || { say "bluetooth.service no habilitado: no espero"; exit 0; }
+n=$(awk -v m="$MAX" -v t="$TICK" 'BEGIN{printf "%d", m / t}')
+h=$(awk -v m="$HARD" -v t="$TICK" 'BEGIN{printf "%d", m / t}')
+[ "$h" -ge "$n" ] || h=$n
+for i in $(seq 1 "$h"); do
+	if busctl --system --no-legend list 2>/dev/null | awk '$1 == "org.bluez" && $2 != "-" {f = 1} END {exit !f}'; then
+		say "org.bluez en el bus tras ~$(awk -v i="$i" -v t="$TICK" 'BEGIN{printf "%.1f", i * t}') s: arranca el escritorio"; exit 0
+	fi
+	st=$(systemctl is-active uke-bt.service 2>/dev/null)
+	[ "$st" = failed ] && { say "uke-bt.service fallo: no espero mas"; exit 0; }
+	# pasado el plazo normal solo se sigue esperando mientras uke-bt.service siga activando (reintentando el encendido)
+	if [ "$i" -ge "$n" ] && [ "$st" != activating ]; then
+		say "timeout de ${MAX} s sin org.bluez: arranca el escritorio igualmente (el panel de BT puede necesitar omarchy-restart-shell)"; exit 0
+	fi
+	sleep "$TICK"
+done
+if [ "$h" -gt "$n" ]; then
+	say "timeout duro de ${HARD} s (uke-bt.service seguia activando) sin org.bluez: arranca el escritorio igualmente (el panel de BT puede necesitar omarchy-restart-shell)"
+else
+	say "timeout de ${MAX} s sin org.bluez: arranca el escritorio igualmente (el panel de BT puede necesitar omarchy-restart-shell)"
+fi
+exit 0

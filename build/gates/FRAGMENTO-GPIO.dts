@@ -1,0 +1,135 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * FRAGMENTO-GPIO.dts — neutraliza las TRES referencias de nodos VENDOR al pin 2
+ * del TLMM (gpio2, reset del panel O82), para que gpio2 deje de ser un GPIO
+ * COMPARTIDO y el panel lo pida en exclusiva, sin depender del modulo
+ * `gpio-shared-proxy.ko` (=m, vive en el rootfs Arch).
+ *
+ * QUE ES ESTE FICHERO
+ *   NO es un .dts autonomo con /plugin/. Son los BLOQUES `fragment@N` que el
+ *   constructor de dtbo (patron mkdtbo-s238.py / mkdtbo-s253.py) inserta antes
+ *   del ultimo "};" del payload YA DESCOMPILADO del dtbo anterior:
+ *       dtc -I dtb -O dts -o payload.dts payload.dtbo
+ *       (insertar estos fragment@2100/2101/2102 antes del ultimo "};")
+ *       dtc -I dts -O dtb -o payload-s254.dtb payload.dts
+ *       fdtoverlay -i base-dtb.img -o fusionado.dtb payload-s254.dtb
+ *   Nombres numericos altos (2100+) para no colisionar con los del payload
+ *   (el de s238 llega a fragment@1707; el estilo con nombre no esta probado en
+ *   la tablet y el numerico si: s238 usa fragment@155/156/157).
+ *
+ * CAUSA RAIZ QUE ESTE FRAGMENTO ELIMINA (con el codigo delante)
+ *   El kernel palawan trae un mecanismo propio de GPIO compartido:
+ *   `CONFIG_GPIO_SHARED=y` (gpiolib-shared.c) + `CONFIG_GPIO_SHARED_PROXY=m`
+ *   (gpio-shared-proxy.ko). En `gpio_shared_of_scan()` (gpiolib-shared.c:
+ *   159-298) recorre el DT FUSIONADO en postcore_initcall y, por cada
+ *   propiedad `*-gpio`/`*-gpios`/`gpio`/`gpios` de 2 celdas que apunte a un
+ *   nodo con `gpio-controller`, apunta una referencia. Solo ignora nodos
+ *   `status != "okay"` (gpiolib-shared.c:136-157, `gpio_shared_of_node_ignore`).
+ *
+ *   Estado MEDIDO del pin 2 en el DT vivo (base-dtb.img + s238, fusion real):
+ *       4 referencias ACTIVAS (ninguna con status) + 1 sintetica:
+ *         /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+ *                        reset-gpios = <0x16b 0x02 0x01>          <- la nuestra
+ *                        (`reset-gpios` ademas crea la ref sintetica
+ *                         "reset" en gpiolib-shared.c:110-133/275-279)
+ *         /soc/qcom,mdss_mdp@ae00000/qcom,mdss_dsi_o82_36_02_0a_dualdsi_dsc_vid
+ *                        qcom,platform-reset-gpio = <0x16b 0x02 0x00>
+ *         /soc/qcom,mdss_mdp@ae00000/qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid
+ *                        qcom,platform-reset-gpio = <0x16b 0x02 0x00>
+ *         /soc/qcom,mdss_mdp@ae00000/qcom,mdss_dsi_visionox_r66451_fhd_plus_video
+ *                        qcom,platform-reset-gpio = <0x16b 0x02 0x00>
+ *   => 5 refs > 2 ⇒ `gpio_shared_entry_is_really_shared()` = true
+ *      (gpiolib-shared.c:739-763) ⇒ en `gpiochip_setup_shared()`
+ *      (gpiolib-shared.c:509-593) el descriptor REAL se marca GPIOD_FLAG_SHARED,
+ *      se pide para el kernel (`gpiod_request_commit(desc, "shared")`) y TODA
+ *      peticion de consumidor se redirige por lookup-table a un chip PROXY
+ *      `gpiolib_shared.proxy.<id>` (gpiolib-shared.c:446-501).
+ *   => `panel@0` hace `devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH)`
+ *      (panel-xiaomi-o82-dualdsi.c:591). gpiolib encuentra el descriptor real,
+ *      ve GPIOD_FLAG_SHARED, busca el chip proxy por etiqueta y, si no esta
+ *      registrado, devuelve -EPROBE_DEFER (gpiolib.c:4659-4666,
+ *      `gpio_device_find_by_label` + "cannot find GPIO chip %s, deferring").
+ *      El panel se queda en defer PARA SIEMPRE con el motivo
+ *      "failed to get reset gpio" (dev_err_probe, panel-...c:591-594).
+ *
+ *   ASIMETRIA MEDIDA con gpio74/75 (vsp/vsn): tras `s238` cada uno tiene UNA
+ *   sola referencia activa (su duplicado vendor quedo `status="disabled"`),
+ *   `gpio_shared_free_exclusive()` (gpiolib-shared.c:765-778) los descarta y
+ *   NO son compartidos: la peticion va directa al tlmm y funciona con o sin
+ *   modulo. gpio2 es el unico pin que le queda al panel y sigue compartido ⇒
+ *   es el unico que depende de un modulo =m.
+ *
+ * POR QUE `status="disabled"` EN LOS TRES NODOS VENDOR (y no repuntar la prop)
+ *   - Ninguno tiene driver en este kernel: son hijos de `qcom,mdss_mdp@ae00000`
+ *     (`compatible = "qcom,sde-kms"`, sin driver) y solo los consumiria el
+ *     driver de panel del VENDOR, que no existe aqui. No crean ni un device.
+ *   - La cmdline `msm_drm.dsi_display0=qcom,mdss_dsi_o82_42_02_0b_...` la lee el
+ *     msm_drm del vendor, que tampoco existe: deshabilitarlas no cambia nada
+ *     para el kernel en marcha.
+ *   - Es el MISMO patron ya probado en la tablet: `s238` deshabilito asi los
+ *     `display_gpio_regulator_vsp/vsn` (medido: `status = "disabled"` en el DT
+ *     vivo) y `s207` el nodo `qcom,gpr`.
+ *   - Repuntar `qcom,platform-reset-gpio` a "otro pin inofensivo" exigiria
+ *     inventar un phandle/pin y dejaria una referencia falsa que un vendor
+ *     futuro conduciria; deshabilitar no añade NI UNA referencia nueva.
+ *   - Hacen falta los TRES: con 2 neutralizados quedan 2 refs reales + la
+ *     sintetica = 3 > 2 ⇒ el pin seguiria compartido. El umbral es "un solo
+ *     consumidor real".
+ *
+ * EVIDENCIA (fichero:linea)
+ *   - gpiolib-shared.c:139      `of_device_is_available(node)` -> ignora disabled
+ *   - gpiolib-shared.c:275-279  `reset-gpios` crea la ref sintetica
+ *   - gpiolib-shared.c:539-541  `list_count_nodes <= 1` -> no compartido
+ *   - gpiolib-shared.c:565-571  GPIOD_FLAG_SHARED + gpiod_request_commit
+ *   - gpiolib-shared.c:739-763  umbral "realmente compartido" (>2, o 2 sin reset)
+ *   - gpiolib.c:4797-4812       redireccion a la lookup del proxy
+ *   - gpiolib.c:4649-4666       chip proxy ausente -> -EPROBE_DEFER
+ *   - panel-xiaomi-o82-dualdsi.c:591-594  gpiod_get("reset") + err_probe
+ *   - DT fusionado real (build/evidencia/2026-09-28/dt-reconstruido/
+ *     dt-fusionado-s238.dts): lineas 980 (panel@0), 22240, 22471, 22681
+ *     (los 3 nodos vendor) — 4 refs <0x16b 0x02 ...> y ninguna con status.
+ *
+ * GATES QUE DEBE AÑADIR EL CONSTRUCTOR DE s254 (ademas de los suyos)
+ *   G-GPIO-1  los 3 nodos destino existen en el fusionado y NO tenian status
+ *             antes del fragmento; despues, `status = "disabled"` en los 3.
+ *   G-GPIO-2  contador de referencias ACTIVAS a `<0x16b 0x02` en el DT
+ *             fusionado == 1 (solo `panel@0`), partiendo de 4.
+ *   G-GPIO-3  gpio74/gpio75 siguen con 1 referencia activa cada uno (no se
+ *             toca nada de lo que arreglo s238) y el resto de pines de 0x16b
+ *             con el MISMO recuento que en s238 (diff = solo pin 2).
+ *   G-GPIO-4  `panel@0` conserva `reset-gpios = <0x16b 0x02 0x01>`, sus 3
+ *             supplies y sus pinctrl-0/1; los nodos vendor conservan sus props
+ *             (solo se les añade status) y ningun otro nodo cambia.
+ *   G-GPIO-5  el fragmento no añade ni un phandle y no usa "&"/__fixups__
+ *             (mismo criterio que G1/G7b de mkdtbo-s253.py).
+ *   G-GPIO-6  AUTOPROBADO: los mismos gates aplicados a s238/s253 deben contar
+ *             4 refs activas a pin 2 y abortar.
+ */
+
+	fragment@2100 {
+		target-path = "/soc/qcom,mdss_mdp@ae00000/qcom,mdss_dsi_o82_36_02_0a_dualdsi_dsc_vid";
+		__overlay__ {
+			/* Solo consumido por el mdss del VENDOR (sin driver en este
+			 * kernel). Su `qcom,platform-reset-gpio` es la ref #2/4 al
+			 * pin 2 del tlmm. */
+			status = "disabled";
+		};
+	};
+
+	fragment@2101 {
+		target-path = "/soc/qcom,mdss_mdp@ae00000/qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid";
+		__overlay__ {
+			/* Nodo de panel del VENDOR (no confundir con el mainline
+			 * `xiaomi,uke-o82-4202-0b` de panel@0). Ref #3/4 al pin 2. */
+			status = "disabled";
+		};
+	};
+
+	fragment@2102 {
+		target-path = "/soc/qcom,mdss_mdp@ae00000/qcom,mdss_dsi_visionox_r66451_fhd_plus_video";
+		__overlay__ {
+			/* Panel de OTRA variante (visionox r66451) que tambien apunta
+			 * su reset al pin 2. Ref #4/4. Sin driver: no crea device. */
+			status = "disabled";
+		};
+	};

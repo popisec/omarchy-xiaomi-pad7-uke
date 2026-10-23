@@ -1,0 +1,70 @@
+ regulator                      use open bypass  opmode voltage current     min     max
+---------------------------------------------------------------------------------------
+ regulator-dummy                  1    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v6c_s1_level                  4    4      0 unknown     0mV     0mA     0mV     0mV 
+    139004.qcom,gdsc-parent       1                                 0mA     0mV     0mV
+    177004.qcom,gdsc-parent       1                                 0mA     0mV     0mV
+    100000.clock-controller-vdd_cx   1                                 0mA     0mV     0mV
+    17a00000.rsc:drv@2:rpmh-regulator-cxlvl-proxy   1                                 0mA     0mV     0mV
+ pm_v6c_s1_level_ao               0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v6c_s1_mmcx_sup_level         1    1      0 unknown     0mV     0mA     0mV     0mV 
+    pm_v8_s6_level                2    3      0 unknown     0mV     0mA     0mV     0mV 
+       af00000.clock-controller-vdd_mm   1                                 0mA     0mV     0mV
+       17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-proxy   1                                 0mA     0mV     0mV
+       pm_v6c_s6_mmcx_voter_level   0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v6c_s6_level                  1    1      0 unknown     0mV     0mA     0mV     0mV 
+    17a00000.rsc:drv@2:rpmh-regulator-mxclvl-proxy   1                                 0mA     0mV     0mV
+ pm_v6c_s6_level_ao               0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v6c_s6_gfx_voter_level        0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v8_s6_level_ao                0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v8_s6_level_so                0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v8_s8_level                   4    4      0 unknown     0mV     0mA     0mV     0mV 
+    af00000.clock-controller-vdd_mxa   1                                 0mA     0mV     0mV
+    19e000.qcom,gdsc-parent       1                                 0mA     0mV     0mV
+    100000.clock-controller-vdd_mx   1                                 0mA     0mV     0mV
+    17a00000.rsc:drv@2:rpmh-regulator-mxlvl-proxy   1                                 0mA     0mV     0mV
+ pm_v8_s8_level_ao                0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v8_l2_level                   0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pm_v6c_l2_level                  0    0      0 unknown     0mV     0mA     0mV     0mV 
+ pmxr2230_s1                      0    0      0 unknown  1856mV     0mA  1856mV  2040mV 
+ pmxr2230_s2                      0    0      0 standby  1256mV     0mA  1256mV  1256mV 
+ pmxr2230_s3                      0    0      0 unknown   984mV     0mA   968mV  1040mV 
+ pmxr2230_l2                      5    5      0    fast   880mV     0mA   880mV   950mV 
+    88e3000.hsphy-vdd             1                                 7mA   880mV   950mV
+    ae95000.phy-vdds              1                                98mA     0mV     0mV
+    ae97000.phy-vdds              1                                98mA     0mV     0mV
+    1d80000.ufsphy_mem-vdda-qref   1                                64mA     0mV     0mV
+    17a00000.rsc:drv@2:rpmh-regulator-ldob2-proxy   1                                 0mA     0mV     0mV
+ pmxr2230_l4                      5    5      0    fast  1200mV     0mA  1200mV  1200mV 
+    ae94000.dsi-vdda              1                                16mA     0mV     0mV
+    ae96000.dsi-vdda              1                                16mA     0mV     0mV
+    88e3000.hsphy-vdda12          1                                 5mA  1200mV  1200mV
+    1d80000.ufsphy_mem-vdda-pll   1                                18mA     0mV     0mV
+    17a00000.rsc:drv@2:rpmh-regulator-ldob4-proxy   1                                 0mA     0mV     0mV
+ pmxr2230_l5                      0    0      0    fast  1200mV     0mA  1200mV  1200mV 
+ pmxr2230_l7                      2    2      0    fast  1800mV     0mA  1800mV  1800mV 
+    2-000e-vdd-usb-cp             1                                 0mA     0mV     0mV
+    c42d000.qcom,spmi:qcom,pm7550ba@7:eusb2-repeater@fd00-vdd18   1                                32mA  1800mV  1800mV
+ pmxr2230_l8                      2    2      0    fast  1900mV     0mA  1900mV  1900mV 
+    ae94000.dsi.0-vddio           1                               300mA  1900mV  1900mV
+    17a00000.rsc:drv@2:rpmh-regulator-ldob8-proxy   1                               220mA     0mV     0mV
+ pmxr2230_l12                     1    1      0    fast     0mV     0mA     0mV     0mV 
+    1d84000.ufshc-vcc             1                              1200mA     0mV     0mV
+ pmxr2230_l17                     1    1      0    idle  3075mV     0mA  2700mV  3300mV 
+    c42d000.qcom,spmi:qcom,pm7550ba@7:eusb2-repeater@fd00-vdd3   1                                 3mA  3075mV  3300mV
+ pm_v8_l1                         1    1      0    fast   912mV     0mA   866mV   958mV 
+    1d80000.ufsphy_mem-vdda-phy   1                               213mA     0mV     0mV
+ pm_v8_l3                         2    2      0    fast  1200mV     0mA  1140mV  1260mV 
+    1d84000.ufshc-vccq            1                              1200mA     0mV     0mV
+    17a00000.rsc:drv@2:rpmh-regulator-ldod3-proxy   1                                31mA     0mV     0mV
+ display_panel_vsp                1    1      0 unknown  5800mV     0mA  5800mV  5800mV 
+    ae94000.dsi.0-vsp             1                               300mA  5800mV  5800mV
+ camera_wide_avdd_ldo             0    0      0 unknown  2800mV     0mA  2800mV  2800mV 
+ camera_front_avdd_ldo            0    0      0 unknown  2800mV     0mA  2800mV  2800mV 
+ display_panel_vsn                1    1      0 unknown  5800mV     0mA  5800mV  5800mV 
+    ae94000.dsi.0-vsn             1                               300mA  5800mV  5800mV
+ gcc_ufs_mem_phy_gdsc             1    0      0 unknown     0mV     0mA     0mV     0mV 
+ gcc_ufs_phy_gdsc                 2    1      0 unknown     0mV     0mA     0mV     0mV 
+    1d84000.ufshc-vdd-hba         1                                 0mA     0mV     0mV
+ gcc_usb30_prim_gdsc              2    1      0 unknown     0mV     0mA     0mV     0mV 
+    a600000.ssusb-gdsc            1                                 0mA     0mV     0mV

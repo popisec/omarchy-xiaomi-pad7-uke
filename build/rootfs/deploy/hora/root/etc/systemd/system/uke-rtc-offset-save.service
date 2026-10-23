@@ -1,0 +1,5 @@
+[Unit]
+Description=uke: guardar el desfase hora real - RTC
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/uke-rtc-offset save

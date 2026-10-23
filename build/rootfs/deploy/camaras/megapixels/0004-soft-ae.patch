@@ -1,0 +1,171 @@
+# Parche para Megapixels 1.8.3 (https://gitlab.com/megapixels-org/Megapixels).
+# Derivado de Megapixels, que es GPL-3.0-or-later; este parche hereda esa licencia.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+diff --git a/src/io_pipeline.c b/src/io_pipeline.c
+index 7886456..0ee8e4d 100644
+--- a/src/io_pipeline.c
++++ b/src/io_pipeline.c
+@@ -39,6 +39,8 @@ struct camera_info {
+         bool has_auto_focus_continuous;
+         bool has_auto_focus_start;
+ 
++        bool soft_ae; /* uke: sin EXPOSURE_AUTO en el sensor -> AE por software */
++
+         // unsigned int entity_id;
+         // enum v4l2_buf_type type;
+ 
+@@ -92,6 +94,7 @@ struct control_state {
+ 
+ static struct control_state desired_controls = {};
+ static struct control_state current_controls = {};
++static float uke_wb_r = 1.6f, uke_wb_b = 1.6f; /* uke: AWB por software (gris medio por canal), ganancias R y B sobre G */
+ 
+ static bool flash_enabled = false;
+ 
+@@ -299,6 +302,9 @@ setup_camera(MPDeviceList **device_list, const struct mp_camera_config *config)
+                         info->has_auto_focus_start = true;
+                 }
+ 
++                /* uke: OV13B10/OV08D10 no tienen 3A; el modo «auto» de Megapixels no hacia nada (fotos de interior oscuras) */
++                info->soft_ae = !mp_camera_query_control(info->camera, V4L2_CID_EXPOSURE_AUTO, NULL);
++
+                 MPControl control;
+                 if (mp_camera_query_control(info->camera, V4L2_CID_GAIN, &control)) {
+                         info->gain_ctrl = V4L2_CID_GAIN;
+@@ -387,8 +393,8 @@ update_process_pipeline()
+         }
+ 
+         MPControl control;
+-        float balance_red = 1.0f;
+-        float balance_blue = 1.0f;
++        float balance_red = info->soft_ae ? uke_wb_r : 1.0f; /* uke: ganancias de la AWB por software */
++        float balance_blue = info->soft_ae ? uke_wb_b : 1.0f;
+         if (mp_camera_query_control(info->camera, V4L2_CID_RED_BALANCE, &control)) {
+                 int red = mp_camera_control_get_int32(info->camera,
+                                                       V4L2_CID_RED_BALANCE);
+@@ -565,6 +571,102 @@ update_controls()
+         current_controls = desired_controls;
+ }
+ 
++/*
++ * uke (22-oct-2026): autoexposicion por software para sensores sin 3A. Cada 3 tramas de preview mide la media y la fraccion de saturados en
++ * una muestra del RAW (bytes altos del RAW10 empaquetado; filas cada 8, columnas cada 7, sin el 5.o byte de cada grupo) y reparte la
++ * correccion primero en exposicion (hasta el maximo que permita la trama) y luego en ganancia analogica. Amortiguada (f^0,6, banda muerta 8 %).
++ * Objetivo: media de 55 sobre 255 en los 8 bits altos (~16 % lineal sobre el negro), con menos de un 2 % de saturados.
++ */
++static int uke_ae_frame;
++
++static void
++uke_soft_ae(const MPBuffer *buffer)
++{
++        struct camera_info *info = &cameras[camera->index];
++        if (!info->soft_ae || ++uke_ae_frame % 3)
++                return;
++
++        uint32_t row_bytes = mp_pixel_format_width_to_bytes(mode.pixel_format, mode.width);
++        uint32_t bpl = row_bytes + mp_pixel_format_width_to_padding(mode.pixel_format, mode.width);
++        bool p10 = mp_pixel_format_bits_per_pixel(mode.pixel_format) == 10;
++        const char *cfa = mp_pixel_format_cfa_pattern(mode.pixel_format);
++        float black = p10 ? camera->blacklevel / 4.0f : camera->blacklevel;
++        long sum = 0, n = 0, sat = 0;
++        double cs[3] = { 0, 0, 0 };
++        long cn[3] = { 0, 0, 0 };
++        for (uint32_t y0 = (mode.height / 16) & ~1u; y0 + 1 < mode.height - mode.height / 16; y0 += 8) {
++                for (uint32_t y = y0; y < y0 + 2; y++) { /* pares de filas: las dos filas del patron CFA */
++                        const uint8_t *row = buffer->data + (size_t)y * bpl;
++                        for (uint32_t x = 0; x < row_bytes; x += 7) {
++                                if (p10 && x % 5 == 4)
++                                        continue;
++                                uint8_t v = row[x];
++                                sum += v;
++                                sat += v >= 250;
++                                n++;
++                                uint32_t px = p10 ? x / 5 * 4 + x % 5 : x;
++                                if (cfa && v > black + 3 && v < 240) {
++                                        int c = cfa[(y & 1) * 2 + (px & 1)];
++                                        cs[c] += v - black;
++                                        cn[c]++;
++                                }
++                        }
++                }
++        }
++        if (!n)
++                return;
++        if (cn[0] > 50 && cn[1] > 100 && cn[2] > 50) {
++                float g = cs[1] / cn[1], gr = g / (cs[0] / cn[0]), gb = g / (cs[2] / cn[2]);
++                gr = fminf(fmaxf(gr, 0.5f), 4.0f);
++                gb = fminf(fmaxf(gb, 0.5f), 4.0f);
++                float nr = uke_wb_r * 0.6f + gr * 0.4f, nb = uke_wb_b * 0.6f + gb * 0.4f;
++                bool upd = fabsf(nr - uke_wb_r) > 0.03f * uke_wb_r || fabsf(nb - uke_wb_b) > 0.03f * uke_wb_b;
++                uke_wb_r = nr;
++                uke_wb_b = nb;
++                if (upd)
++                        update_process_pipeline();
++        }
++        if (current_controls.exposure_is_manual)
++                return;
++        float mean = (float)sum / n, cur = mean - black, satf = (float)sat / n;
++        float f = (55.0f - black) / (cur < 1 ? 1 : cur);
++        if (satf > 0.02f && f > 0.7f)
++                f = 0.7f;
++        if (f > 4)
++                f = 4;
++        if (f < 0.25f)
++                f = 0.25f;
++        if (f > 0.92f && f < 1.08f)
++                return;
++        f = powf(f, 0.6f);
++
++        MPControl ec, gc;
++        if (!mp_camera_query_control(info->camera, V4L2_CID_EXPOSURE, &ec))
++                return;
++        bool has_gain = !current_controls.gain_is_manual &&
++                        mp_camera_query_control(info->camera, info->gain_ctrl, &gc) && gc.min > 0;
++        int32_t exp = mp_camera_control_get_int32(info->camera, V4L2_CID_EXPOSURE);
++        int32_t gain = has_gain ? mp_camera_control_get_int32(info->camera, info->gain_ctrl) : 0;
++        float total = (float)exp * (has_gain ? (float)gain / gc.min : 1.0f) * f;
++        float ne = total;
++        if (ne > ec.max)
++                ne = ec.max;
++        if (ne < ec.min)
++                ne = ec.min;
++        int32_t new_exp = (int32_t)ne;
++        if (new_exp != exp)
++                mp_camera_control_set_int32(info->camera, V4L2_CID_EXPOSURE, new_exp);
++        if (has_gain) {
++                float ng = gc.min * total / ne;
++                if (ng > gc.max)
++                        ng = gc.max;
++                if (ng < gc.min)
++                        ng = gc.min;
++                if ((int32_t)ng != gain)
++                        mp_camera_control_set_int32(info->camera, info->gain_ctrl, (int32_t)ng);
++        }
++}
++
+ static void
+ on_frame(MPBuffer buffer, void *_data)
+ {
+@@ -598,6 +700,9 @@ on_frame(MPBuffer buffer, void *_data)
+                 blank_frame_count = 0;
+         }
+ 
++        if (captures_remaining == 0)
++                uke_soft_ae(&buffer);
++
+         // Send the image off for processing
+         mp_process_pipeline_process_image(buffer);
+ 
+@@ -739,6 +844,11 @@ update_state(MPPipeline *pipeline, const struct mp_io_pipeline_state *state)
+                                 V4L2_EXPOSURE_MANUAL;
+                         current_controls.exposure = mp_camera_control_get_int32(
+                                 info->camera, V4L2_CID_EXPOSURE);
++                        if (info->soft_ae) {
++                                /* uke: sin AUTOGAIN, Megapixels creia la ganancia «manual»: con AE por software ambas empiezan en auto */
++                                current_controls.gain_is_manual = false;
++                                current_controls.exposure_is_manual = false;
++                        }
+                 }
+         }
+ 

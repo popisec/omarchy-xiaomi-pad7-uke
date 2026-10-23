@@ -1,0 +1,5 @@
+# Dudas para el dueño — cámaras (22-oct-2026, sesión camaras-2)
+1. **Reinicio**: la tablet tuvo un oops del kernel a las 12:31 al aplicar el overlay de la frontal (corrupción de memoria; detalle en `build/gates/revision/CAMARAS-MEGAPIXELS-20261022.md`). Funciona, pero hay tareas bloqueadas para siempre (entre ellas el aviso de batería) y el kernel ya no es fiable. **¿Reinicias tú cuando puedas hacer el reset físico?** Yo no reinicio.
+2. **libcamera** (`pacman -S --needed libcamera libcamera-ipa libcamera-tools gst-plugin-libcamera pipewire-libcamera`, 0.7.2 de `extra`): ¿lo autorizas directamente? La sesión principal dijo que sí por relevo, pero mi encargo pide tu OK en mi sesión.
+3. **Persistencia**: para no reaplicar overlays en caliente (lo que provocó el oops), propongo cargar los módulos de cámara una vez en el arranque con una unidad systemd. ¿De acuerdo con instalarla (sin reiniciar; se probaría en el próximo arranque)?
+4. **Megapixels**: lo compilaría desde su código fuente (1.8.3, repositorio oficial de GitLab) en la tablet e instalaría en `/usr/local`. ¿OK?

@@ -1,0 +1,19 @@
+[Unit]
+Description=uke: hall de la funda (overlay de DT gpio-keys SW_LID/SW_TABLET_MODE)
+Documentation=file:///etc/uke/LEEME
+# Interruptor manual: touch /etc/uke/no-tapa. Los overlays de BT y audio cuelgan de otros nodos; of_overlay_fdt_apply
+# serializa con su mutex, no hace falta orden entre ellos. After=local-fs para tener /usr/lib/modules.
+ConditionPathExists=!/etc/uke/no-tapa
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionKernelVersion=*senemos*
+After=local-fs.target systemd-udevd.service
+Before=systemd-logind.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/sbin/modprobe uke_tapa
+# sin ExecStop: descargar a mano con `rmmod uke_tapa`
+
+[Install]
+WantedBy=multi-user.target

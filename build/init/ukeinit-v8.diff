@@ -1,0 +1,41 @@
+# ukeinit-v8.diff — 23-oct-2026, PROPUESTA (sin aplicar, sin flashear). Base: /ukeinit del cpio build/init/uke-k34-fw-k52b2-initramfs.cpio.gz
+# (sha256 cpio ebc2de46ea89a4512be06b87e92d5dbb2f8aca8fe9a07304b697566551bf48bc; ukeinit fcdd63f14a99171976f1c038d4110fe7eb57695de452ccfa42021914527d81fc). OJO: build/gates/ukeinit NO es la base (lleva K50/K51).
+# Aplicar: extraer el cpio, 'patch -p1 -d <dir> < ukeinit-v8.diff', re-empaquetar con gates (patron mkcpio-k50.py). sh -n y busybox ash -n OK.
+# Detalle y orden seguro con el journal: build/gates/revision/KERNEL-V8-PROPUESTA-20261023.md §3.
+--- a/ukeinit	2026-10-23 03:05:23.804409056 +0200
++++ b/ukeinit	2026-10-23 03:05:23.849289588 +0200
+@@ -231,8 +231,32 @@
+ if [ -n "$UBUNTU" ] && [ "$max" -gt 20000000 ]; then
+   kmsg "S123: raiz candidata /dev/$UBUNTU ($max KB)"
+   mkdir -p /mnt/ubuntu 2>/dev/null
+-  if mount -t ext4 -o ro,noload "/dev/$UBUNTU" /mnt/ubuntu 2>/dev/null; then
+-    kmsg "S123: mount ro,noload OK — verificando init de la raiz"
++  # --- V8 (23-oct-2026, PROPUESTA sin flashear): fsck en preen ANTES de montar, solo si el cpio
++  # --- trae /bin/e2fsck (+ libs en /lib, patron mkcpio-k50.py). -p no fuerza: con el fs limpio sale
++  # --- en milisegundos. NUNCA reinicia (un reboot antes de uke-boot-ok gasta slot-retry-count).
++  if [ -x /bin/e2fsck ]; then
++    kmsg "V8-FSCK: e2fsck -p /dev/$UBUNTU ARRANCA t=$(cut -d. -f1 /proc/uptime)s"
++    LD_LIBRARY_PATH=/lib /bin/e2fsck -p "/dev/$UBUNTU" >/tmp/fsck-v8.log 2>&1
++    rc=$?
++    kmsg "V8-FSCK: rc=$rc t=$(cut -d. -f1 /proc/uptime)s (0 limpio, 1 corregido, 2/3 corregido-reiniciar: aqui NO se reinicia, 4+ SIN reparar: sigo)"
++    busybox tail -n 6 /tmp/fsck-v8.log 2>/dev/null | while IFS= read -r _l; do kmsg "V8-FSCK: $_l"; done
++    [ $rc -ge 4 ] && kmsg "V8-FSCK AVISO: fs con errores sin reparar; hace falta el fsck en frio (fsck-journal.sh)"
++    sync
++  else
++    kmsg "V8-FSCK: cpio sin /bin/e2fsck — se monta sin fsck (como v7)"
++  fi
++  # --- V8: montar 'ro' SIN noload. Con has_journal el kernel carga el journal y lo reproduce si hace
++  # --- falta (Documentation/admin-guide/ext4.rst: 'ro' replays the journal); sin has_journal entra por
++  # --- la rama nojournal de ext4_fill_super (fs/ext4/super.c:5511-5540) igual que con noload.
++  # --- Respaldo: si 'ro' falla (journal ilegible), el montaje viejo 'ro,noload' para no perder la tablet.
++  _mnt=ro
++  if ! mount -t ext4 -o ro "/dev/$UBUNTU" /mnt/ubuntu 2>/dev/null; then
++    kmsg "V8-MNT AVISO: mount ro FALLO — reintento con ro,noload (SIN journal; revisar con fsck en frio)"
++    _mnt=ro,noload
++    mount -t ext4 -o ro,noload "/dev/$UBUNTU" /mnt/ubuntu 2>/dev/null || _mnt=""
++  fi
++  if [ -n "$_mnt" ]; then
++    kmsg "S123: mount $_mnt OK — verificando init de la raiz"
+     if [ -x /mnt/ubuntu/sbin/init ] || [ -x /mnt/ubuntu/usr/sbin/init ] || [ -x /mnt/ubuntu/lib/systemd/systemd ]; then
+       kmsg "S123: RAIZ UBUNTU VERIFICADA — remontando rw y switch_root"
+       mount -o remount,rw /mnt/ubuntu 2>/dev/null || kmsg "S123 AVISO: remount rw fallo (raiz en ro)"

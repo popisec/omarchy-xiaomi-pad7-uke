@@ -1,0 +1,17 @@
+# C5b ciclo 12 — plan (preparado 22-oct-2026 sin ejecutar; orden del dueño: «prepara el ciclo 12 (activar la captura de paquetes del RX del CSID y leer las cabeceras recibidas con 8 registros concretos) sin ejecutarlo»)
+Parte de `docs/historia/revision/CAMARAS-C5-CICLO11-RESULTADO-20261022.md`: el RDI recibe SOL/EOL pero nunca SOF; el RX marca ECC erróneo en un «régimen A» y no en un «régimen B»; `LONG_PKT`/`SHORT_PKT` no se marcan porque la captura de paquetes (`CSID_CSI2_RX_CAPTURE_CTRL` 0x208) está apagada. Este ciclo la enciende y **lee las cabeceras que el CSID realmente recibe** para distinguir: (a) cabecera correcta pero sin FS ni datos útiles, (b) cabecera con bits cambiados/permutados, (c) paquetes de otro VC/DT.
+Ejecutar requiere orden del dueño para ESTE ciclo + «tuya» de la gestora. `build/rootfs/deploy/camaras/c5-ciclo12.sh --check | --go`; módulos nuevos en `out-ciclo12/` (ouke5, 0 avisos, `--check` OK).
+
+## Cambios de código (por defecto sin efecto)
+`uke-camss` (CSID gen3): `uke_cap_ctrl` (≥0 escribe 0x208 al arrancar: **0x2b3** = long en + short en + dt=0x2b<<4, vc 0; según los campos del vendor `uke-v-oss`: long_en bit 0, short_en bit 1, long dt shift 4, long vc shift 10, short vc shift 15), `uke_cap_n` (en los primeros N IRQ de RX y al parar vuelca **solo 8 registros concretos** (los que autorizó el dueño): capctrl 0x208, unmap_hdr0 0x210, short0 0x218, long0/long1 0x220/0x224, total_pkts 0x240, ecc 0x244, crc 0x248 — sin volcados de rango (revisado 22-oct: la primera versión leía 12 y se recortó a 8 antes de ejecutar)), `uke_rdi_budget` (presupuesto de log de RDI **separado** del de RX, 100).
+Honestidad: layout de registros tomado del vendor (`cam_ife_csid880.h`, verbatim); el CSID de cliffs es `csid860` que reutiliza las tablas 880, pero **no está verificado que `mainline camss-csid-gen3` use los mismos offsets 0x2xx** (el 0x200/0x204 coincide con `CSID_CSI2_RX_CFG0/1` del propio driver, que es una buena señal). Si los volcados salen todo ceros o `capctrl` no relee lo escrito, los offsets no valen y se anota.
+
+## Matriz (11 streams, 2104×1560; máscara RX 0xfffffff0; presupuesto RX 400, RDI 100)
+`0x4800` = 0x7e, 0x76, 0x64 (base) × 3 repeticiones, patrón de test (9) + normal con 0x7e ×2 (2). Por stream: línea `RESUMEN … SOT4 ECC LONG SHORT …`, hasta 6 líneas `uke-cap` y las 3 señales RDI más frecuentes.
+
+## Lectura de resultados (pre-registrada)
+- **Cabecera larga**: esperado RAW10 de 2104 px → DT 0x2b, WC = 2104·10/8 = **2630 = 0x0a46**. `long0` debería ser `ECC|WC_hi|WC_lo|DT` según el formato (cuando el CSID guarda la cabecera como palabra de 32 bits: DT en el byte bajo = 0x2b, WC lo = 0x46, WC hi = 0x0a). Permutaciones de esos bytes ⇒ problema de orden de lanes (y qué permutación); bits sueltos distintos ⇒ muestreo/ruido; todo distinto ⇒ otro modo de salida del sensor.
+- **Cabecera corta**: FS = DT 0x00, WC = nº de trama; FE = DT 0x01. `short0` con DT 0x00 ⇒ FS llega (entonces SOF ausente es problema de CSID/RDI, no de línea); sin FS jamás ⇒ el sensor no lo emite o el RX lo descarta.
+- `total_pkts` y `ecc`: relación paquetes/errores por régimen (A vs B).
+- **PASS (hito 2)**: `bytes > 0`. **Señal fuerte** (sin bytes): `long0` con DT 0x2b y WC 0x0a46 correctos en régimen B ⇒ el problema pasa a CSID→RDI→VFE (formato, VC/DT, backpressure).
+- **Abortar**: Oops/SMMU, batería < 30 %, `dmesg -w` sin crecer, `capctrl` relee ≠ 0x2b3.

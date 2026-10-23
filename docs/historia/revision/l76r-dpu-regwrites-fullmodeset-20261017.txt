@@ -1,0 +1,8 @@
+[ 1617.839323] qcom-qmp-ufs-phy 1d80000.ufsphy_mem: X9UFS-CLK tx_sym0_phy_clk=1000
+[ 1618.029427] UKE-POKE: L6-open
+[ 1618.029592] UKE-L6: open-enter
+[ 1618.029696] UKE-POKE: L6-open
+[ 1618.029803] UKE-L6: open-enter
+[ 1618.029861] UKE-POKE: K47-pan-modes
+[ 1618.029961] UKE-P82: get_modes: entrada
+[ 1618.029983] UKE-POKE: L70-byteclk

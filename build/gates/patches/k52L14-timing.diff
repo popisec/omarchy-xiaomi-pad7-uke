@@ -1,0 +1,109 @@
+# k52L14-timing.diff — L14 = L11 + control de timing de RE-RSALT (10-oct-2026, SOLO-PC, sin flashear).
+# Generado por `diff -U4` L11->L14 (no escrito a mano). Cuatro sub-hunks en
+# a6xx_gmu_start(), verbatim de docs/historia/revision/RE-RSALT-20261010.md §6,
+# base k52-L11-tree (NO L12, NO L13s):
+# (a) pre-S1, junto a la lectura de gen9_saved: leer GENERAL_10/8
+# (valores que fw_start ya dejo; 3 ramas a8xx/a7xx/legacy) + pr_err UKE-L14
+# saved SIN flush propio (drena en L7-k44b). CERO writes.
+# (b) tras S1, despues de S2-gen9 y antes de L10-recfg: re-leer G10/8 +
+# pr_err UKE-L14 posts1 sin flush (drena en L7-k44b) — chequea GRATIS la
+# premisa «S1 borra G10/8». Solo MMIO observacional (precedente K44).
+# (c) en la posicion exacta del restore L13s (tras recfg-ok+flush, antes de
+# L7-pre-rst): poke L14-recfg2 + pr_err UKE-L14 + flush — MISMO retardo que
+# L13s, CERO writes (control de timing puro).
+# (d) tras gmu_write(SYSRESET,0) + wmb(): readback gmu_read(SYSRESET) +
+# pr_err UKE-L14 sysreset-rb (drena en el flush de write-done); el L8
+# write-done queda intacto. Un readl no cambia el estado pre-write.
+# NO se tocan: L10-recfg, poll vendor, HFI, GENERAL_9, GENERAL_11, logica.
+# Nomenclatura L14 (tag k52L14, testigos UKE-L14 / L14-recfg2).
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -633,9 +633,10 @@
+ {
+ 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+ 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+ 	struct msm_gpu *gpu = &adreno_gpu->base;
+-	u32 mask, reset_val, val, gen9_saved = 0;
++	u32 mask, reset_val, val, gen9_saved = 0, gen10_saved = 0, gen8_saved = 0;
++	u32 gen10_posts1 = 0, gen8_posts1 = 0;
+ 	int ret;
+ 
+ 	uke_poke("S0-dtcmR");
+ 	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
+@@ -679,8 +680,23 @@
+ 	else if (adreno_is_a7xx(adreno_gpu))
+ 		gen9_saved = gmu_read(gmu, REG_A7XX_GMU_GENERAL_9);
+ 	else
+ 		gen9_saved = gmu_read(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP);
++	/* UKE-L14 (RE-RSALT-20261010 §6a): GENERAL_10/8 SOLO LEIDOS pre-S1
++	 * (valores que fw_start ya dejo; 3 ramas a8xx/a7xx/legacy, como L13s).
++	 * CERO writes: control de timing de L13s. Sin flush propio (drena en
++	 * el siguiente flush existente, L7-k44b). */
++	if (adreno_is_a8xx(adreno_gpu)) {
++		gen10_saved = gmu_read(gmu, REG_A8XX_GMU_GENERAL_10);
++		gen8_saved = gmu_read(gmu, REG_A8XX_GMU_GENERAL_8);
++	} else if (adreno_is_a7xx(adreno_gpu)) {
++		gen10_saved = gmu_read(gmu, REG_A7XX_GMU_GENERAL_10);
++		gen8_saved = gmu_read(gmu, REG_A7XX_GMU_GENERAL_8);
++	} else {
++		gen10_saved = gmu_read(gmu, REG_A6XX_GMU_HFI_SFR_ADDR);
++		gen8_saved = gmu_read(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_MSG);
++	}
++	pr_err("UKE-L14: saved10=%#x saved8=%#x\n", gen10_saved, gen8_saved);
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 1);
+ 	uke_poke("S1-rst1");
+ 
+ 	/* Set the log wptr index
+@@ -694,8 +710,23 @@
+ 		gmu_write(gmu, REG_A7XX_GMU_GENERAL_9, gen9_saved);
+ 	else
+ 		gmu_write(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP, gen9_saved);
+ 	uke_poke("S2-gen9");
++	/* UKE-L14 (RE-RSALT-20261010 §6b): re-lectura post-S1 de GENERAL_10/8
++	 * (observacional: reads estado-neutros, sin flush propio; drena en
++	 * L7-k44b). Chequea GRATIS la premisa «S1 borra G10/8»: posts1==saved
++	 * => S1 conserva => el restore de L13s era no-op en valores. */
++	if (adreno_is_a8xx(adreno_gpu)) {
++		gen10_posts1 = gmu_read(gmu, REG_A8XX_GMU_GENERAL_10);
++		gen8_posts1 = gmu_read(gmu, REG_A8XX_GMU_GENERAL_8);
++	} else if (adreno_is_a7xx(adreno_gpu)) {
++		gen10_posts1 = gmu_read(gmu, REG_A7XX_GMU_GENERAL_10);
++		gen8_posts1 = gmu_read(gmu, REG_A7XX_GMU_GENERAL_8);
++	} else {
++		gen10_posts1 = gmu_read(gmu, REG_A6XX_GMU_HFI_SFR_ADDR);
++		gen8_posts1 = gmu_read(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_MSG);
++	}
++	pr_err("UKE-L14: posts1-10=%#x posts1-8=%#x\n", gen10_posts1, gen8_posts1);
+ 
+ 	/* UKE-K44 (3-oct-2026, ledger #499): SOLO LECTURA de los registros que
+ 	 * definen desde donde fetch-ea el CM3, impresa ANTES de soltar el reset
+ 	 * (CM3 quieto: no puede interferir). Nivel err (3<4: pasa el tope de
+@@ -789,8 +820,14 @@
+ 	gmu_write(gmu, REG_A6XX_GMU_HFI_QTBL_INFO, 1);
+ 	uke_poke("L10-recfg");
+ 	pr_err("UKE-L10: recfg-ok\n");
+ 	pr_flush(120, false);
++	/* UKE-L14 (RE-RSALT-20261010 §6c): MISMO retardo que el restore L13s
++	 * en su posicion exacta (tras recfg-ok+flush, antes de L7-pre-rst),
++	 * CERO writes: control de timing puro. */
++	uke_poke("L14-recfg2");
++	pr_err("UKE-L14: recfg2-ok\n");
++	pr_flush(120, false);
+ 
+ 	/* UKE-L7 (10-oct-2026): ANTES del write SYSRESET=0 (si el write mata,
+ 	 * pre-rst sale y post-rst no). */
+ 	uke_poke("L7-pre-rst");
+@@ -802,8 +839,13 @@
+ 	 * Si C1+C2 sanearon el release, write-done sale; si no, pre-rst es el
+ 	 * ultimo testigo y C1/C2 caen a C3/C5. */
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
+ 	wmb();
++	/* UKE-L14 (RE-RSALT-20261010 §6d): readback del writel de release
++	 * (prueba que dreno en el bus; el pr_err drena en el flush siguiente
++	 * de write-done). Un readl no cambia el estado pre-write. */
++	val = gmu_read(gmu, REG_A6XX_GMU_CM3_SYSRESET);
++	pr_err("UKE-L14: sysreset-rb=%#x\n", val);
+ 	/* UKE-L8 (10-oct-2026): write-done INMEDIATO tras el write (si el
+ 	 * write mata, pre-rst sale y write-done no). */
+ 	uke_poke("L8-write-done");
+ 	pr_err("UKE-L8: write-done\n");

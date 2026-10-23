@@ -1,0 +1,75 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// FRAGMENTO-KTZ8866.dts — backlight externo KTZ8866 para uke.
+//
+// Para ANEXAR a ~/gpu-work/ramaa/s21/dtbo-gpu/fase4-display.dts
+// como fragment@7/@8/@9 (fase4 llega hasta fragment@6). No se aplica solo:
+// usa labels de fase4 (ninguno) y del DTB vendor base (qupv3_se*_i2c, como
+// s258-payload.dts) + el path del panel de fase4.
+//
+// EVIDENCIA (por que este bloque y no DCS 0x51):
+// - Stock DTBO (stock_uke.dts, frag@95): el panel uke
+//   (mi,panel-id <0x4f3832 0x5042020b>, ID 0x14) declara
+//   qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_external" (linea 13204),
+//   max 0xfff / min 0x04 / init 0x133 (lineas 13199-13203) y
+//   qcom,bl-update-flag = "delay_until_first_frame" (linea 13223).
+// - Stock DTBO frag@105/106 (lineas 13799-13821): ktz8866@11 en DOS buses
+//   I2C con compatible = "ktz,ktz8866", reg = <0x11>, SIN mas props
+//   (sin pinctrl, sin supplies, sin current-num-sinks: el vendor no escribe
+//   esos registros nunca).
+// - msm_drm.ko: dsi_panel_set_backlight() case 3 (.text+0x14ddd8) llama a
+//   ktz8866_backlight_update_status() para este panel; DCS 0x51 (case 2) no
+//   se usa en uke. El comentario de fase4 lineas 43-45 ("backlight interno
+//   DCS 0x51, ktz8866 no aplica") queda REFUTADO: hay que corregirlo al
+//   anexar esto.
+// - El driver mainline va en drivers/video/backlight/ktz8866.c (port
+//   documentado en su cabecera) con compatible "ktz,ktz8866" anadido;
+//   CONFIG_BACKLIGHT_KTZ8866=m.
+//
+// NOTA dual: se declaran los DOS nodos como el stock. El driver usa
+// dev_name() para no colisionar; el panel ata ktz_bl_0. Si en la tablet solo
+// hay un chip fisico (TODO: i2cdetect en se0/se12), el nodo fantasma probea
+// igual (el probe vendor no hace I/O) y sus writes fallan en silencio.
+// Entonces se borra el fragment sobrante.
+
+/* fragment@7: KTZ8866 en qupv3_se0_i2c (stock frag@105) */
+fragment@7 {
+	target = <&qupv3_se0_i2c>;
+
+	__overlay__ {
+		status = "okay";
+
+		ktz_bl_0: ktz8866@11 {
+			compatible = "ktz,ktz8866";
+			reg = <0x11>;
+			status = "okay";
+		};
+	};
+};
+
+/* fragment@8: KTZ8866 en qupv3_se12_i2c (stock frag@106) */
+fragment@8 {
+	target = <&qupv3_se12_i2c>;
+
+	__overlay__ {
+		status = "okay";
+
+		ktz_bl_1: ktz8866@11 {
+			compatible = "ktz,ktz8866";
+			reg = <0x11>;
+			status = "okay";
+		};
+	};
+};
+
+/* fragment@9: el panel de fase4 usa el backlight externo (antes: sin nodo
+ * backlight). Requiere el cambio pendiente en panel-xiaomi-o82-dualdsi.c:
+ * o82_create_backlight() debe pasar a devm_of_find_backlight() con este
+ * phandle en vez de registrar su backlight interno DCS 0x51
+ * (o82_bl_update_status), que el vendor no usa en uke. */
+fragment@9 {
+	target-path = "/soc/display-subsystem@ae00000/dsi@ae94000/panel@0";
+
+	__overlay__ {
+		backlight = <&ktz_bl_0>;
+	};
+};

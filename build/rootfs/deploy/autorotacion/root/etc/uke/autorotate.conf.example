@@ -1,0 +1,7 @@
+# /etc/uke/autorotate.conf (opcional; copiar sin .example). Se hace `source` desde uke-autorotate.
+# Orientacion de iio-sensor-proxy -> grados de uke-rotate. Se calibran en la etapa R5 con la tablet en la mano.
+MAP_normal=0
+MAP_left_up=90
+MAP_bottom_up=180
+MAP_right_up=270
+# UKE_AUTOROTATE_SETTLE=0.8   # segundos sin cambios antes de rotar

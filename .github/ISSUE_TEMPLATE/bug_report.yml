@@ -1,0 +1,74 @@
+name: Reporte de fallo
+description: Algo del port no funciona (arranque, pantalla, tactil, audio, wifi, bateria...)
+title: "[fallo] "
+labels: ["necesita-diagnostico"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por reportar. Este repo es el registro de un port experimental:
+        el aparato puede quedar sin arrancar. **No borres ni flashees nada** hasta
+        leer `REGLAS.md` (regla 1: backup del par `boot`+`dtbo` con sha256
+        pre-registrado antes de cualquier cambio).
+
+  - type: textarea
+    id: que-pasa
+    attributes:
+      label: Que falla
+      description: Que se espera y que ocurre en realidad.
+    validations:
+      required: true
+
+  - type: textarea
+    id: como-reproducir
+    attributes:
+      label: Como reproducirlo
+      description: Pasos minimos para llegar al fallo.
+    validations:
+      required: true
+
+  - type: input
+    id: version-kernel
+    attributes:
+      label: Version de kernel
+      description: La que sale de `uname -a` en la tablet.
+      placeholder: "Linux ... 7.2.0-rc2-palawan+ #83 SMP PREEMPT ..."
+    validations:
+      required: true
+
+  - type: input
+    id: estado-vivo
+    attributes:
+      label: Commit de ESTADO-VIVO.md
+      description: La linea de "Estado al dia" de `ESTADO-VIVO.md` que tenias al reproducirlo.
+      placeholder: "ESTADO-VIVO.md @ <commit> - <fecha>"
+
+  - type: dropdown
+    id: slot
+    attributes:
+      label: Slot arrancado
+      options:
+        - a
+        - b
+        - "no lo se"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Salida de `dmesg` (lo que toque) o del comando relevante. **Copia solo lo
+        necesario**: sin IPs reales, series ni contrasenas.
+      render: shell
+
+  - type: checkboxes
+    id: aviso
+    attributes:
+      label: Aviso
+      options:
+        - label: He leido `REGLAS.md` y `README.md` ("Que NO hay") antes de tocar el aparato.
+          required: true
+        - label: He respaldado el par `boot`+`dtbo` y he registrado su sha256.
+        - label: He overclockeado/reiniciado el kernel, no he flasheado nada.

@@ -1,0 +1,16 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+@@ -2763,9 +2763,11 @@
+ 		return ERR_PTR(ret);
+ 	}
+ 
+-	/* Set the speedbin value that is passed to userspace */
++	/* Set the speedbin value that is passed to userspace
++	 * uke L17 (variante B): sin fusible legible -> 0 (no 0xffff) para que
++	 * MSM_PARAM_CHIP_ID reporte 0x43030b00 exacto y mesa FD735 matchee */
+ 	if (a6xx_read_speedbin(&pdev->dev, a6xx_gpu, info, &speedbin) || !speedbin)
+-		speedbin = 0xffff;
++		speedbin = 0;
+ 	adreno_gpu->speedbin = (uint16_t) (0xffff & speedbin);
+ 
+ 	/*

@@ -1,0 +1,343 @@
+#!/usr/bin/python3
+"""uke-wifi-qr — anade una red Wi-Fi leyendo un QR estandar (WIFI:T:WPA;S:ssid;P:clave;H:false;;).
+
+  uke-wifi-qr                  menu (fuzzel): region de pantalla / imagen / camara
+  uke-wifi-qr region           slurp + grim -> decodifica -> conecta
+  uke-wifi-qr file [RUTA]      imagen (sin RUTA: lista de imagenes recientes)
+  uke-wifi-qr camera           hook de camara (desactivado hasta /etc/uke/wifi-qr.conf CAMERA=1)
+  uke-wifi-qr --check IMAGEN   solo decodifica y muestra SSID/tipo (SIN clave); no toca NetworkManager
+
+La clave NUNCA va por argv, ni a notificaciones, ni a logs, ni a disco: pasa por stdin de
+`nmcli connection edit` y el perfil queda con psk-flags=0 (root 600 en /etc/NetworkManager/system-connections).
+"""
+import glob, os, re, shutil, subprocess, sys, tempfile, time, uuid
+
+CONF = "/etc/uke/wifi-qr.conf"
+HOOK = "/usr/local/lib/uke-wifi-qr/camera-hook"
+IMG_EXT = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif")
+
+
+def notify(title, body="", urgent=False):
+    cmd = ["omarchy-notification-send", "-g", "\U000f05a9", title]
+    if body:
+        cmd.append(body)
+    if urgent:
+        cmd[1:1] = ["-u", "normal"]
+    try:
+        subprocess.run(cmd, timeout=10, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        print(title, body, file=sys.stderr)
+
+
+def tmpdir():
+    base = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+    return tempfile.mkdtemp(prefix="uke-wifi-qr.", dir=base)  # 0700
+
+
+def conf_flag(name):
+    try:
+        for line in open(CONF):
+            line = line.split("#", 1)[0].strip()
+            if line.replace(" ", "") == f"{name}=1":
+                return True
+    except OSError:
+        pass
+    return False
+
+
+# ---------- parseo del formato WIFI: ----------
+def parse_wifi(text):
+    """Devuelve dict(ssid, auth, psk, hidden) o lanza ValueError (mensaje sin clave)."""
+    text = text.strip()
+    if not text.upper().startswith("WIFI:"):
+        raise ValueError("El QR no es de Wi-Fi")
+    body = text[5:]
+    fields = {}
+    for raw in _split_raw(body):
+        m = _split_kv(raw)
+        if m:
+            fields[m[0].upper()] = m[1]
+    ssid = fields.get("S", "")
+    if not ssid:
+        raise ValueError("El QR no trae SSID")
+    if len(ssid) >= 2 and ssid[0] == '"' and ssid[-1] == '"':
+        ssid = ssid[1:-1]
+    psk = fields.get("P", "")
+    if len(psk) >= 2 and psk[0] == '"' and psk[-1] == '"':
+        psk = psk[1:-1]
+    t = fields.get("T", "").upper()
+    if t in ("", "NOPASS", "NONE"):
+        auth = "open" if not psk else "wpa"
+    elif t in ("WPA", "WPA2", "WPA/WPA2"):
+        auth = "wpa"
+    elif t in ("WPA3", "SAE"):
+        auth = "sae"
+    elif t == "WEP":
+        auth = "wep"
+    elif "EAP" in t:
+        raise ValueError("Redes empresariales (EAP) no soportadas por QR")
+    else:
+        raise ValueError(f"Tipo de seguridad desconocido: {t[:12]}")
+    if auth in ("wpa", "sae") and len(psk) < 8:
+        raise ValueError("El QR no trae clave valida")
+    if auth == "wep" and not psk:
+        raise ValueError("El QR no trae clave valida")
+    hidden = fields.get("H", "").lower() == "true"
+    return {"ssid": ssid, "auth": auth, "psk": psk, "hidden": hidden}
+
+
+def _split_raw(body):
+    out, cur, esc = [], [], False
+    for ch in body:
+        if esc:
+            cur.append("\\" + ch); esc = False
+        elif ch == "\\":
+            esc = True
+        elif ch == ";":
+            out.append("".join(cur)); cur = []
+        else:
+            cur.append(ch)
+    if cur:
+        out.append("".join(cur))
+    return out
+
+
+def _unescape(s):
+    return re.sub(r"\\(.)", r"\1", s)
+
+
+def _split_kv(raw):
+    # primer ':' no escapado
+    esc = False
+    for i, ch in enumerate(raw):
+        if esc:
+            esc = False
+        elif ch == "\\":
+            esc = True
+        elif ch == ":":
+            return raw[:i], _unescape(raw[i + 1:])
+    return None
+
+
+# ---------- decodificacion ----------
+def zbar(image):
+    r = subprocess.run(["zbarimg", "--quiet", "--raw", "--nodbus", "-Sdisable", "-Sqrcode.enable", image],
+                       capture_output=True, text=True, timeout=30)
+    for line in r.stdout.splitlines():
+        if line.upper().startswith("WIFI:"):
+            return line
+    return None
+
+
+def decode(image):
+    if not shutil.which("zbarimg"):
+        raise RuntimeError("Falta zbarimg (paquete zbar)")
+    res = zbar(image)
+    if res:
+        return res
+    # segundo intento: ampliar x2 con ffmpeg (QR pequenos o capturas de pantalla densas)
+    if shutil.which("ffmpeg"):
+        up = image + ".x2.png"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", image, "-vf", "scale=iw*2:ih*2:flags=neighbor",
+                        up], capture_output=True, timeout=30)
+        if os.path.exists(up):
+            return zbar(up)
+    return None
+
+
+# ---------- fuentes ----------
+def src_region(d):
+    if not (shutil.which("grim") and shutil.which("slurp")):
+        raise RuntimeError("Faltan grim/slurp")
+    s = subprocess.run(["slurp", "-b", "#00000066", "-c", "#ffffffff", "-w", "3"], capture_output=True, text=True)
+    geom = s.stdout.strip()
+    if s.returncode != 0 or not geom:
+        return None  # cancelado
+    out = os.path.join(d, "region.png")
+    g = subprocess.run(["grim", "-g", geom, out], capture_output=True, text=True)
+    if g.returncode != 0:
+        raise RuntimeError("grim fallo al capturar")
+    return out
+
+
+def recent_images():
+    home = os.path.expanduser("~")
+    dirs = [home + "/Pictures", home + "/Imágenes", home + "/Downloads", home + "/Descargas",
+            home + "/Screenshots", home + "/Pictures/Screenshots", home + "/Pictures/Capturas"]
+    files = set()
+    for dd in dirs:
+        for ext in IMG_EXT:
+            for f in glob.glob(dd + "/*" + ext) + glob.glob(dd + "/*" + ext.upper()):
+                files.add(f)
+    return sorted(files, key=lambda p: os.path.getmtime(p), reverse=True)[:40]
+
+
+def fuzzel(entries, prompt):
+    r = subprocess.run(["fuzzel", "--dmenu", "--index", "-p", prompt, "-w", "44", "-l", str(min(10, len(entries) + 1))],
+                       input="\n".join(entries), capture_output=True, text=True)
+    if r.returncode != 0 or not r.stdout.strip():
+        return None
+    try:
+        return int(r.stdout.strip())
+    except ValueError:
+        return None
+
+
+def src_file(path=None):
+    if path:
+        return path
+    imgs = recent_images()
+    if not imgs:
+        notify("QR Wi-Fi", "No hay imagenes en Imagenes/Descargas", True)
+        return None
+    labels = [f"{os.path.basename(p)}   ({os.path.basename(os.path.dirname(p))})" for p in imgs]
+    i = fuzzel(labels, "Imagen con QR: ")
+    return imgs[i] if i is not None else None
+
+
+def camera_ready():
+    return conf_flag("CAMERA") and os.access(HOOK, os.X_OK) and bool(glob.glob("/dev/video*") or shutil.which("cam"))
+
+
+def src_camera(d):
+    if not camera_ready():
+        notify("QR Wi-Fi", "Camara no disponible todavia en Linux (hook desactivado)", True)
+        return None
+    for _ in range(6):  # ~6 fotogramas hasta que decodifique
+        out = os.path.join(d, "frame.png")
+        r = subprocess.run([HOOK, out], capture_output=True, text=True, timeout=20)
+        if r.returncode == 0 and os.path.exists(out):
+            try:
+                res = decode(out)
+            except Exception:
+                res = None
+            if res:
+                return out
+        time.sleep(1)
+    return out if os.path.exists(out) else None
+
+
+# ---------- NetworkManager ----------
+def nm(*args, input=None, timeout=60):
+    return subprocess.run(["nmcli", *args], input=input, capture_output=True, text=True, timeout=timeout)
+
+
+def find_profile(ssid):
+    r = nm("-t", "-f", "UUID,TYPE", "connection", "show")
+    for line in r.stdout.splitlines():
+        u, _, t = line.partition(":")
+        if t.strip() == "802-11-wireless":
+            s = nm("-g", "802-11-wireless.ssid", "connection", "show", "uuid", u)
+            if s.stdout.strip() == ssid:
+                return u
+    return None
+
+
+def add_network(info):
+    ssid, auth = info["ssid"], info["auth"]
+    u = find_profile(ssid)
+    existed = u is not None
+    if not existed:
+        u = str(uuid.uuid4())
+        args = ["connection", "add", "type", "wifi", "con-name", ssid, "ssid", ssid, "connection.uuid", u]
+        r = nm(*args)
+        if r.returncode != 0:
+            raise RuntimeError("nmcli no pudo crear el perfil")
+    script = []
+    if auth == "wpa":
+        script += ["set wifi-sec.key-mgmt wpa-psk", "set wifi-sec.psk-flags 0", "set wifi-sec.psk " + info["psk"]]
+    elif auth == "sae":
+        script += ["set wifi-sec.key-mgmt sae", "set wifi-sec.psk-flags 0", "set wifi-sec.psk " + info["psk"]]
+    elif auth == "wep":
+        script += ["set wifi-sec.key-mgmt none", "set wifi-sec.wep-key-flags 0", "set wifi-sec.wep-key-type key",
+                   "set wifi-sec.wep-key0 " + info["psk"]]
+    script += ["set 802-11-wireless.hidden " + ("yes" if info["hidden"] else "no"),
+               "set connection.autoconnect yes", "save", "quit"]
+    r = nm("connection", "edit", "uuid", u, input="\n".join(script) + "\n")
+    if r.returncode != 0:
+        if not existed:
+            nm("connection", "delete", "uuid", u)
+        raise RuntimeError("nmcli no pudo guardar la clave")
+    # verificacion: la clave debe quedar en el sistema (flags 0), perfil de todos los usuarios
+    if auth in ("wpa", "sae"):
+        f = nm("-g", "802-11-wireless-security.psk-flags", "connection", "show", "uuid", u).stdout.strip()
+        if not f.startswith("0"):
+            nm("connection", "modify", "uuid", u, "802-11-wireless-security.psk-flags", "0")
+    return u, existed
+
+
+def activate(uuid_):
+    r = nm("connection", "up", "uuid", uuid_, timeout=60)
+    return r.returncode == 0
+
+
+def run(info):
+    ssid = info["ssid"]
+    try:
+        u, existed = add_network(info)
+    except Exception as e:
+        info["psk"] = ""
+        notify("QR Wi-Fi: no se pudo guardar", f"{ssid}: {e}", True)
+        return 1
+    finally:
+        info["psk"] = ""
+    notify("Wi-Fi " + ("actualizada" if existed else "anadida"), ssid)
+    if activate(u):
+        notify("Conectado", ssid)
+        return 0
+    notify("Wi-Fi guardada pero sin conexion", f"{ssid}: fuera de alcance o clave incorrecta", True)
+    return 2
+
+
+def main(argv):
+    if argv and argv[0] == "--check":
+        img = argv[1]
+        t = decode(img)
+        if not t:
+            print("sin QR de Wi-Fi"); return 1
+        i = parse_wifi(t)
+        print(f"ssid={i['ssid']!r} auth={i['auth']} hidden={i['hidden']} clave={'si' if i['psk'] else 'no'}")
+        return 0
+    mode = argv[0] if argv else "menu"
+    d = tmpdir()
+    try:
+        if mode == "menu":
+            cam = camera_ready()
+            entries = ["󰆞  Region de la pantalla", "󰋩  Elegir imagen", "󰄀  Camara" + ("" if cam else " (no disponible aun)")]
+            i = fuzzel(entries, "Anadir Wi-Fi por QR: ")
+            if i is None:
+                return 0
+            mode = ["region", "file", "camera"][i]
+            argv = [mode]
+        img = None
+        if mode == "region":
+            img = src_region(d)
+        elif mode == "file":
+            img = src_file(argv[1] if len(argv) > 1 else None)
+        elif mode == "camera":
+            img = src_camera(d)
+        else:
+            print(__doc__); return 1
+        if not img:
+            return 0
+        text = decode(img)
+        if not text:
+            notify("QR Wi-Fi", "No encontre ningun QR de Wi-Fi en la imagen", True)
+            return 1
+        try:
+            info = parse_wifi(text)
+        except ValueError as e:
+            notify("QR Wi-Fi", str(e), True)
+            return 1
+        finally:
+            text = ""
+        return run(info)
+    except Exception as e:
+        notify("QR Wi-Fi: error", str(e)[:120], True)
+        return 1
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

@@ -1,0 +1,164 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+//
+// FRAGMENTO-GENI-I2C-DMA.dts — cablear I2C/SPI GENI + GPI-DMA a mainline.
+//
+// DIAGNÓSTICO (medido 13-oct-2026 por SSH en la tablet viva, kernel
+// 7.2.0-rc2-palawan; el SSH cayó después, ver informe):
+//   - /sys/bus/platform/devices/a80000.i2c existe pero SIN driver; el driver
+//     geni_i2c está cargado (CONFIG_I2C_QCOM_GENI=y) con CERO dispositivos.
+//     Causa: el DT (base vendor) declara compatible="qcom,i2c-geni" (nombre
+//     downstream) pero el driver mainline solo acepta "qcom,geni-i2c" y
+//     "qcom,geni-i2c-master-hub"
+//     (build/kernel-pokes/k52L39-tree/drivers/i2c/busses/i2c-qcom-geni.c:1283).
+//     Sin match, geni_i2c_probe NO SE INVOCA (cero marcas X9I2C en dmesg,
+//     el dispositivo no sale en devices_deferred).
+//   - Segunda valla en el mismo nodo: clock-names="se-clk" (vendor) pero el
+//     driver pide devm_clk_get(dev,"se") (i2c-qcom-geni.c:1019). Sin renombrar,
+//     el probe moriría con -ENOENT nada más arrancar.
+//   - Tercera valla: dmas en formato vendor de 5 celdas; el xlate mainline del
+//     GPI espera 3 celdas (chid, se_idx, QCOM_GPI_*). Hay que reescribir dmas
+//     Y poner #dma-cells=<3> en el proveedor.
+//   -SPI a90000 (compatible+clock-names ya apañados por un overlay anterior):
+//     su dmas quedó VACÍA (0 B) => dma_request_chan("tx") devuelve -ENODEV
+//     (dmesg: "geni_spi a90000.spi: error -ENODEV: Failed to get tx DMA ch",
+//     spi-geni-qcom.c:578).
+//   - Los dos qcom,gpi-dma declaran SOLO compatible="qcom,gpi-dma" (genérico
+//     downstream, sin match en gpi_of_match) y les faltan dma-channels y
+//     dma-channel-mask (obligatorias en gpi_probe, gpi.c:2178/2185). Resultado:
+//     ningún driver GPI, ningún canal DMA.
+//   - El wrapper GENI SE está BIEN y no se toca: ya probea (driver geni_se_qup
+//     ligado), qcom-geni-se.c no lee "dmas" (solo "qcom,enable-gsi-dma" para el
+//     modo GSI, que no se usa), y el SPI llega hasta la fase DMA, lo que prueba
+//     que resources_on + firmware del SE funcionan.
+//
+// ARREGLO (este fichero, un solo cambio): 9 fragmentos target-path con
+// phandles literales de la base (0x1df=gpi0, 0x228=gpi1; convención del
+// proyecto, cf. touch-fix.dts). Índices SE (cell1) copiados del dmas vendor.
+// QCOM_GPI_SPI=1, QCOM_GPI_I2C=3 (include/dt-bindings/dma/qcom-gpi.h).
+// Referencia de valores: palawan.dtsi (gpi_dma: "qcom,palawan-gpi-dma",
+// "qcom,sm6350-gpi-dma", dma-channels=<12>, dma-channel-mask=<0x1e>,
+// #dma-cells=<3>; ee_offset 0x10000 == qcom,gpi-ee-offset vivo).
+//
+// CÓMO SE APLICA: compilar (dtc -@) e insertar los fragmentos en el payload
+// del dtbo vigente antes del último `};`, renumerando fragment@N si colisionan
+// (ver build/gates/prepara/novatek/dt-fix/mk-dtbo-touchfix.py). NO flashear sin
+// fila de ledger. Tras el flash, éxito = /sys/class/i2c-adapter/ con 5
+// adaptadores y dmesg con "Geni-I2C adaptor successfully added" + sin el
+// "Failed to get tx DMA ch" del SPI.
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	/* NOTA: estos fragmentos se compilan dentro del nodo raíz para que
+	 * dtc los acepte standalone; al insertarlos en el payload del dtbo
+	 * vigente van ANTES del último `};` (sin el envoltorio / { }). */
+
+/* fragment@2200: GPI-DMA wrapper0 (SE a8xxxx/a9xxxx) a mainline */
+fragment@2200 {
+	target-path = "/soc/qcom,gpi-dma@a00000";
+
+	__overlay__ {
+		compatible = "qcom,palawan-gpi-dma", "qcom,sm6350-gpi-dma";
+		#dma-cells = <3>;
+		dma-channels = <12>;
+		dma-channel-mask = <0x1e>;
+	};
+};
+
+/* fragment@2201: GPI-DMA wrapper1 (SE 88xxxx/89xxxx) a mainline */
+fragment@2201 {
+	target-path = "/soc/qcom,gpi-dma@800000";
+
+	__overlay__ {
+		compatible = "qcom,palawan-gpi-dma", "qcom,sm6350-gpi-dma";
+		#dma-cells = <3>;
+		dma-channels = <12>;
+		dma-channel-mask = <0x1e>;
+	};
+};
+
+/* fragment@2202: i2c@a80000 (wrapper0 SE0; lleva ktz8866@11 + wcd939x) */
+fragment@2202 {
+	target-path = "/soc/qcom,qupv3_0_geni_se@ac0000/i2c@a80000";
+
+	__overlay__ {
+		compatible = "qcom,geni-i2c";
+		clock-names = "se";
+		dmas = <0x1df 0 0 3 0x1df 1 0 3>;
+		dma-names = "tx", "rx";
+	};
+};
+
+/* fragment@2203: i2c@a8c000 (wrapper0 SE3) */
+fragment@2203 {
+	target-path = "/soc/qcom,qupv3_0_geni_se@ac0000/i2c@a8c000";
+
+	__overlay__ {
+		compatible = "qcom,geni-i2c";
+		clock-names = "se";
+		dmas = <0x1df 0 3 3 0x1df 1 3 3>;
+		dma-names = "tx", "rx";
+	};
+};
+
+/* fragment@2204: spi@a84000 (wrapper0 SE1) */
+fragment@2204 {
+	target-path = "/soc/qcom,qupv3_0_geni_se@ac0000/spi@a84000";
+
+	__overlay__ {
+		compatible = "qcom,geni-spi";
+		clock-names = "se";
+		dmas = <0x1df 0 1 1 0x1df 1 1 1>;
+		dma-names = "tx", "rx";
+	};
+};
+
+/* fragment@2205: spi@a90000 (wrapper0 SE4; táctil) — repone el dmas vacío */
+fragment@2205 {
+	target-path = "/soc/qcom,qupv3_0_geni_se@ac0000/spi@a90000";
+
+	__overlay__ {
+		compatible = "qcom,geni-spi";
+		clock-names = "se";
+		dmas = <0x1df 0 4 1 0x1df 1 4 1>;
+		dma-names = "tx", "rx";
+	};
+};
+
+/* fragment@2206: i2c@880000 (wrapper1 SE0) */
+fragment@2206 {
+	target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@880000";
+
+	__overlay__ {
+		compatible = "qcom,geni-i2c";
+		clock-names = "se";
+		dmas = <0x228 0 0 3 0x228 1 0 3>;
+		dma-names = "tx", "rx";
+	};
+};
+
+/* fragment@2207: i2c@88c000 (wrapper1 SE3) */
+fragment@2207 {
+	target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@88c000";
+
+	__overlay__ {
+		compatible = "qcom,geni-i2c";
+		clock-names = "se";
+		dmas = <0x228 0 3 3 0x228 1 3 3>;
+		dma-names = "tx", "rx";
+	};
+};
+
+/* fragment@2208: i2c@890000 (wrapper1 SE4) */
+fragment@2208 {
+	target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@890000";
+
+	__overlay__ {
+		compatible = "qcom,geni-i2c";
+		clock-names = "se";
+		dmas = <0x228 0 4 3 0x228 1 4 3>;
+		dma-names = "tx", "rx";
+	};
+};
+}; /* cierre de / { } — quitar al insertar en el payload vigente */

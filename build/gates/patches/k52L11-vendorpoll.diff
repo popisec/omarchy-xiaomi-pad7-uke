@@ -1,0 +1,82 @@
+# k52L11-vendorpoll.diff — L11 = L10 + poll VENDOR + HFI (10-oct-2026, SOLO-PC, sin flashear).
+# Generado por `diff -U4` L10->L11 (no escrito a mano). Hunk unico en
+# a6xx_gmu_start() (tras S3): (1) ELIMINA el `goto uke_l8_nopoll_done` de
+# L8/L10 (bypass temporal del poll S4); (2) el poll S4 pasa del criterio
+# DTCM-magic ((val&mask)==reset_val, que con el valor stale nunca cuadra,
+# nota K23b) a la condicion VENDOR (val&0x1ff)==0x100 (FW_INIT_RESULT bit 8,
+# fw-vivo; adreno_gen7_gmu.c gen7_gmu_device_start: BIT(8)/GENMASK(8,0),
+# 100 us x 100 ms => (100,100000) IDENTICO al vendor); (3) poke L11-pollok
+# + pr_err + flush tras poll exitoso, ANTES de la primera lectura K44-prime;
+# (4) la etiqueta uke_l8_nopoll_done queda como EPILOGO COMUN post-poll con
+# `ret = 0` para DEJAR SEGUIR al camino HFI existente (fw_start -> hfi_start:
+# si el poll fallo, HFI da su veredicto -110 "Unable to start the HFI queues").
+# C1+C2, write SYSRESET=0, wmb(), pokes L6-L10, S3, K44-prima intactos.
+# Lectura prevista: HFI queues OK / hw_init completo => GPU VIVA; poll
+# timeout (S4-pollFAIL, sin L11-pollok) con CM3 suelto => el fw no responde
+# (falta carga fw en ITCM o SMMU SID5).
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -819,25 +819,31 @@
+ 	 * D-state, S3-rst0 se pierde y la rama F (S3 sin S4) queda
+ 	 * indistingible de "sin S3". Flush explicito: es la miga que decide. */
+ 	pr_flush(120, false);
+ 
+-	/* UKE-L8 (10-oct-2026): BYPASS TEMPORAL del poll S4. El write SYSRESET=0
+-	 * de arriba SE MANTIENE (hay que saber si mata el). Si la maquina
+-	 * sobrevive hasta aqui, se SALTA el primer readl tras soltar el CM3
+-	 * (el poll S4 = candidato asesino n.2) y el resume vuelve 0 con el FW
+-	 * marcado como arrancado, sin esperar al CM3. Tras el salto NO hay
+-	 * NINGUNA lectura mas del GMU en este resume (ni K44'). Lectura:
+-	 * post-rst/write-done sin nopoll-ok => mata el write; nopoll-ok =>
+-	 * el write es seguro y el asesino es el primer readl (poll). */
+-	goto uke_l8_nopoll_done;
+-
++	/* UKE-L11 (10-oct-2026): POLL VENDOR REAL. Se ELIMINA el `goto
++	 * uke_l8_nopoll_done` de L8/L10 (bypass temporal): tras soltar el
++	 * CM3 se espera al fw con la condicion del vendor
++	 * (adreno_gen7_gmu.c gen7_gmu_device_start: FW_INIT_RESULT bit 8,
++	 * BIT(8) con mascara GENMASK(8,0), 100 us x 100 ms), NO con el
++	 * criterio DTCM-magic (val&mask)==reset_val, que con el valor stale
++	 * nunca cuadra (nota K23b). Intervalo/timeout (100,100000) IDENTICOS
++	 * al vendor (su timeout=100 son 100x1000 us con intervalo 100 us).
++	 * C1+C2, write SYSRESET=0, wmb(), pokes L6-L10 y S3 intactos. */
+ 	ret = gmu_poll_timeout(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT, val,
+-		(val & mask) == reset_val, 100, 100000);
++		(val & 0x1ff) == 0x100, 100, 100000);
+ 	uke_poke(ret ? "S4-pollFAIL" : "S4-pollOK");
+ 	pr_flush(120, false);
+ 
+ 	/* UKE-K44': la MISMA lista, solo si el poll tuvo exito (maquina viva) */
+ 	if (!ret) {
++		/* UKE-L11 (10-oct-2026): testigo de poll VENDOR superado
++		 * (fw-vivo, bit 8). Sale ANTES de la primera lectura K44'
++		 * con su flush: si K44' colgara, L11-pollok ya estaria en
++		 * la ACM y el veredicto seria "fw responde pero K44' mata". */
++		uke_poke("L11-pollok");
++		pr_err("UKE-L11: pollok\n");
++		pr_flush(120, false);
+ 		pr_err("UKE-K44' A: rst=%08x bootcfg=%08x cfg=%08x initres=%08x\n",
+ 			gmu_read(gmu, REG_A6XX_GMU_CM3_SYSRESET),
+ 			gmu_read(gmu, REG_A6XX_GMU_CM3_BOOT_CONFIG),
+ 			gmu_read(gmu, REG_A6XX_GMU_CM3_CFG),
+@@ -849,11 +855,17 @@
+ 	if (ret)
+ 		DRM_DEV_ERROR(gmu->dev, "GMU firmware initialization timed out\n");
+ 
+ uke_l8_nopoll_done:
+-	/* UKE-L8 (10-oct-2026): etiqueta del bypass. Emite el testigo y vuelve 0
+-	 * con el FW marcado como arrancado, sin haber hecho NI UNA lectura del
+-	 * GMU tras soltar el CM3. */
++	/* UKE-L8 (10-oct-2026): etiqueta del bypass (L8/L10: el `goto` de
++	 * arriba la alcanzaba sin poll). UKE-L11: el `goto` YA NO EXISTE;
++	 * la etiqueta queda como EPILOGO COMUN post-poll (FW_START): en
++	 * traza L11, `nopoll-ok` significa "se llego al epilogo tras el
++	 * poll VENDOR", NO "poll saltado" — el discriminador real es
++	 * S4-pollOK/S4-pollFAIL + L11-pollok. Se conserva el `ret = 0`
++	 * para DEJAR SEGUIR al camino HFI existente (fw_start ->
++	 * hfi_start): si el poll fallo, HFI dara su propio veredicto
++	 * (-110 "Unable to start the HFI queues" => fw no responde). */
+ 	uke_poke("L8-nopoll-ok");
+ 	pr_err("UKE-L8: nopoll-ok\n");
+ 	pr_flush(120, false);
+ 	ret = 0;

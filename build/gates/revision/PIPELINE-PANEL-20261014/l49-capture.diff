@@ -1,0 +1,44 @@
+--- a/drivers/gpu/drm/msm/dsi/dsi_manager.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_manager.c
+@@ -225,6 +225,7 @@
+ 	ret = dsi_mgr_phy_enable(id, phy_shared_timings);
+ 	if (ret)
+ 		goto phy_en_fail;
++	uke_poke("L49-phy-ok");
+ 
+ 	ret = msm_dsi_host_power_on(host, &phy_shared_timings[id], is_bonded_dsi, msm_dsi->phy);
+ 	if (ret) {
+@@ -249,6 +250,7 @@
+ 	msm_dsi_host_enable_irq(host);
+ 	if (is_bonded_dsi && msm_dsi1)
+ 		msm_dsi_host_enable_irq(msm_dsi1->host);
++	uke_poke("L49-pwron-ok");
+ 
+ 	return 0;
+ 
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -2529,6 +2529,7 @@
+ 			__func__, ret);
+ 		goto unlock_ret;
+ 	}
++	uke_poke("L49-host-vreg-ok");
+ 
+ 	pm_runtime_get_sync(&msm_host->pdev->dev);
+ 	ret = cfg_hnd->ops->link_clk_set_rate(msm_host);
+@@ -2539,6 +2540,7 @@
+ 		       __func__, ret);
+ 		goto fail_disable_reg;
+ 	}
++	uke_poke("L49-host-clk-ok");
+ 
+ 	ret = pinctrl_pm_select_default_state(&msm_host->pdev->dev);
+ 	if (ret) {
+@@ -2550,6 +2552,7 @@
+ 	dsi_timing_setup(msm_host, is_bonded_dsi);
+ 	dsi_sw_reset(msm_host);
+ 	dsi_ctrl_enable(msm_host, phy_shared_timings, phy);
++	uke_poke("L49-host-ctrl-ok");
+ 
+ 	msm_host->power_on = true;
+ 	mutex_unlock(&msm_host->dev_mutex);

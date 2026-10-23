@@ -1,0 +1,192 @@
+# k52L6-openpokes.diff — L6 = L5 + 11 pokes UKE-L6 en el tramo ciego
+# (10-oct-2026, SOLO-PC, sin flashear). Generado por `diff -U4` L5->L6
+# (no escrito a mano). Cada poke = uke_poke + pr_err + pr_flush(120,false)
+# para que sobreviva al cuelgue en la ACM (H1-rpm nunca salio por falta de
+# flush). Sitios: msm_open-enter | adreno_load_fw enter/exit |
+# ucode_load enter/exit | pm_runtime_get_sync enter/exit | msm_gpu_hw_init
+# enter | a6xx_gmu_pm_resume vs a6xx_pm_resume (discriminador: cual corre) |
+# a6xx_gmu_resume-enter ANTES del WARN de initialized.
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1775,8 +1775,14 @@
+ 	struct msm_gpu *gpu = &adreno_gpu->base;
+ 	struct a6xx_gmu *gmu = &a6xx_gpu->gmu;
+ 	int status, ret;
+ 
++	/* UKE-L6 (10-oct-2026): entrada de a6xx_gmu_resume ANTES del WARN de
++	 * initialized y del primer pm_runtime_get_sync (H1-rpm nunca salio). */
++	uke_poke("L6-gmures");
++	pr_err("UKE-L6: gmu-resume-enter\n");
++	pr_flush(120, false);
++
+ 	if (WARN(!gmu->initialized, "The GMU is not set up yet\n"))
+ 		return -EINVAL;
+ 
+ 	gmu->hung = false;
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+@@ -2134,8 +2134,13 @@
+ 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
+ 	struct a6xx_gpu *a6xx_gpu = to_a6xx_gpu(adreno_gpu);
+ 	int ret;
+ 
++	/* UKE-L6 (10-oct-2026): discriminador pm_resume: corre la via GMU. */
++	uke_poke("L6-gmupm");
++	pr_err("UKE-L6: gmu-pm-resume-enter\n");
++	pr_flush(120, false);
++
+ 	gpu->needs_hw_init = true;
+ 
+ 	trace_msm_gpu_resume(0);
+ 
+@@ -2167,8 +2172,13 @@
+ 	unsigned long freq = gpu->fast_rate;
+ 	struct dev_pm_opp *opp;
+ 	int ret;
+ 
++	/* UKE-L6 (10-oct-2026): discriminador pm_resume: corre la via SIN-GMU. */
++	uke_poke("L6-pm");
++	pr_err("UKE-L6: pm-resume-enter\n");
++	pr_flush(120, false);
++
+ 	gpu->needs_hw_init = true;
+ 
+ 	trace_msm_gpu_resume(0);
+ 
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -93,26 +93,42 @@
+ 	ret = adreno_load_fw(adreno_gpu);
+ 	if (ret)
+ 		return NULL;
+ 
++	/* UKE-L6 (10-oct-2026): entrada de ucode_load. */
++	uke_poke("L6-ucode-in");
++	pr_err("UKE-L6: ucode-enter\n");
++	pr_flush(120, false);
+ 	if (gpu->funcs->ucode_load) {
+ 		ret = gpu->funcs->ucode_load(gpu);
+ 		if (ret)
+ 			return NULL;
+ 	}
++	/* UKE-L6 (10-oct-2026): salida de ucode_load. */
++	uke_poke("L6-ucode-ok");
++	pr_err("UKE-L6: ucode-exit-ok\n");
++	pr_flush(120, false);
+ 
+ 	/*
+ 	 * Now that we have firmware loaded, and are ready to begin
+ 	 * booting the gpu, go ahead and enable runpm:
+ 	 */
+ 	pm_runtime_enable(&pdev->dev);
+ 
++	/* UKE-L6 (10-oct-2026): entrada de pm_runtime_get_sync. */
++	uke_poke("L6-rpm-in");
++	pr_err("UKE-L6: rpm-enter\n");
++	pr_flush(120, false);
+ 	ret = pm_runtime_get_sync(&pdev->dev);
+ 	if (ret < 0) {
+ 		pm_runtime_put_noidle(&pdev->dev);
+ 		DRM_DEV_ERROR(dev->dev, "Couldn't power up the GPU: %d\n", ret);
+ 		goto err_disable_rpm;
+ 	}
++	/* UKE-L6 (10-oct-2026): el get_sync devolvio (resume terminado). */
++	uke_poke("L6-rpm-ok");
++	pr_err("UKE-L6: rpm-exit-ok\n");
++	pr_flush(120, false);
+ 
+ 	mutex_lock(&gpu->lock);
+ 	ret = msm_gpu_hw_init(gpu);
+ 	mutex_unlock(&gpu->lock);
+--- a/drivers/gpu/drm/msm/adreno/adreno_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_gpu.c
+@@ -9,8 +9,9 @@
+ #include <linux/ascii85.h>
+ #include <linux/interconnect.h>
+ #include <linux/firmware/qcom/qcom_scm.h>
+ #include <linux/kernel.h>
++#include <linux/uke-poke.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/pm_opp.h>
+ #include <linux/slab.h>
+ #include <linux/soc/qcom/mdt_loader.h>
+@@ -607,8 +608,13 @@
+ int adreno_load_fw(struct adreno_gpu *adreno_gpu)
+ {
+ 	int i;
+ 
++	/* UKE-L6 (10-oct-2026): entrada de adreno_load_fw. */
++	uke_poke("L6-fw-in");
++	pr_err("UKE-L6: fw-enter\n");
++	pr_flush(120, false);
++
+ 	for (i = 0; i < ARRAY_SIZE(adreno_gpu->info->fw); i++) {
+ 		const struct firmware *fw;
+ 
+ 		if (!adreno_gpu->info->fw[i])
+@@ -628,8 +634,13 @@
+ 
+ 		adreno_gpu->fw[i] = fw;
+ 	}
+ 
++	/* UKE-L6 (10-oct-2026): salida de adreno_load_fw (fw ya pedido). */
++	uke_poke("L6-fw-ok");
++	pr_err("UKE-L6: fw-exit-ok\n");
++	pr_flush(120, false);
++
+ 	return 0;
+ }
+ 
+ struct drm_gem_object *adreno_fw_create_bo(struct msm_gpu *gpu,
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -9,8 +9,9 @@
+ #include <linux/fault-inject.h>
+ #include <linux/debugfs.h>
+ #include <linux/of_address.h>
+ #include <linux/uaccess.h>
++#include <linux/uke-poke.h>
+ 
+ #include <drm/drm_drv.h>
+ #include <drm/drm_file.h>
+ #include <drm/drm_ioctl.h>
+@@ -263,8 +264,13 @@
+ }
+ 
+ static int msm_open(struct drm_device *dev, struct drm_file *file)
+ {
++	/* UKE-L6 (10-oct-2026): entrada del tramo ciego msm_open. pr_err +
++	 * pr_flush para que sobreviva al cuelgue en la ACM. */
++	uke_poke("L6-open");
++	pr_err("UKE-L6: open-enter\n");
++	pr_flush(120, false);
+ 	/* For now, load gpu on open.. to avoid the requirement of having
+ 	 * firmware in the initrd.
+ 	 */
+ 	load_gpu(dev);
+--- a/drivers/gpu/drm/msm/msm_gpu.c
++++ b/drivers/gpu/drm/msm/msm_gpu.c
+@@ -12,8 +12,9 @@
+ #include "msm_fence.h"
+ #include "msm_gpu_trace.h"
+ //#include "adreno/adreno_gpu.h"
+ 
++#include <linux/uke-poke.h>
+ #include <linux/string_helpers.h>
+ #include <linux/devcoredump.h>
+ #include <linux/sched/task.h>
+ #include <linux/sched/mm.h>
+@@ -160,8 +161,13 @@
+ int msm_gpu_hw_init(struct msm_gpu *gpu)
+ {
+ 	int ret;
+ 
++	/* UKE-L6 (10-oct-2026): entrada de msm_gpu_hw_init. */
++	uke_poke("L6-hwinit-in");
++	pr_err("UKE-L6: hwinit-enter\n");
++	pr_flush(120, false);
++
+ 	WARN_ON(!mutex_is_locked(&gpu->lock));
+ 
+ 	if (!gpu->needs_hw_init)
+ 		return 0;

@@ -1,0 +1,11 @@
+es.txt — lista de frecuencias del español (50 000 palabras, subtítulos de OpenSubtitles 2018).
+Fuente: https://github.com/hermitdave/FrequencyWords/blob/master/content/2018/es/es_50k.txt
+Licencia del contenido: CC-BY-SA-4.0 (Hermit Dave). Descargado el 22-oct-2026, sha256
+dcff3ad4316192f4dc4ff7d26e637c6ff314ef1ca0f3f720c5649018a71056c0. SIN MODIFICAR: copia
+byte a byte del upstream (verificado contra el sha de arriba).
+
+⚠️ 23-oct-2026: una pasada de anonimización automática había cambiado la línea
+«USUARIO 11255» por «usuario 11255» (el nombre del autor es también una palabra
+española). Eso rompía el sha y la declaración de «sin modificar» que CC-BY-SA-4.0
+§3(a) exige. Restaurado el fichero original; el diccionario queda EXCLUIDO de
+cualquier anonimización (es una obra de terceros: se cita, no se toca).

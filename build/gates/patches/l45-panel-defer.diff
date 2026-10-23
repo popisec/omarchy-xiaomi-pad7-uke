@@ -1,0 +1,22 @@
+--- panel-xiaomi-o82-dualdsi.c.l44
++++ panel-xiaomi-o82-dualdsi.c.l45
+@@ -743,10 +743,19 @@
+ 	 * se puede endurecer a fallo.
+ 	 */
+ 	ret = drm_panel_of_backlight(&ctx->panel);
++	/* L45: si el KTZ aun no ha probeado, el lookup devuelve -EPROBE_DEFER.
++	 * Devolverlo hace que el core REINTENTE este probe cuando aparezca el
++	 * backlight (deferred probe); antes se tragaba el aviso y el panel
++	 * quedaba sin luz para siempre (one-shot; medido en #618: panel t=0.715 s
++	 * < KTZ t=4.33 s). El dev_warn queda para errores NO-defer (sin phandle). */
++	if (ret == -EPROBE_DEFER)
++		return dev_err_probe(dev, ret, "backlight externo aun no listo; reintento de probe\n");
+ 	if (ret < 0 || !ctx->panel.backlight)
+ 		dev_warn(dev, "sin backlight externo (KTZ8866): ret=%d bl=%p; "
+ 			     "el panel sigue sin luz propia hasta que el KTZ probee.\n",
+ 			ret, ctx->panel.backlight);
++	else
++		dev_info(dev, "UKE-L45: backlight externo resuelto (KTZ8866)\n");
+ 
+ 	drm_panel_add(&ctx->panel);
+ 

@@ -1,0 +1,40 @@
+--- /tmp/simpledrm.c.k45	2026-10-03 00:11:17.035882818 +0200
++++ build/kernel-pokes/k18-tree/drivers/gpu/drm/sysfb/simpledrm.c	2026-10-03 00:11:17.049567151 +0200
+@@ -712,8 +712,35 @@
+ 		void __iomem *screen_base;
+ 
+ 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+-		if (!res)
+-			return ERR_PTR(-EINVAL);
++		if (!res) {
++			/*
++			 * UKE-K46 (3-oct-2026, ledger #497): el framebuffer de
++			 * /chosen en esta tablet llega SIN recurso porque el ABL
++			 * construye /chosen sin #address-cells/#size-cells y el
++			 * core de OF no traduce el reg (medido: s264/s265 murieron
++			 * contra el mergueador del ABL). Parse manual del reg del
++			 * nodo: 4 u32 = addr 64-bit + size 64-bit (estandar del
++			 * simple-framebuffer de /chosen en qcom arm64). SOLO lectura
++			 * del DT: sin tocar MMIO ni el SMMU (regla 3).
++			 */
++			struct resource r = { 0 };
++			struct device_node *np = pdev->dev.of_node;
++			u32 cells[4] = { 0 };
++			int n = 0;
++
++			if (np)
++				n = of_property_read_variable_u32_array(np, "reg",
++					cells, 4, 4);
++			if (n != 4)
++				return ERR_PTR(-EINVAL);
++			r.start = ((u64)cells[0] << 32) | cells[1];
++			r.end = r.start + (((u64)cells[2] << 32) | cells[3]) - 1;
++			r.flags = IORESOURCE_MEM;
++			pr_err("UKE-K46: reg manual de %pr (resource ausente: chosen sin cells)\n", &r);
++			res = devm_kmemdup(dev->dev, &r, sizeof(r), GFP_KERNEL);
++			if (!res)
++				return ERR_PTR(-ENOMEM);
++		}
+ 
+ 		ret = devm_aperture_acquire_for_platform_device(pdev, res->start,
+ 								resource_size(res));

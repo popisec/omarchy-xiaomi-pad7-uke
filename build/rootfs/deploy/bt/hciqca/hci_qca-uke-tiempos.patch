@@ -1,0 +1,52 @@
+--- a/drivers/bluetooth/hci_qca.c	2026-10-21 01:22:12.095193250 +0200
++++ b/drivers/bluetooth/hci_qca.c	2026-10-21 01:22:12.109323150 +0200
+@@ -40,6 +40,23 @@
+ #include "hci_uart.h"
+ #include "btqca.h"
+ 
++/* uke (BT-MUDO-20261019.md): tiempos de encendido del WCN6750 ajustables en caliente (/sys/module/hci_uart/parameters/). Los valores por defecto son
++ * los de serie (50/50/0): sin tocar nada el comportamiento es identico al del kernel sin parche.
++ *   uke_bt_low_ms     BT_EN a 0 antes de subirlo (serie 50)
++ *   uke_bt_swctrl_ms  si > 0 y hay SW_CTRL: tras subir BT_EN sondea SW_CTRL hasta ese tope y registra a los cuantos us subio (mide el arranque del chip)
++ *   uke_bt_boot_ms    espera tras subir BT_EN (y tras el sondeo) antes de seguir con el primer comando (serie 50)
++ * Motivo: ~30 % de los arranques el chip no contesta al primer 0xfc00 (todo o nada); con el flow control apagado hasta tras la descarga, un comando enviado
++ * antes de que la ROM del chip lea la UART se pierde y el driver espera 2,1 s. */
++static unsigned int uke_bt_low_ms = 50;
++module_param(uke_bt_low_ms, uint, 0644);
++MODULE_PARM_DESC(uke_bt_low_ms, "WCN6750: ms con BT_EN bajo antes de subirlo (serie 50)");
++static unsigned int uke_bt_boot_ms = 50;
++module_param(uke_bt_boot_ms, uint, 0644);
++MODULE_PARM_DESC(uke_bt_boot_ms, "WCN6750: ms de espera tras subir BT_EN (serie 50)");
++static unsigned int uke_bt_swctrl_ms;
++module_param(uke_bt_swctrl_ms, uint, 0644);
++MODULE_PARM_DESC(uke_bt_swctrl_ms, "WCN6750: si >0, sondea SW_CTRL hasta ese tope (ms) tras subir BT_EN y registra cuanto tardo (0 = no)");
++
+ /* HCI_IBS protocol messages */
+ #define HCI_IBS_SLEEP_IND	0xFE
+ #define HCI_IBS_WAKE_IND	0xFD
+@@ -1811,9 +1828,23 @@
+ 	/* For wcn6750 need to enable gpio bt_en */
+ 	if (qcadev->bt_en) {
+ 		gpiod_set_value_cansleep(qcadev->bt_en, 0);
+-		msleep(50);
++		msleep(uke_bt_low_ms);
+ 		gpiod_set_value_cansleep(qcadev->bt_en, 1);
+-		msleep(50);
++		if (qcadev->sw_ctrl && uke_bt_swctrl_ms) {
++			ktime_t uke_t0 = ktime_get();
++			s64 uke_us;
++			bool uke_v;
++
++			do {
++				uke_v = gpiod_get_value_cansleep(qcadev->sw_ctrl);
++				uke_us = ktime_us_delta(ktime_get(), uke_t0);
++				if (uke_v)
++					break;
++				usleep_range(300, 600);
++			} while (uke_us < (s64)uke_bt_swctrl_ms * 1000);
++			bt_dev_info(hu->hdev, "uke: SW_CTRL=%d a los %lld us de subir BT_EN", uke_v, uke_us);
++		}
++		msleep(uke_bt_boot_ms);
+ 		if (qcadev->sw_ctrl) {
+ 			sw_ctrl_state = gpiod_get_value_cansleep(qcadev->sw_ctrl);
+ 			bt_dev_dbg(hu->hdev, "SW_CTRL is %d", sw_ctrl_state);

@@ -1,0 +1,17 @@
+[Unit]
+Description=uke: NetworkManager solo para wlan0 (panel de red de Omarchy)
+Documentation=file:///usr/local/sbin/uke-wifi-omarchy
+# Tras uke-wifi.service (que carga ath11k y deja wlan0). Si la guarda lo omite, wlan0 no existe y esto tampoco arranca.
+After=uke-wifi.service
+ConditionPathExists=!/etc/uke/no-wifi
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionPathExists=/sys/class/net/wlan0
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/systemctl start NetworkManager.service
+ExecStop=/usr/bin/systemctl stop NetworkManager.service
+
+[Install]
+WantedBy=multi-user.target

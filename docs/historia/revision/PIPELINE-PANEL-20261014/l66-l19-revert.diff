@@ -1,0 +1,58 @@
+--- a/drivers/remoteproc/qcom_q6v5.c
++++ b/drivers/remoteproc/qcom_q6v5.c
+@@ -46,7 +46,7 @@
+ {
+ 	int ret;
+
+-	ret = q6v5->path ? icc_set_bw(q6v5->path, 0, UINT_MAX) : 0;
++	ret = icc_set_bw(q6v5->path, 0, UINT_MAX);
+ 	if (ret < 0) {
+ 		dev_err(q6v5->dev, "failed to set bandwidth request\n");
+ 		return ret;
+@@ -54,7 +54,7 @@
+
+ 	ret = q6v5_load_state_toggle(q6v5, true);
+ 	if (ret) {
+-		if (q6v5->path) icc_set_bw(q6v5->path, 0, 0);
++		icc_set_bw(q6v5->path, 0, 0);
+ 		return ret;
+ 	}
+
+@@ -82,7 +82,7 @@
+ 	q6v5_load_state_toggle(q6v5, false);
+
+ 	/* Disable interconnect vote, in case handover never happened */
+-	if (q6v5->path) icc_set_bw(q6v5->path, 0, 0);
++	icc_set_bw(q6v5->path, 0, 0);
+
+ 	return !q6v5->handover_issued;
+ }
+@@ -172,7 +172,7 @@
+ 	if (q6v5->handover)
+ 		q6v5->handover(q6v5);
+
+-	if (q6v5->path) icc_set_bw(q6v5->path, 0, 0);
++	icc_set_bw(q6v5->path, 0, 0);
+
+ 	q6v5->handover_issued = true;
+
+@@ -347,15 +347,10 @@
+ 	}
+
+ 	q6v5->path = devm_of_icc_get(&pdev->dev, NULL);
+-	if (IS_ERR(q6v5->path)) {
+-		/* uke L19: los interconnects vendor (m/d-cfg del ADSP) no tienen
+-		 * proveedor en el port (familia wedge #286). Sin votos ICC los
+-		 * buses quedan a los defaults del XBL — suficiente para la carga
+-		 * (esquema validado era Ubuntu). NULL + guardas en los icc_set_bw. */
+-		q6v5->path = NULL;
+-		pr_warn("%s: sin path ICC (vendors sin driver); votos desactivados\n",
+-			dev_name(&pdev->dev));
+-	}
++	if (IS_ERR(q6v5->path))
++		return dev_err_probe(&pdev->dev, PTR_ERR(q6v5->path),
++				     "failed to acquire interconnect path\n");
++	pr_info("UKE-L66: icc paths requeridos (L19 revertido)\n");
+
+ 	return 0;
+ }

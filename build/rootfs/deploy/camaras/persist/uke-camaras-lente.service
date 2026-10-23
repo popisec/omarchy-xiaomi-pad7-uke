@@ -1,0 +1,13 @@
+# PREPARADO 22-oct-2026, NO INSTALADO. Mantiene el VCM de la trasera encendido en un foco fijo (Megapixels no maneja el foco).
+[Unit]
+Description=uke: lente de la camara trasera en foco fijo
+After=uke-camaras.service
+Requires=uke-camaras.service
+ConditionPathExists=/run/uke-camaras.lente
+
+[Service]
+ExecStart=/usr/lib/uke-camaras/uke-camaras-lente.sh
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

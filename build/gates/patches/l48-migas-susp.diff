@@ -1,0 +1,20 @@
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -1456,6 +1456,7 @@
+ 
+ static int __maybe_unused dpu_runtime_suspend(struct device *dev)
+ {
++	uke_poke("K48-dpu-susp");
+ 	int i;
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct msm_drm_private *priv = platform_get_drvdata(pdev);
+--- a/drivers/gpu/drm/msm/msm_mdss.c
++++ b/drivers/gpu/drm/msm/msm_mdss.c
+@@ -443,6 +443,7 @@
+ 
+ static int __maybe_unused mdss_runtime_suspend(struct device *dev)
+ {
++	uke_poke("K48-mdss-susp");
+ 	struct msm_mdss *mdss = dev_get_drvdata(dev);
+ 
+ 	DBG("");

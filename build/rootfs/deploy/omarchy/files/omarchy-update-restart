@@ -1,0 +1,94 @@
+#!/bin/bash
+#
+# omarchy-update-restart-uke — BORRADOR para uke/aarch64 (oct-2026, offline).
+#
+# ESTADO: borrador, NO instalado. Ver:
+#   build/gates/revision/RE-NOCTURNO-20261017/ATAQUE-OMARCHY-OFFLINE.md
+#
+# PROBLEMA (F6 §paso 4, docs/informes/A-port-omarchy-aarch64.md:234). El
+# /usr/bin/omarchy-update-restart de upstream (omarchy 4.0.4-2) decide "kernel
+# actualizado" así:
+#   for kernel in /usr/lib/modules/*/vmlinuz; do ...
+# En Arch x86 ese fichero lo pone el paquete linux; en ALARM NO existe
+# (el kernel es /boot/Image, y en la uke ni siquiera hay paquete kernel: el
+# kernel viaja en el boot.img flasheado por fastboot). Resultado: el bucle no
+# matchea nada, kernel_updated se queda en true y CADA `omarchy update` pide
+# reiniciar para siempre.
+#
+# DISEÑO. Tres casos, en orden:
+#   1. Hay /usr/lib/modules/*/vmlinuz de un paquete y coincide con `uname -r`
+#      → kernel al día (igual que upstream).
+#   2. Hay módulos para `uname -r` pero NINGÚN paquete los posee
+#      (pacman -Qo falla) → kernel EXTERNO (boot.img en la uke): se omite el
+#      prompt de reinicio por kernel con un aviso. Un cambio de kernel aquí
+#      SOLO entra por flash con pre-registro en ledger, nunca por pacman.
+#   3. Hay módulos versionados distintos poseídos por un paquete instalado
+#      (algún día linux-aarch64 de ALARM) → se conserva el prompt de upstream.
+# El resto (fichero reboot-required, Hyprland borrado, restart-*-required,
+# reinicio del shell) es verbatim del original.
+#
+# INSTALACIÓN PREVISTA (no ejecutar aún): /usr/local/bin/omarchy-update-restart
+# por delante en PATH (omarchy-update lo llama por nombre). Mismo criterio que
+# el wrapper de pkg-add: /usr/bin intacto.
+
+# omarchy:summary=Prompt for required reboot or service restarts after updates (uke: external kernel)
+
+echo
+
+confirm_reboot() {
+  gum confirm "$1" && { omarchy-system-reboot; exit 0; }
+}
+
+running_kernel=$(uname -r)
+kernel_updated=true
+kernel_external=false
+
+for kernel in /usr/lib/modules/*/vmlinuz; do
+  if [[ -f $kernel ]] && pacman -Qo "$kernel" &>/dev/null; then
+    installed_kernel=$(basename "$(dirname "$kernel")")
+
+    if [[ $installed_kernel == $running_kernel ]]; then
+      kernel_updated=false
+      break
+    fi
+  fi
+done
+
+if [[ $kernel_updated == "true" ]]; then
+  # ¿Los módulos en uso los posee algún paquete? Si no, el kernel no vino de
+  # pacman (uke: vive en el boot.img) y pacman nunca lo va a "actualizar".
+  if [[ -d /usr/lib/modules/$running_kernel ]] &&
+    ! pacman -Qo "/usr/lib/modules/$running_kernel" &>/dev/null; then
+    kernel_updated=false
+    kernel_external=true
+    echo -e "\e[33mKernel is external to pacman (boot.img); skipping kernel reboot prompt.\e[0m"
+  fi
+fi
+
+if [[ $kernel_updated == "true" ]]; then
+  confirm_reboot "Linux kernel has been updated. Reboot?"
+elif [[ -f $HOME/.local/state/omarchy/reboot-required ]]; then
+  confirm_reboot "Updates require reboot. Ready?"
+fi
+
+running_hyprland=$(readlink /proc/$(pgrep -x Hyprland)/exe 2>/dev/null)
+if [[ $running_hyprland == *"(deleted)"* ]]; then
+  confirm_reboot "Hyprland has been updated. Reboot?"
+fi
+
+for file in "$HOME"/.local/state/omarchy/restart-*-required; do
+  if [[ -f $file ]]; then
+    filename=$(basename "$file")
+    service=$(echo "$filename" | sed 's/restart-\(.*\)-required/\1/')
+    echo "Restarting $service"
+    omarchy-state clear "$filename"
+    omarchy-restart-"$service"
+  fi
+done
+
+# Updates routinely replace the shell's QML, and a stale process can lazy-load
+# new files into old code. A restart failure (locked session, ssh, TTY) only
+# prints its reason: the next update or login gets a fresh shell anyway.
+echo -e "\e[32m\nRestarting shell\e[0m"
+echo "All plugins have been reloaded"
+omarchy-restart-shell || true

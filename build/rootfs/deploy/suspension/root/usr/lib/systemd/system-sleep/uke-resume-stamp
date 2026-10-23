@@ -1,0 +1,28 @@
+#!/bin/sh
+# uke-resume-stamp — tras cada reanudacion (18-oct-2026):
+#  1) apunta la hora (la lee uke-power-button para no re-suspender con la misma pulsacion);
+#  2) empuja al WiFi: al suspender, mac80211 desconecta (sin WoWLAN) y tras 3 suspensiones seguidas el escaneo de
+#     wpa_supplicant se quedo atascado 9 h en SCANNING sin resultados (18-oct 01:45 -> 10:35, lo desatasco un
+#     'wpa_cli scan' manual). Escaneo a los 3 s y reasociacion si a los 20 s no esta COMPLETED. Desacoplado con
+#     systemd-run para no retrasar la reanudacion.
+[ "$1" = post ] || exit 0
+date +%s > /run/uke-last-resume
+[ -e /sys/class/net/wlan0 ] || exit 0
+systemd-run --no-block --collect --unit=uke-wifi-resume-$(date +%s) /bin/sh -c '
+sleep 3
+if systemctl is-active --quiet NetworkManager; then
+	# backend NetworkManager (deploy/wifi-omarchy): NM re-escanea/reasocia solo; se le empuja igual.
+	nmcli device wifi rescan ifname wlan0 >/dev/null 2>&1
+	sleep 17
+	[ "$(nmcli -t -g GENERAL.STATE device show wlan0 2>/dev/null | cut -d" " -f1)" = 100 ] && exit 0
+	logger -t uke-wifi-resume "wlan0 no conectada a los 20 s de reanudar (NM): connect"
+	nmcli device connect wlan0 >/dev/null 2>&1
+	exit 0
+fi
+wpa_cli -i wlan0 scan >/dev/null 2>&1
+sleep 17
+st=$(wpa_cli -i wlan0 status 2>/dev/null | sed -n "s/^wpa_state=//p")
+[ "$st" = COMPLETED ] && exit 0
+logger -t uke-wifi-resume "wpa_state=$st a los 20 s de reanudar: reassociate"
+wpa_cli -i wlan0 reassociate >/dev/null 2>&1' >/dev/null 2>&1
+exit 0

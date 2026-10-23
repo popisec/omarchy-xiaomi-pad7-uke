@@ -1,0 +1,17 @@
+# PROPUESTA (NO instalada: requiere el visto bueno del dueño, ver build/gates/revision/DUDAS-RESTO-APPS.md).
+# Reenvio local 127.0.0.1:14533 -> Navidrome de PC-PORTATIL (100.64.0.12:4533) por el proxy de tailscaled.
+# Para el plugin backmeupplz.navidrome (XHR de Quickshell + mpv) y Strawberry, que no saben de proxies. 22-oct-2026.
+[Unit]
+Description=UKE: Navidrome de la tailnet en 127.0.0.1:14533 (socat via proxy de tailscaled)
+After=tailscaled.service
+Wants=tailscaled.service
+
+[Service]
+ExecStart=/usr/bin/socat TCP-LISTEN:14533,bind=127.0.0.1,fork,reuseaddr PROXY:127.0.0.1:100.64.0.12:4533,proxyport=1055
+Restart=on-failure
+RestartSec=5
+DynamicUser=yes
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

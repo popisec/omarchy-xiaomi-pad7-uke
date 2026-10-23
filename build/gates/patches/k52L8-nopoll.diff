@@ -1,0 +1,64 @@
+# k52L8-nopoll.diff — L8 = L7 + bypass temporal del poll S4
+# (10-oct-2026, SOLO-PC, sin flashear). Generado por `diff -U4` L7->L8
+# (no escrito a mano). El write SYSRESET=0 SE MANTIENE (hay que saber si
+# mata el); SOLO se salta el poll S4: `goto` tras el post-rst/S3 a una
+# etiqueta que emite el poke UKE-L8 `nopoll-ok` + flush y devuelve 0 con el
+# FW marcado como arrancado, sin esperar al CM3. Tras el salto NO hay NINGUNA
+# lectura mas del GMU en este resume (ni K44'). Cada poke = uke_poke + pr_err
+# + pr_flush(120,false) para que sobreviva al cuelgue en la ACM.
+# Añade tambien el poke UKE-L8 `write-done` INMEDIATO tras el write.
+# Lectura prevista: post-rst/write-done sin nopoll-ok => mata el write;
+# nopoll-ok => el write es seguro y el asesino es el primer readl (poll).
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -757,8 +757,13 @@
+ 	uke_poke("L7-pre-rst");
+ 	pr_err("UKE-L7: pre-rst\n");
+ 	pr_flush(120, false);
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
++	/* UKE-L8 (10-oct-2026): write-done INMEDIATO tras el write (si el
++	 * write mata, pre-rst sale y write-done no). */
++	uke_poke("L8-write-done");
++	pr_err("UKE-L8: write-done\n");
++	pr_flush(120, false);
+ 	/* UKE-L7 (10-oct-2026): ENTRE el write y S3 (si el poll mata, post-rst
+ 	 * sale y S4 no; si el write mata, ni post-rst sale). */
+ 	uke_poke("L7-post-rst");
+ 	pr_err("UKE-L7: post-rst\n");
+@@ -769,8 +774,18 @@
+ 	 * D-state, S3-rst0 se pierde y la rama F (S3 sin S4) queda
+ 	 * indistingible de "sin S3". Flush explicito: es la miga que decide. */
+ 	pr_flush(120, false);
+ 
++	/* UKE-L8 (10-oct-2026): BYPASS TEMPORAL del poll S4. El write SYSRESET=0
++	 * de arriba SE MANTIENE (hay que saber si mata el). Si la maquina
++	 * sobrevive hasta aqui, se SALTA el primer readl tras soltar el CM3
++	 * (el poll S4 = candidato asesino n.2) y el resume vuelve 0 con el FW
++	 * marcado como arrancado, sin esperar al CM3. Tras el salto NO hay
++	 * NINGUNA lectura mas del GMU en este resume (ni K44'). Lectura:
++	 * post-rst/write-done sin nopoll-ok => mata el write; nopoll-ok =>
++	 * el write es seguro y el asesino es el primer readl (poll). */
++	goto uke_l8_nopoll_done;
++
+ 	ret = gmu_poll_timeout(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT, val,
+ 		(val & mask) == reset_val, 100, 100000);
+ 	uke_poke(ret ? "S4-pollFAIL" : "S4-pollOK");
+ 	pr_flush(120, false);
+@@ -788,8 +803,17 @@
+ 
+ 	if (ret)
+ 		DRM_DEV_ERROR(gmu->dev, "GMU firmware initialization timed out\n");
+ 
++uke_l8_nopoll_done:
++	/* UKE-L8 (10-oct-2026): etiqueta del bypass. Emite el testigo y vuelve 0
++	 * con el FW marcado como arrancado, sin haber hecho NI UNA lectura del
++	 * GMU tras soltar el CM3. */
++	uke_poke("L8-nopoll-ok");
++	pr_err("UKE-L8: nopoll-ok\n");
++	pr_flush(120, false);
++	ret = 0;
++
+ 	set_bit(GMU_STATUS_FW_START, &gmu->status);
+ 
+ 	return ret;
+ }

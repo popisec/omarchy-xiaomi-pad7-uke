@@ -1,0 +1,18 @@
+# Autores de commits con correo de consumo, que SI son legitimos.
+#
+# La regla del kernel es que el autor firme sus commits con su direccion real,
+# y esa direccion queda en el historial de git del kernel: es publica. Por eso
+# estos correos NO son una fuga, aunque parezcan personales.
+#
+# Todos son autores de commits del kernel o de drivers que este repo parchea
+# (panel o82 de Xiaomi, DPU/DSI de Linaro, ktz8866, etc.). Si al anadir
+# material nuevo aparece un correo de consumo que no esta aqui, el check
+# tools/check-privacidad.py FALLA: eso es una pregunta para una persona
+# ("¿este correo es de un autor de commit o es tuyo?"), no un fallo automatico.
+#
+# Formato: un correo por linea. Las lineas de comentario se ignoran.
+20260721153444.423-1-code._5F0002@163.com
+20261002130656.50577-1-26rote@gmail.com
+20261002130712.50612-1-26rote@gmail.com
+lujianhua000@gmail.com
+robdclark@gmail.com

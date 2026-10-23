@@ -1,0 +1,15 @@
+# Parche para Megapixels 1.8.3 (https://gitlab.com/megapixels-org/Megapixels).
+# Derivado de Megapixels, que es GPL-3.0-or-later; este parche hereda esa licencia.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+diff --git a/data/debayer.vert b/data/debayer.vert
+index 9126c9d..17f9f67 100644
+--- a/data/debayer.vert
++++ b/data/debayer.vert
+@@ -1,5 +1,5 @@
+ #ifdef GL_ES
+-precision mediump float;
++precision highp float;  /* uke: en Adreno mediump = fp16 y no direcciona 2104+ px (ajedrezado de color) */
+ #endif
+ 
+ attribute vec2 vert;

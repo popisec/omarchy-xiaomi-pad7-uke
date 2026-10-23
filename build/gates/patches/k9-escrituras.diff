@@ -1,0 +1,721 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -761,6 +761,162 @@
+ }
+ 
+ /*
++ * ==========================================================================
++ * UKE-SMMU-K9 (29-sep-2026): MASCARA DE ESCRITURAS + MIGAS DELANTE DE CADA
++ * ESCRITURA DEL CAMINO ARMADO (respuesta a los huecos H1/H2/H4/H7 de C2).
++ * ==========================================================================
++ *
++ * POR QUE. K8 (pineo de SMR vivos + qcom,handoff-smrs + CB desde arriba)
++ * murio MUDO a los 0,44 s (#P25), igual que K7. La critica C2 establecio que
++ * una muerte muda NO incrimina al barrido de LECTURAS (las lecturas de SMR
++ * estan medidas seguras x5: #P9 y cuatro runs mas) y que los sospechosos sin
++ * medir a 0,44 s son las ESCRITURAS que K8 deja armadas:
++ *   - F4 TLBIALLH/TLBIALLNSNH (globales),
++ *   - F5 RMW/calculo de sCR0 y F7 tlb_sync_global + write sCR0 (el paso
++ *     CLIENTPD 1->0 es exactamente "encender" la SMMU heredada del BL),
++ *   - F6 (arm_mmu500_reset: RMW de sACR + CB_ACTLR x71 del CPRE_ERRATA),
++ *   - el quirk qcom (S2CR(109) + CB70/CBAR(70), que corre ANTES del barrido),
++ *   - arm_smmu_rmr_install_bypass_smr (sCR0 |= CLIENTPD),
++ *   - y las escrituras del attach (write_sme / install_s2cr /
++ *     write_context_bank del primer dominio traducido).
++ *
++ * QUE HACE K9 (minimo sobre K8; NADA de esto corre en el arranque desarmado):
++ *
++ *   1. uke_write_mask: mascara de GRUPOS de escritura del camino armado.
++ *      bit a 1 = el grupo SE EJECUTA; bit a 0 = el grupo se SILENCIA con miga
++ *      (UKE-POKE + pr_flush) y el registro NO se toca. Default 0 = SILENCIO
++ *      TOTAL (rung 0 de la escalera). 0xfff = alias de "todo" (== 0x1ff).
++ *      Con UNA sola imagen se recorre toda la escalera por cmdline:
++ *        mask=0  -> si AUN muere mudo, el asesino es de LECTURA o del resto
++ *                   incondicional (F1 sGFSR, el barrido, los IDR, la
++ *                   relectura del quirk si no se silencia); si VIVE, el
++ *                   asesino es una de estas escrituras y se van reactivando
++ *                   grupos poniendo bits (uno a uno o por bloques).
++ *        mask=0x1ff (o 0xfff) -> K8 con migas: todo habilitado.
++ *
++ *   2. Migas delante de CADA escritura del camino armado con pr_flush: F4,
++ *      F6 (sACR + muestras CB0/CB22/CB70 del bucle CB_ACTLR), F5/F7 sCR0
++ *      (con el valor leido y el calculado), quirk (S2CR(109)/CB70/CBAR70),
++ *      rmr (CLIENTPD), y cada write_sme/install_s2cr/write_context_bank del
++ *      attach. Con el sistema vivo (>=3,57 s) o en un re-bind por sysfs esas
++ *      lineas quedan en el anillo y dicen el punto exacto; en una muerte muda
++ *      temprana no hay consola, pero entonces la informacion la da la propia
++ *      mascara (que es el instrumento que sobrevive: silencio vs vida).
++ *
++ *   3. Guardas de CB (C2 H2): el CB num_context_banks-1 (70, el del bypass
++ *      del quirk/BL) NO se escribe por NINGUN camino mientras el apps-smmu
++ *      este armado; y un write_context_bank con cfg (CB de un dominio NUEVO)
++ *      solo se programa si su indice salio del reparto DESDE ARRIBA
++ *      (uke_alloc_cb_arriba). Ambas guardas imprimen el indice.
++ *
++ * ANTI-REGRESION: uke_wmask_activo() exige uke_smmu_armado (el mismo bool del
++ * gate del probe) + apps-smmu. Con el arranque normal (sin token) nada de K9
++ * se ejecuta; con uke_smmu_probe=0 tampoco. El resto del driver (kgsl) no ve
++ * ni una linea.
++ */
++static int uke_write_mask;
++
++static int uke_write_mask_set(const char *val, const struct kernel_param *kp)
++{
++	int ret = param_set_int(val, kp);
++
++	if (ret)
++		return ret;
++	pr_info("UKE-POKE: uke_write_mask=0x%x (efectivo 0x%x; bit a 1 = el grupo SE EJECUTA, bit a 0 = se SILENCIA con miga; 0x0 = SILENCIO TOTAL, 0xfff = todo): F4_TLBI=%u F5_sCR0=%u F6_ACTLR=%u F7_sCR0=%u quirk=%u rmr_CLIENTPD=%u attach_sme=%u install_s2cr=%u ctxbank=%u\n",
++		(unsigned int)uke_write_mask,
++		(unsigned int)(uke_write_mask & UKE_WMASK_BITS),
++		!!(uke_write_mask & UKE_WMASK_F4_TLBI),
++		!!(uke_write_mask & UKE_WMASK_F5_SCR0),
++		!!(uke_write_mask & UKE_WMASK_F6_ACTLR),
++		!!(uke_write_mask & UKE_WMASK_F7_SCR0),
++		!!(uke_write_mask & UKE_WMASK_QUIRK),
++		!!(uke_write_mask & UKE_WMASK_RMR),
++		!!(uke_write_mask & UKE_WMASK_ATT_SME),
++		!!(uke_write_mask & UKE_WMASK_INST_S2CR),
++		!!(uke_write_mask & UKE_WMASK_CTXBANK));
++	return 0;
++}
++
++static const struct kernel_param_ops uke_write_mask_ops = {
++	.set	= uke_write_mask_set,
++	.get	= param_get_int,
++};
++
++module_param_cb(uke_write_mask, &uke_write_mask_ops, &uke_write_mask, 0644);
++MODULE_PARM_DESC(uke_write_mask,
++	"UKE (K9): mascara de GRUPOS de escritura del probe armado del apps-smmu: bit0=F4 TLBIALLH/NSNH, bit1=F5 sCR0 (leer+calcular), bit2=F6 sACR+CB_ACTLR x71, bit3=F7 tlb_sync+sCR0, bit4=quirk S2CR(109)/CB70/CBAR70, bit5=rmr sCR0|=CLIENTPD, bit6=attach write_sme nuevos, bit7=attach install_s2cr, bit8=write_context_bank nuevos. bit a 1 = EJECUTAR; bit a 0 = SILENCIAR con miga. Default 0 (silencio total); 0xfff = todo.");
++
++/* ¿Esta activo el instrumento K9 para este SMMU? (solo el probe armado del apps-smmu) */
++bool uke_wmask_activo(struct arm_smmu_device *smmu)
++{
++	return uke_smmu_armado && smmu->dev && smmu->dev->of_node &&
++	       uke_smmu_es_apps(smmu);
++}
++
++/*
++ * ¿Se ejecuta este grupo de escritura? Fuera del experimento armado devuelve
++ * true (comportamiento mainline intacto, y K8 nunca cambia por K9).
++ */
++bool uke_wmask_on(struct arm_smmu_device *smmu, u32 bit)
++{
++	if (!uke_wmask_activo(smmu))
++		return true;
++	return (uke_write_mask & bit) != 0;
++}
++
++/* Valor efectivo de la mascara (bits 0..8) para las migas de otros ficheros. */
++u32 uke_wmask_valor(void)
++{
++	return (u32)(uke_write_mask & UKE_WMASK_BITS);
++}
++
++/*
++ * Migas y vasos de K9: SOLO cuando el experimento armado esta activo (apps-smmu
++ * + uke_smmu_probe=1). Fuera de ahi no imprimen ni flushean nada, para que el
++ * arranque normal y el kgsl-smmu no vean ni una linea nueva (anti-regresion).
++ */
++#define UKE_K9_LOG(...)		do { if (uke_wmask_activo(smmu)) pr_info(__VA_ARGS__); } while (0)
++#define UKE_K9_FLUSH()		do { if (uke_wmask_activo(smmu)) pr_flush(500, false); } while (0)
++
++/*
++ * Bitmap de los CB que ha repartido uke_alloc_cb_arriba: la guarda de
++ * write_context_bank (C2 H2) solo deja programar un CB con cfg si su indice
++ * salio de este reparto. Se indexa por indice de CB (71 como maximo aqui).
++ */
++static DECLARE_BITMAP(uke_cb_reservados_arriba, 128);
++
++static void uke_cb_arriba_marcar(int idx)
++{
++	if ((unsigned int)idx < 128)
++		set_bit(idx, uke_cb_reservados_arriba);
++}
++
++static bool uke_cb_arriba_esta(int idx)
++{
++	return (unsigned int)idx < 128 && test_bit(idx, uke_cb_reservados_arriba);
++}
++
++/* Migas del instrumento con el estado de la mascara (una linea por decision). */
++static void uke_wmask_preparar(struct arm_smmu_device *smmu)
++{
++	if (!uke_wmask_activo(smmu))
++		return;
++	pr_info("UKE-POKE: K9 uke_write_mask=0x%x (efectivo 0x%x): F4_TLBI=%u F5_sCR0=%u F6_ACTLR=%u F7_sCR0=%u quirk=%u rmr_CLIENTPD=%u attach_sme=%u install_s2cr=%u ctxbank=%u  [0x0 = cero escrituras nuevas: si aun muere mudo, el asesino es de LECTURA/resto incondicional; si vive, se reactivan grupos]\n",
++		(unsigned int)uke_write_mask,
++		(unsigned int)(uke_write_mask & UKE_WMASK_BITS),
++		!!(uke_write_mask & UKE_WMASK_F4_TLBI),
++		!!(uke_write_mask & UKE_WMASK_F5_SCR0),
++		!!(uke_write_mask & UKE_WMASK_F6_ACTLR),
++		!!(uke_write_mask & UKE_WMASK_F7_SCR0),
++		!!(uke_write_mask & UKE_WMASK_QUIRK),
++		!!(uke_write_mask & UKE_WMASK_RMR),
++		!!(uke_write_mask & UKE_WMASK_ATT_SME),
++		!!(uke_write_mask & UKE_WMASK_INST_S2CR),
++		!!(uke_write_mask & UKE_WMASK_CTXBANK));
++	pr_flush(500, false);
++}
++
++/*
+  * Reserva de CB DESDE ARRIBA (num_context_banks-1 → start). Equivalente
+  * invertido de __arm_smmu_alloc_bitmap() y sustituto del truco del lineage
+  * (__arm_smmu_alloc_cb(), ref/xiaomi-arm-smmu.c:390-406: devuelve el cbndx del
+@@ -777,6 +933,12 @@
+ 	for (idx = (int)smmu->num_context_banks - 1; idx >= (int)start; idx--) {
+ 		if (test_and_set_bit(idx, smmu->context_map))
+ 			continue;	/* ya reservado (p. ej. bypass_cbndx=70) */
++		/*
++		 * UKE-SMMU-K9: se apunta el indice en uke_cb_reservados_arriba.
++		 * La guarda de arm_smmu_write_context_bank solo deja programar un
++		 * CB con cfg si su indice salio de aqui (miga del indice).
++		 */
++		uke_cb_arriba_marcar(idx);
+ 		pr_info("UKE-POKE: handoff: CB %d reservado DESDE ARRIBA (start=%u num_cb=%u; evita los CB vivos del BL, cbndx ilegible)\n",
+ 			idx, start, smmu->num_context_banks);
+ 		pr_flush(500, false);
+@@ -1312,19 +1474,78 @@
+ 			(u64)((smmu->numpage + idx) << smmu->pgshift) + ARM_SMMU_CB_SCTLR);
+ 
+ 	/*
++	 * ==================================================================
++	 * UKE-SMMU-K9: GUARDAS DE CB (C2 H2). Mientras el probe armado del
++	 * apps-smmu este activo:
++	 *
++	 *  (a) El CB num_context_banks-1 (70 en este SoC) es el CB del bypass
++	 *      del quirk/BL: NO se escribe por NINGUN camino (ni la fase3 del
++	 *      reset, ni el attach, ni el quirk). Es el unico CB que el driver
++	 *      reserva a ciegas y el unico del que se sabe que el firmware lo
++	 *      toco; pisarlo es el riesgo que C2 marca en H2/H7.
++	 *  (b) Un CB con cfg asignado (dominio NUEVO) solo se programa si su
++	 *      indice salio del reparto DESDE ARRIBA (uke_alloc_cb_arriba):
++	 *      asi el driver no puede programar en caliente un CB bajo que el
++	 *      BL tenga vivo (el CB22 vivo de #P14 es el caso medido).
++	 *  (c) uke_write_mask bit8=0 silencia ademas toda la programacion del
++	 *      CB nuevo (miga con el indice).
++	 * ==================================================================
++	 */
++	if (uke_wmask_activo(smmu) && idx == (int)smmu->num_context_banks - 1) {
++		pr_info("UKE-POKE: wmask[CB70]: idx=%d ES EL CB DEL BYPASS (quirk/BL): NO se escribe por NINGUN camino (guardas K9, cfg=%s)\n",
++			idx, cfg ? "asignado" : "NULL");
++		pr_flush(500, false);
++		return;
++	}
++	if (cfg && uke_wmask_activo(smmu) && !uke_cb_arriba_esta(idx)) {
++		pr_info("UKE-POKE: wmask[CB]: idx=%d con cfg (dominio NUEVO) NO reservado DESDE ARRIBA: NO se programa (guardas K9; el indice no salio de uke_alloc_cb_arriba)\n",
++			idx);
++		pr_flush(500, false);
++		return;
++	}
++
++	/*
+ 	 * UKE-SMMU-CLK (K5): el attach de un dominio escribe CBAR/TCR/TTBR/SCTLR
+ 	 * del CB elegido (con cfg asignado): tercer candidato a escritura letal.
+ 	 * Con uke_attach_log>=1 se flushea la miga ANTES del primer acceso.
++	 * UKE-SMMU-K9: con el instrumento armado el flush es INCONDICIONAL (la
++	 * miga de arriba, con el indice, tiene que estar fuera antes de escribir).
+ 	 */
+-	if (uke_smmu_es_apps(smmu) && uke_attach_log >= 1)
++	if (uke_smmu_es_apps(smmu) && (uke_attach_log >= 1 || uke_wmask_activo(smmu)))
+ 		pr_flush(500, false);
+ 
+ 	/* Unassigned context banks only need disabling */
+ 	if (!cfg) {
++		/*
++		 * UKE-SMMU-K9: esta rama la usan DOS caminos — el reset fase3
++		 * (todos los CBs, controlado por uke_reset_mask bit1) y el
++		 * release de un dominio (arm_smmu_destroy_domain_context pone
++		 * cbs[cbndx].cfg=NULL y vuelve a llamar aqui ⇒ CB_SCTLR=0 del
++		 * CB NUESTRO). Con el instrumento armado y bit8=0 se silencia
++		 * SOLO el segundo (el CB salio del reparto desde arriba), para
++		 * que "mask=0 = cero escrituras nuevas" sea literal tambien en
++		 * el release; la fase3 sigue dependiendo de uke_reset_mask.
++		 */
++		if (uke_wmask_activo(smmu) && uke_cb_arriba_esta(idx) &&
++		    !uke_wmask_on(smmu, UKE_WMASK_CTXBANK)) {
++			pr_info("UKE-POKE: wmask[ctxbank]: SILENCIADO CB_SCTLR=0 del CB idx=%d sin cfg (release/destroy de un CB reservado desde arriba; bit8=0)\n",
++				idx);
++			pr_flush(500, false);
++			return;
++		}
+ 		arm_smmu_cb_write(smmu, idx, ARM_SMMU_CB_SCTLR, 0);
+ 		return;
+ 	}
+ 
++	if (!uke_wmask_on(smmu, UKE_WMASK_CTXBANK)) {
++		pr_info("UKE-POKE: wmask[ctxbank]: SILENCIADA la programacion del CB idx=%d (uke_write_mask bit8=0): NO se escriben CBAR/CBA2R/TCR/TTBR/MAIR/SCTLR del dominio nuevo\n",
++			idx);
++		pr_flush(500, false);
++		return;
++	}
++	UKE_K9_LOG("UKE-POKE: wmask[ctxbank]: ESCRIBO el CB idx=%d (reservado desde arriba; bit8=1) con CBAR/CBA2R/TCR/TTBR/MAIR/SCTLR\n",
++		idx);
++
+ 	stage1 = cfg->cbar != CBAR_TYPE_S2_TRANS;
+ 
+ 	/* CBA2R */
+@@ -2130,6 +2351,22 @@
+ 			pr_flush(500, false);
+ 		}
+ 
++		/*
++		 * UKE-SMMU-K9 (C2 H1): miga + flush delante de la escritura del
++		 * SME nuevo y mascara bit6. Con bit6=0 NO se escribe: el mapeo
++		 * queda SOLO en RAM (el HW del BL no se toca) y la miga lo dice.
++		 */
++		if (uke_wmask_activo(smmu))
++			pr_flush(500, false);
++		if (!uke_wmask_on(smmu, UKE_WMASK_ATT_SME)) {
++			pr_info("UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=%d dev=%s (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto\n",
++				idx, dev_name(dev));
++			pr_flush(500, false);
++			continue;
++		}
++		UKE_K9_LOG("UKE-POKE: wmask[attach_sme]: ESCRIBO el SME idx=%d dev=%s (bit6=1)\n",
++			idx, dev_name(dev));
++
+ 		arm_smmu_write_sme(smmu, idx);
+ 	}
+ 
+@@ -2153,8 +2390,21 @@
+ 
+ 	mutex_lock(&smmu->stream_map_mutex);
+ 	for_each_cfg_sme(cfg, fwspec, i, idx) {
+-		if (arm_smmu_free_sme(smmu, idx))
+-			arm_smmu_write_sme(smmu, idx);
++		if (arm_smmu_free_sme(smmu, idx)) {
++			/*
++			 * UKE-SMMU-K9: el release/unbind tambien escribe el SME
++			 * (con BYPASS/FAULT). Mascara bit6 + miga: con bit6=0 no
++			 * se escribe nada (el bug ALTA de R1 §7.1 ya lo cierra
++			 * K8 para los pinados; esta guarda cubre el resto).
++			 */
++			if (!uke_wmask_on(smmu, UKE_WMASK_ATT_SME)) {
++				pr_info("UKE-POKE: wmask[attach_sme]: SILENCIADO el write_sme del release idx=%d (uke_write_mask bit6=0)\n",
++					idx);
++				pr_flush(500, false);
++			} else {
++				arm_smmu_write_sme(smmu, idx);
++			}
++		}
+ 		cfg->smendx[i] = INVALID_SMENDX;
+ 	}
+ 	mutex_unlock(&smmu->stream_map_mutex);
+@@ -2225,9 +2475,18 @@
+ 		 * otro candidato a escritura letal (fase de iommu_setup_default_domain
+ 		 * de bus_iommu_probe). Con uke_attach_log>=1 se fuerza el vaciado de la
+ 		 * consola ANTES del acceso, igual que en master_alloc_smes.
++		 * UKE-SMMU-K9: con el instrumento armado el flush es INCONDICIONAL y la
++		 * mascara bit7 puede silenciar la escritura (miga con el indice).
+ 		 */
+-		if (uke_smmu_es_apps(smmu) && uke_attach_log >= 1)
++		if (uke_smmu_es_apps(smmu) && (uke_attach_log >= 1 || uke_wmask_activo(smmu)))
++			pr_flush(500, false);
++		if (!uke_wmask_on(smmu, UKE_WMASK_INST_S2CR)) {
++			pr_info("UKE-POKE: wmask[install_s2cr]: SILENCIADO el S2CR idx=%d (uke_write_mask bit7=0): el dominio queda atado en RAM y el HW sigue con el S2CR del BL\n",
++				idx);
+ 			pr_flush(500, false);
++			continue;
++		}
++		UKE_K9_LOG("UKE-POKE: wmask[install_s2cr]: ESCRIBO el S2CR idx=%d (bit7=1)\n", idx);
+ 		arm_smmu_write_s2cr(smmu, idx);
+ 	}
+ }
+@@ -2739,6 +2998,15 @@
+ 	/* clear global FSR */
+ 	pr_info("UKE-POKE: reset fase1 sGFSR (siempre)\n");
+ 	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sGFSR);
++	/*
++	 * UKE-SMMU-K9: miga + flush delante de la escritura (RMW del mismo valor).
++	 * F1 NO esta en uke_write_mask (el encargo fija 9 grupos): forma parte del
++	 * "resto incondicional" que queda vivo incluso con mask=0, y asi se
++	 * documenta en el informe.
++	 */
++	UKE_K9_LOG("UKE-POKE: wmask[fase1]: sGFSR leido=0x%08x -> reescritura RMW incondicional (F1 no esta en uke_write_mask)\n",
++		reg);
++	UKE_K9_FLUSH();
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sGFSR, reg);
+ 
+ 	/*
+@@ -2776,50 +3044,116 @@
+ 	/* Invalidate the TLB, just in case */
+ 	if (uke_mask & UKE_RESET_F4) {
+ 		pr_info("UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH\n");
+-		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLH, QCOM_DUMMY_VAL);
+-		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLNSNH, QCOM_DUMMY_VAL);
++		/*
++		 * UKE-SMMU-K9 (C2 H1): F4 son dos escrituras GLOBALES de
++		 * invalidacion (0xffffffff) que K8 ejecutaba sin miga ni medida a
++		 * 0,44 s. Miga + flush delante, y mascara bit0.
++		 */
++		if (uke_wmask_on(smmu, UKE_WMASK_F4_TLBI)) {
++			UKE_K9_LOG("UKE-POKE: wmask[F4 TLBI]: ESCRIBO TLBIALLH(0x%x)=0x%08x y TLBIALLNSNH(0x%x)=0x%08x (bit0=1)\n",
++				ARM_SMMU_GR0_TLBIALLH, QCOM_DUMMY_VAL,
++				ARM_SMMU_GR0_TLBIALLNSNH, QCOM_DUMMY_VAL);
++			UKE_K9_FLUSH();
++			arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLH, QCOM_DUMMY_VAL);
++			arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLNSNH, QCOM_DUMMY_VAL);
++		} else {
++			pr_info("UKE-POKE: wmask[F4 TLBI]: SILENCIADA (uke_write_mask=0x%x bit0=0): NO se escriben TLBIALLH/TLBIALLNSNH; la TLB del BL queda como este\n",
++				(unsigned int)(uke_write_mask & UKE_WMASK_BITS));
++			pr_flush(500, false);
++		}
+ 	} else {
+ 		pr_info("UKE-POKE: reset fase4 OMITIDA (uke_reset_mask bit2=0): no se invalidan TLBs globales\n");
+ 	}
+ 
+ 	if (uke_mask & UKE_RESET_F567) {
+-		pr_info("UKE-POKE: reset fase5 RMW de sCR0\n");
+-		reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sCR0);
+-
+-		/* Enable fault reporting */
+-		reg |= (ARM_SMMU_sCR0_GFRE | ARM_SMMU_sCR0_GFIE |
+-			ARM_SMMU_sCR0_GCFGFRE | ARM_SMMU_sCR0_GCFGFIE);
+-
+-		/* Disable TLB broadcasting. */
+-		reg |= (ARM_SMMU_sCR0_VMIDPNE | ARM_SMMU_sCR0_PTM);
+-
+-		/* Enable client access, handling unmatched streams as appropriate */
+-		reg &= ~ARM_SMMU_sCR0_CLIENTPD;
+-		if (disable_bypass)
+-			reg |= ARM_SMMU_sCR0_USFCFG;
+-		else
+-			reg &= ~ARM_SMMU_sCR0_USFCFG;
++		/*
++		 * UKE-SMMU-K9: F5 es leer sCR0 y CALCULAR el valor final (no
++		 * escribe HW: el unico write de sCR0 es F7). Se separa del write
++		 * final para poder aislar el momento "encender la SMMU heredada"
++		 * (CLIENTPD 1->0) con bit1/bit3 (plan B de R1 §6.a).
++		 */
++		bool uke_f5 = uke_wmask_on(smmu, UKE_WMASK_F5_SCR0);
++		bool uke_s_cr0_listo = false;
+ 
+-		/* Disable forced broadcasting */
+-		reg &= ~ARM_SMMU_sCR0_FB;
++		pr_info("UKE-POKE: reset fase5 RMW de sCR0\n");
++		if (uke_f5) {
++			reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sCR0);
++			UKE_K9_LOG("UKE-POKE: wmask[F5 sCR0]: sCR0 leido=0x%08x (CLIENTPD=%u USFCFG=%u)\n",
++				reg,
++				(unsigned int)!!(reg & ARM_SMMU_sCR0_CLIENTPD),
++				(unsigned int)!!(reg & ARM_SMMU_sCR0_USFCFG));
++
++			/* Enable fault reporting */
++			reg |= (ARM_SMMU_sCR0_GFRE | ARM_SMMU_sCR0_GFIE |
++				ARM_SMMU_sCR0_GCFGFRE | ARM_SMMU_sCR0_GCFGFIE);
++
++			/* Disable TLB broadcasting. */
++			reg |= (ARM_SMMU_sCR0_VMIDPNE | ARM_SMMU_sCR0_PTM);
++
++			/* Enable client access, handling unmatched streams as appropriate */
++			reg &= ~ARM_SMMU_sCR0_CLIENTPD;
++			if (disable_bypass)
++				reg |= ARM_SMMU_sCR0_USFCFG;
++			else
++				reg &= ~ARM_SMMU_sCR0_USFCFG;
+ 
+-		/* Don't upgrade barriers */
+-		reg &= ~(ARM_SMMU_sCR0_BSU);
++			/* Disable forced broadcasting */
++			reg &= ~ARM_SMMU_sCR0_FB;
+ 
+-		if (smmu->features & ARM_SMMU_FEAT_VMID16)
+-			reg |= ARM_SMMU_sCR0_VMID16EN;
++			/* Don't upgrade barriers */
++			reg &= ~(ARM_SMMU_sCR0_BSU);
+ 
+-		if (smmu->features & ARM_SMMU_FEAT_EXIDS)
+-			reg |= ARM_SMMU_sCR0_EXIDENABLE;
++			if (smmu->features & ARM_SMMU_FEAT_VMID16)
++				reg |= ARM_SMMU_sCR0_VMID16EN;
++
++			if (smmu->features & ARM_SMMU_FEAT_EXIDS)
++				reg |= ARM_SMMU_sCR0_EXIDENABLE;
++
++			UKE_K9_LOG("UKE-POKE: wmask[F5 sCR0]: calculado sCR0 final=0x%08x (CLIENTPD=%u USFCFG=%u) — F5 solo calcula, no escribe HW (bit1=1)\n",
++				reg,
++				(unsigned int)!!(reg & ARM_SMMU_sCR0_CLIENTPD),
++				(unsigned int)!!(reg & ARM_SMMU_sCR0_USFCFG));
++			UKE_K9_FLUSH();
++			uke_s_cr0_listo = true;
++		} else {
++			reg = 0;
++			pr_info("UKE-POKE: wmask[F5 sCR0]: SILENCIADA (uke_write_mask=0x%x bit1=0): NO se lee ni se recalcula sCR0; F7 se omitira tambien (sin valor)\n",
++				(unsigned int)(uke_write_mask & UKE_WMASK_BITS));
++			pr_flush(500, false);
++		}
+ 
+ 		pr_info("UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)\n");
+-		if (smmu->impl && smmu->impl->reset)
+-			smmu->impl->reset(smmu);
++		if (smmu->impl && smmu->impl->reset) {
++			if (uke_wmask_on(smmu, UKE_WMASK_F6_ACTLR)) {
++				UKE_K9_LOG("UKE-POKE: wmask[F6 ACTLR]: llamo impl->reset (sACR + CB_ACTLR x%u) (bit2=1)\n",
++					smmu->num_context_banks);
++				UKE_K9_FLUSH();
++				smmu->impl->reset(smmu);
++			} else {
++				pr_info("UKE-POKE: wmask[F6 ACTLR]: SILENCIADA (uke_write_mask=0x%x bit2=0): NO se llama impl->reset (ni RMW de sACR ni CB_ACTLR x%u); el prefetch/CACHE_LOCK del BL queda como este\n",
++					(unsigned int)(uke_write_mask & UKE_WMASK_BITS),
++					smmu->num_context_banks);
++				pr_flush(500, false);
++			}
++		}
+ 
+ 		/* Push the button */
+ 		pr_info("UKE-POKE: reset fase7 tlb_sync_global + write sCR0\n");
+-		arm_smmu_tlb_sync_global(smmu);
+-		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sCR0, reg);
++		if (!uke_s_cr0_listo) {
++			pr_info("UKE-POKE: wmask[F7 sCR0]: OMITIDA porque F5 (bit1=0) esta silenciada: no hay valor de sCR0 que escribir (NO se hace tlb_sync_global ni write sCR0)\n");
++			pr_flush(500, false);
++		} else if (uke_wmask_on(smmu, UKE_WMASK_F7_SCR0)) {
++			UKE_K9_LOG("UKE-POKE: wmask[F7 sCR0]: ESCRIBO sTLBGSYNC(0x%x)=0x%08x + sCR0=0x%08x (bit3=1: la SMMU heredada pasa a CLIENTPD=%u)\n",
++				ARM_SMMU_GR0_sTLBGSYNC, QCOM_DUMMY_VAL, reg,
++				(unsigned int)!!(reg & ARM_SMMU_sCR0_CLIENTPD));
++			UKE_K9_FLUSH();
++			arm_smmu_tlb_sync_global(smmu);
++			arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sCR0, reg);
++		} else {
++			pr_info("UKE-POKE: wmask[F7 sCR0]: SILENCIADA (uke_write_mask=0x%x bit3=0): NO se hace tlb_sync_global ni se escribe sCR0; el valor calculado 0x%08x se DESCARTA (sCR0 del BL intacto)\n",
++				(unsigned int)(uke_write_mask & UKE_WMASK_BITS), reg);
++			pr_flush(500, false);
++		}
+ 	} else {
+ 		pr_info("UKE-POKE: reset fases5-7 OMITIDAS (uke_reset_mask bit3=0): sCR0 sin RMW, impl->reset sin correr, sCR0 sin reescribir\n");
+ 	}
+@@ -3261,10 +3595,28 @@
+ 	 * are setup by the firmware and then invalidate the ones
+ 	 * that do no have matching RMR entries, just disable the
+ 	 * SMMU until it gets enabled again in the reset routine.
++	 *
++	 * UKE-SMMU-K9 (C2 H1): esta escritura es INCONDICIONAL en mainline/K8
++	 * (siempre corre en el probe armado, antes del reset) y nunca se midio a
++	 * 0,44 s. Miga + flush delante con el valor leido y el calculado, y
++	 * mascara bit5 (rmr_CLIENTPD). Con bit5=0 NO se escribe NI SE LEE sCR0
++	 * (asi la rung mask=0 deja el minimo absoluto de accesos: IDs + barrido
++	 * de SMR + F1 sGFSR), de modo que una muerte con mask=0 solo puede venir
++	 * de una LECTURA o del resto incondicional; si VIVE, el asesino es una
++	 * de las escrituras y se van reactivando grupos poniendo bits.
+ 	 */
+-	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sCR0);
+-	reg |= ARM_SMMU_sCR0_CLIENTPD;
+-	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sCR0, reg);
++	if (uke_wmask_on(smmu, UKE_WMASK_RMR)) {
++		reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sCR0);
++		reg |= ARM_SMMU_sCR0_CLIENTPD;
++		UKE_K9_LOG("UKE-POKE: wmask[rmr]: ESCRIBO sCR0=0x%08x (CLIENTPD=1; leido sin CLIENTPD=0x%08x) (bit5=1)\n",
++			reg, (unsigned int)(reg & ~ARM_SMMU_sCR0_CLIENTPD));
++		UKE_K9_FLUSH();
++		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sCR0, reg);
++	} else {
++		pr_info("UKE-POKE: wmask[rmr]: SILENCIADA (uke_write_mask=0x%x bit5=0): NO se lee ni se escribe sCR0; el estado del BL queda intacto\n",
++			(unsigned int)(uke_write_mask & UKE_WMASK_BITS));
++		pr_flush(500, false);
++	}
+ 
+ 	list_for_each_entry(e, &rmr_list, list) {
+ 		struct iommu_iort_rmr_data *rmr;
+@@ -3484,6 +3836,13 @@
+ 	 */
+ 	uke_handoff_preparar(smmu);
+ 
++	/*
++	 * UKE-SMMU-K9: imprime la mascara de escrituras efectiva en este probe
++	 * (con el default 0 = silencio total, esta linea es la que dice si el
++	 * arranque va a escribir algo). No toca HW.
++	 */
++	uke_wmask_preparar(smmu);
++
+ 	/* Check for RMRs and install bypass SMRs if any */
+ 	arm_smmu_rmr_install_bypass_smr(smmu);
+ 
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.h
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.h
+@@ -581,4 +581,50 @@
+ void arm_smmu_print_context_fault_info(struct arm_smmu_device *smmu, int idx,
+ 				       const struct arm_smmu_context_fault_info *cfi);
+ 
++/*
++ * ==========================================================================
++ * UKE-SMMU-K9 (29-sep-2026): MASCARA DE ESCRITURAS DEL CAMINO ARMADO.
++ * ==========================================================================
++ *
++ * uke_write_mask es la palanca de bisECCION de K9 (respuesta al hueco H1 de
++ * C2: "nunca se midio a 0,44 s NINGUNA de las escrituras del probe armado").
++ *
++ * POLARIDAD (fijada por el propio encargo de K9, que da el ejemplo operativo
++ * "mask=0 = cero escrituras nuevas"):
++ *   bit a 1 = el grupo de escrituras SE EJECUTA.
++ *   bit a 0 = el grupo se SILENCIA (miga UKE-POKE + pr_flush y NO se toca el
++ *             registro).
++ *   default = 0 = SILENCIO TOTAL de las escrituras nuevas (la rung 0 de la
++ *             escalera: si con mask=0 el arranque AUN muere mudo, el asesino
++ *             es de LECTURA o del resto incondicional, no de estas escrituras;
++ *             si VIVE, se van reactivando grupos poniendo bits).
++ *   0xfff = alias de "todo" (los bits 9..11 no existen y se ignoran, o sea
++ *           0xfff == 0x1ff): comportamiento K8 + migas.
++ *
++ * Solo aplica al apps-smmu (0x15000000) y solo con el probe ARMADO
++ * (uke_smmu_probe=1): con el arranque desarmado (el normal de la tablet) las
++ * funciones devuelven "escribir" y no hay ni una linea de K9 en el camino.
++ */
++#define UKE_WMASK_F4_TLBI	BIT(0)	/* F4: TLBIALLH + TLBIALLNSNH */
++#define UKE_WMASK_F5_SCR0	BIT(1)	/* F5: leer sCR0 + calcular el valor final */
++#define UKE_WMASK_F6_ACTLR	BIT(2)	/* F6: impl->reset (sACR + CB_ACTLR x71) */
++#define UKE_WMASK_F7_SCR0	BIT(3)	/* F7: tlb_sync_global + write sCR0 */
++#define UKE_WMASK_QUIRK		BIT(4)	/* quirk qcom: S2CR(109) + CB70/CBAR70 */
++#define UKE_WMASK_RMR		BIT(5)	/* rmr_install: sCR0 |= CLIENTPD */
++#define UKE_WMASK_ATT_SME	BIT(6)	/* attach: write_sme de mapeos NUEVOS */
++#define UKE_WMASK_INST_S2CR	BIT(7)	/* attach: install_s2cr de dominios NUEVOS */
++#define UKE_WMASK_CTXBANK	BIT(8)	/* write_context_bank con cfg (CB nuevo) */
++#define UKE_WMASK_BITS		(UKE_WMASK_F4_TLBI | UKE_WMASK_F5_SCR0 | \
++				 UKE_WMASK_F6_ACTLR | UKE_WMASK_F7_SCR0 | \
++				 UKE_WMASK_QUIRK | UKE_WMASK_RMR | \
++				 UKE_WMASK_ATT_SME | UKE_WMASK_INST_S2CR | \
++				 UKE_WMASK_CTXBANK)
++
++/* ¿El experimento armado de K9 esta activo para este SMMU? (apps-smmu + armado) */
++bool uke_wmask_activo(struct arm_smmu_device *smmu);
++/* ¿Se ejecuta este grupo? true = escribir; false = silenciado (con miga). */
++bool uke_wmask_on(struct arm_smmu_device *smmu, u32 bit);
++/* Valor efectivo de uke_write_mask (bits 0..8), para las migas de otros ficheros. */
++u32 uke_wmask_valor(void);
++
+ #endif /* _ARM_SMMU_H */
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-impl.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-impl.c
+@@ -110,6 +110,7 @@
+ int arm_mmu500_reset(struct arm_smmu_device *smmu)
+ {
+ 	u32 reg, major;
++	bool uke_w, uke_k9;
+ 	/*
+ 	 * On MMU-500 r2p0 onwards we need to clear ACR.CACHE_LOCK before
+ 	 * writes to the context bank ACTLRs will stick. And we just hope that
+@@ -127,20 +128,61 @@
+ 	 * TLB entries for reduced latency.
+ 	 */
+ 	reg |= ARM_MMU500_ACR_SMTNMB_TLBEN | ARM_MMU500_ACR_S2CRB_TLBEN;
+-	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sACR, reg);
++
++	/*
++	 * UKE-SMMU-K9 (C2 H1): F6 = el unico sitio del reset que escribe
++	 * registros GLOBALES (sACR) + los CB_ACTLR de los 71 CBs, y no tenia ni
++	 * una miga por CB (R1 §7.2). Miga + flush delante de cada escritura,
++	 * muestras CB0/CB22/CB70 (el ultimo) en el bucle, y mascara bit2.
++	 * uke_k9 = solo el probe armado del apps-smmu: el kgsl-smmu no imprime
++	 * ni una linea nueva ni cambia nada (uke_w es true fuera del experimento).
++	 */
++	uke_w = uke_wmask_on(smmu, UKE_WMASK_F6_ACTLR);
++	uke_k9 = uke_wmask_activo(smmu);
++	if (uke_w) {
++		if (uke_k9)
++			pr_info("UKE-POKE: wmask[F6 sACR]: ESCRIBO sACR=0x%08x (ID7=0x%08x major=%u; bit2=1)\n",
++				reg, arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_ID7), major);
++		if (uke_k9)
++			pr_flush(500, false);
++		arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sACR, reg);
++	} else {
++		pr_info("UKE-POKE: wmask[F6 sACR]: SILENCIADA (uke_write_mask bit2=0): NO se escribe sACR (valor calculado 0x%08x descartado)\n",
++			reg);
++		pr_flush(500, false);
++	}
+ 
+ #ifdef CONFIG_ARM_SMMU_MMU_500_CPRE_ERRATA
+ 	/*
+ 	 * Disable MMU-500's not-particularly-beneficial next-page
+ 	 * prefetcher for the sake of at least 5 known errata.
+ 	 */
+-	for (int i = 0; i < smmu->num_context_banks; ++i) {
+-		reg = arm_smmu_cb_read(smmu, i, ARM_SMMU_CB_ACTLR);
+-		reg &= ~ARM_MMU500_ACTLR_CPRE;
+-		arm_smmu_cb_write(smmu, i, ARM_SMMU_CB_ACTLR, reg);
+-		reg = arm_smmu_cb_read(smmu, i, ARM_SMMU_CB_ACTLR);
+-		if (reg & ARM_MMU500_ACTLR_CPRE)
+-			dev_warn_once(smmu->dev, "Failed to disable prefetcher for errata workarounds, check SACR.CACHE_LOCK\n");
++	if (!uke_w) {
++		pr_info("UKE-POKE: wmask[F6 CB_ACTLR]: SILENCIADO el bucle de %u CBs (uke_write_mask bit2=0): NO se tocan CB_ACTLR\n",
++			smmu->num_context_banks);
++		pr_flush(500, false);
++	} else {
++		if (uke_k9)
++			pr_info("UKE-POKE: wmask[F6 CB_ACTLR]: bucle de %u CBs con miga en las muestras CB0, CB22, CB%u (el ultimo) y cada 16\n",
++				smmu->num_context_banks, smmu->num_context_banks - 1);
++		for (int i = 0; i < smmu->num_context_banks; ++i) {
++			bool uke_muestra = uke_k9 && (i == 0 || i == 22 ||
++					    i == (int)smmu->num_context_banks - 1);
++
++			if (uke_muestra || (uke_k9 && !(i & 15)))
++				pr_info("UKE-POKE: wmask[F6 CB_ACTLR]: idx=%d/%u%s: RMW de CB_ACTLR en 0x%llx (leo, quito CPRE, escribo)\n",
++					i, smmu->num_context_banks,
++					uke_muestra ? " (muestra)" : "",
++					(u64)((smmu->numpage + i) << smmu->pgshift) + ARM_SMMU_CB_ACTLR);
++			if (uke_muestra)
++				pr_flush(500, false);
++			reg = arm_smmu_cb_read(smmu, i, ARM_SMMU_CB_ACTLR);
++			reg &= ~ARM_MMU500_ACTLR_CPRE;
++			arm_smmu_cb_write(smmu, i, ARM_SMMU_CB_ACTLR, reg);
++			reg = arm_smmu_cb_read(smmu, i, ARM_SMMU_CB_ACTLR);
++			if (reg & ARM_MMU500_ACTLR_CPRE)
++				dev_warn_once(smmu->dev, "Failed to disable prefetcher for errata workarounds, check SACR.CACHE_LOCK\n");
++		}
+ 	}
+ #endif
+ 
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+@@ -534,6 +534,30 @@
+ 	      FIELD_PREP(ARM_SMMU_S2CR_PRIVCFG, S2CR_PRIVCFG_DEFAULT);
+ 	pr_info("UKE-POKE: qcom_cfg_probe: VOY a ESCRIBIR S2CR(0x%x) reg=0x%08x\n",
+ 		last_s2cr, reg);
++	/*
++	 * ==================================================================
++	 * UKE-SMMU-K9 (C2 H1/H2/H7): el quirk escribe S2CR(109) y CB70/CBAR(70)
++	 * ANTES de que exista ningun pineo (corre dentro de cfg_probe, antes de
++	 * uke_handoff_preparar), y ademas el SID del ultimo grupo podria ser un
++	 * mapeo VIVO del BL. Con el probe armado del apps-smmu y uke_write_mask
++	 * bit4=0 NO se hace NINGUNA de las tres escrituras (ni la relectura):
++	 * el quirk queda NO detectado (bypass_quirk=false). El CB
++	 * num_context_banks-1 se reserva igualmente para que el reparto DESDE
++	 * ARRIBA nunca lo entregue a un dominio nuevo.
++	 * ==================================================================
++	 */
++	if (!uke_wmask_on(smmu, UKE_WMASK_QUIRK)) {
++		if (uke_wmask_activo(smmu)) {
++			set_bit(smmu->num_context_banks - 1, smmu->context_map);
++			pr_info("UKE-POKE: wmask[quirk]: SILENCIADA (uke_write_mask=0x%x bit4=0): NO se escribe S2CR(0x%x)=0x%08x, NI se relee, NI se tocan CB_SCTLR(%u)/CBAR(%u); quirk qcom NO detectado (bypass_quirk=false) y el CB %u queda reservado igualmente\n",
++				uke_wmask_valor(),
++				last_s2cr, reg, smmu->num_context_banks - 1,
++				smmu->num_context_banks - 1, smmu->num_context_banks - 1);
++			pr_flush(500, false);
++		}
++		goto uke_quirk_hecho;
++	}
++	pr_flush(500, false);
+ 	arm_smmu_gr0_write(smmu, last_s2cr, reg);
+ 	reg = arm_smmu_gr0_read(smmu, last_s2cr);
+ 	pr_info("UKE-POKE: qcom_cfg_probe: relectura=0x%08x (TYPE=%u; quirk=%s)\n", reg,
+@@ -545,6 +569,12 @@
+ 
+ 		set_bit(qsmmu->bypass_cbndx, smmu->context_map);
+ 
++		if (uke_wmask_activo(smmu)) {
++			pr_info("UKE-POKE: wmask[quirk]: ESCRIBO CB_SCTLR(%u)=0 y CBAR(%u)=0x%x (bit4=1: el quirk emula el bypass en el CB reservado)\n",
++				qsmmu->bypass_cbndx, qsmmu->bypass_cbndx,
++				(unsigned int)FIELD_PREP(ARM_SMMU_CBAR_TYPE, CBAR_TYPE_S1_TRANS_S2_BYPASS));
++			pr_flush(500, false);
++		}
+ 		arm_smmu_cb_write(smmu, qsmmu->bypass_cbndx, ARM_SMMU_CB_SCTLR, 0);
+ 
+ 		reg = FIELD_PREP(ARM_SMMU_CBAR_TYPE, CBAR_TYPE_S1_TRANS_S2_BYPASS);
+@@ -555,6 +585,7 @@
+ 			smmu->num_mapping_groups = 128;
+ 		}
+ 	}
++uke_quirk_hecho:
+ 
+ 	/*
+ 	 * UKE-SMMU-CLK (K3): sin smmu->smrs (uke_stream_match=0, o hw sin SMS) este

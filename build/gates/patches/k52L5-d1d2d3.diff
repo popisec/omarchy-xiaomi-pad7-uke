@@ -1,0 +1,33 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1787,12 +1787,26 @@
+ 
+ 	a6xx_gmu_gxpd_get(gmu);
+ 	uke_poke("H2-gx");
+ 
+-	/* Use a known rate to bring up the GMU */
+-	clk_set_rate(gmu->core_clk, 200000000);
+-	clk_set_rate(gmu->hub_clk, adreno_is_a740_family(adreno_gpu) ?
+-		     200000000 : 150000000);
++	/* UKE-L5 (9-oct-2026, L5=D1+D2+D3 sobre L0, SIN K64/C1/poll).
++	 * Combinacion adaptada de k52L2-d1solo.diff (D1 core 220M,
++	 * testigo UKE-L2 verbatim) + k52L4a-d2solo.diff (D2 hub 200M,
++	 * testigo UKE-K68 verbatim) + k52L4c-d3solo.diff (D3 OPP 220M,
++	 * testigo UKE-K65 verbatim). SOLAPE DECLARADO: D1 y D2
++	 * reemplazan las MISMAS 3 lineas stock (core+hub); no se
++	 * concatenan los diffs, se fusionan en un solo bloque
++	 * core220M+hub200M+OPP220M. Las lineas SIN-D2/SIN-D1/SIN-D3 de
++	 * los diffs-solo se ELIMINAN (falsas en combinacion); los 3
++	 * testigos discriminadores se conservan verbatim. Los rc NO
++	 * abortan. Equivale a k65 SIN K64/C1/poll/G10/G8. */
++	ret = clk_set_rate(gmu->core_clk, 220000000);
++	pr_err("UKE-L2: D1 gmu clk_set 220M rc=%d\n", ret);
++	ret = clk_set_rate(gmu->hub_clk, 200000000);
++	pr_err("UKE-K68: D2 hub clk_set 200M rc=%d\n", ret);
++	ret = dev_pm_opp_set_rate(gmu->dev, 220000000);
++	pr_err("UKE-K65: D3 cx LOW_SVS opp_set_rate 220M rc=%d\n", ret);
++	pr_flush(120, false);
+ 	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
+ 	if (ret) {
+ 		uke_poke("H3-clkFAIL");
+ 		goto rpm_put;

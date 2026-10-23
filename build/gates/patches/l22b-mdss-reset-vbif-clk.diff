@@ -1,0 +1,85 @@
+--- a/drivers/gpu/drm/msm/msm_mdss.c
++++ b/drivers/gpu/drm/msm/msm_mdss.c
+@@ -311,16 +311,6 @@
+ {
+ 	struct reset_control *reset;
+ 
+-	/*
+-	 * L22b (#612): con el panel heredado del ABL, este reset duro de 20 ms
+-	 * del display core MATA el scanout vivo (el dueño ve el log y se apaga
+-	 * a ~0,5 s, justo aqui). Saltarlo entero.
+-	 */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: msm_mdss_reset SALTADO (scanout ABL vivo)\n");
+-		return 0;
+-	}
+-
+ 	reset = reset_control_get_optional_exclusive(dev, NULL);
+ 	if (!reset) {
+ 		/* Optional reset not specified */
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -1278,13 +1278,7 @@
+ 		goto err_pm_put;
+ 	}
+ 
+-	/* L22b (#612): el vbif-memtype NO se reescribe con el panel heredado
+-	 * (el gate en runtime_resume no cubria este camino del hw_init). */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: dpu_vbif_init_memtypes SALTADO (hw_init)\n");
+-	} else {
+-		dpu_vbif_init_memtypes(dpu_kms);
+-	}
++	dpu_vbif_init_memtypes(dpu_kms);
+ 
+ 	pm_runtime_put_sync(&dpu_kms->pdev->dev);
+ 
+@@ -1464,15 +1458,6 @@
+ 
+ 	ddev = dpu_kms->dev;
+ 
+-	/* L22b (#612): con herencia, NO tocar clk_bulk: el primer enable sobre
+-	 * los RCG compartidos (mdp/ahb heredados del ABL) escribe parked_cfg=0
+-	 * (clk_rcg2_shared_enable) y reprograma los relojes del scanout vivo.
+-	 * Los clocks ABL ya estan ON; irq_preinstall escribe regs MDP igual. */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: dpu_runtime_resume: clk_bulk SALTADO (clocks ABL)\n");
+-		return 0;
+-	}
+-
+ 	rc = clk_bulk_prepare_enable(dpu_kms->num_clocks, dpu_kms->clocks);
+ 	if (rc) {
+ 		DPU_ERROR("clock enable failed rc:%d\n", rc);
+--- a/drivers/clk/qcom/dispcc-sm8550.c
++++ b/drivers/clk/qcom/dispcc-sm8550.c
+@@ -14,11 +14,6 @@
+ 
+ #include <dt-bindings/clock/qcom,sm8550-dispcc.h>
+ 
+-/* L22b (#612): saltar pll_configure cuando el panel es heredado del ABL
+- * (cmdline dispcc.uke_skip_pll=1; el scanout vivo depende de las PLLs ABL). */
+-static bool uke_dispcc_skip_pll;
+-module_param_named(uke_skip_pll, uke_dispcc_skip_pll, bool, 0444);
+-
+ #include "common.h"
+ #include "clk-alpha-pll.h"
+ #include "clk-branch.h"
+@@ -1819,16 +1814,8 @@
+ 		disp_cc_mdss_mdp_clk_src.freq_tbl = ftbl_disp_cc_mdss_mdp_clk_src_sar2130p;
+ 	}
+ 
+-	/* L22b (#612): con el panel heredado del ABL, NO reconfigurar las PLLs
+-	 * ni tocar MISC_CMD/gating: el scanout vivo depende de los PLLs que el
+-	 * ABL dejo puestos (defensivo — mismo criterio que dpu gates). El param
+-	 * es global temprano (module_param en este fichero, cmdline lo pone). */
+-	if (uke_dispcc_skip_pll) {
+-		pr_info("UKE-P82-INHERIT: dispcc probe: pll_configure SALTADO (panel heredado)\n");
+-	} else {
+-		clk_lucid_ole_pll_configure(&disp_cc_pll0, regmap, &disp_cc_pll0_config);
+-		clk_lucid_ole_pll_configure(&disp_cc_pll1, regmap, &disp_cc_pll1_config);
+-	}
++	clk_lucid_ole_pll_configure(&disp_cc_pll0, regmap, &disp_cc_pll0_config);
++	clk_lucid_ole_pll_configure(&disp_cc_pll1, regmap, &disp_cc_pll1_config);
+ 
+ 	/* Enable clock gating for MDP clocks */
+ 	regmap_update_bits(regmap, DISP_CC_MISC_CMD, 0x10, 0x10);

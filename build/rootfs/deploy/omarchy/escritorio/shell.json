@@ -1,0 +1,211 @@
+{
+  "bar": {
+    "id": "p0werj0int.powerbar",
+    "layout": {
+      "center": [
+        {
+          "format": "dddd HH:mm",
+          "formatAlt": "d MMMM 'W'ww yyyy",
+          "id": "omarchy.clock",
+          "powerbarInstance": "pw-mvcxmhlt-xxx78dyzkvkbsab53b359",
+          "verticalFormat": "HH\n\u2014\nmm"
+        },
+        {
+          "autoCheckUpdates": true,
+          "id": "omaplug",
+          "powerbarInstance": "pw-mvcxydpl-k92ho5nmd2q",
+          "powerbarVisibility": "managed"
+        }
+      ],
+      "centerBegin": [
+        {
+          "id": "omarchy.indicators"
+        }
+      ],
+      "centerEnd": [
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "omarchy.system-update"
+        }
+      ],
+      "left": [
+        {
+          "id": "omarchy.menu",
+          "powerbarInstance": "pw-mvcxmhlt-1pse5kjelk9b4f0dd013bz"
+        },
+        {
+          "id": "omarchy.workspaces",
+          "powerbarInstance": "pw-mvcxmhlt-xpcnrhbijlbgln8lvw634",
+          "powerbarVisibility": "shown"
+        }
+      ],
+      "right": [
+        {
+          "id": "omarchy.tray",
+          "powerbarInstance": "pw-mvcxmhlt-lxr9wnbpehotbf6afbrtq"
+        },
+        {
+          "id": "cjkaufman.omascale",
+          "powerbarInstance": "pw-mvd1eboa-weg38k9cl5ao6hesa6upu"
+        },
+        {
+          "id": "backmeupplz.navidrome",
+          "powerbarInstance": "pw-mvd04hlq-pigsrfzo9uesva2davw01"
+        },
+        {
+          "id": "crmne.hyprmoncfg",
+          "powerbarInstance": "pw-mvcz873k-7yxsjuz3vbx4ngs0rexo8b"
+        },
+        {
+          "id": "omarchy.keyboard-layout",
+          "powerbarInstance": "pw-mvcxmhlt-rkij5p3s8mzio8gyw2yg8e"
+        },
+        {
+          "id": "omarchy.agents",
+          "powerbarInstance": "pw-mvcxmhlt-ea9foielxjybgyfukmf7m"
+        },
+        {
+          "id": "omarchy.bluetooth",
+          "powerbarInstance": "pw-mvcxmhlt-c2ol00m1nze"
+        },
+        {
+          "id": "omarchy.network",
+          "powerbarInstance": "pw-mvcxmhlt-asr1y6tq15qbk6yhijk2zk"
+        },
+        {
+          "id": "omarchy.audio",
+          "powerbarInstance": "pw-mvcxmhlt-4fm36t4zkujgljxqc94w0q"
+        },
+        {
+          "id": "omarchy.power",
+          "powerbarInstance": "pw-mvcxmhlt-jo6dr8ufbcyl7gjamk5ljt"
+        },
+        {
+          "id": "omarchy.monitor",
+          "powerbarInstance": "pw-mvcxmhlt-fpvhgw1rvzbosi48ge1qh",
+          "powerbarVisibility": "hidden"
+        }
+      ],
+      "tray": []
+    },
+    "position": "top",
+    "powerbarAnimations": true,
+    "powerbarAppearance": {
+      "all": {
+        "shadow": {
+          "enabled": true,
+          "softness": 10,
+          "strength": 30
+        },
+        "shape": {
+          "borderWidth": 1,
+          "borders": true,
+          "rounding": 12
+        },
+        "surface": {
+          "opacity": 90
+        }
+      },
+      "themes": {
+        "tokyo-night": {
+          "text": "light"
+        }
+      }
+    },
+    "powerbarLargeBar": true,
+    "powerbarShortcuts": {
+      "bar:keys": "SUPER + C"
+    },
+    "powerbarStyle": "islands",
+    "powerbarVisibilityDefault": "shown",
+    "powerbarZoneLayouts": {
+      "two": {
+        "groups": {},
+        "layout": {
+          "center": [],
+          "centerBegin": [
+            {
+              "id": "omarchy.indicators"
+            }
+          ],
+          "centerEnd": [
+            {
+              "id": "omarchy.weather"
+            },
+            {
+              "id": "omaplug"
+            },
+            {
+              "id": "omarchy.system-update"
+            }
+          ],
+          "left": [
+            {
+              "id": "omarchy.menu",
+              "powerbarInstance": "pw-mvcxmhlt-1pse5kjelk9b4f0dd013bz"
+            },
+            {
+              "id": "omarchy.workspaces",
+              "powerbarInstance": "pw-mvcxmhlt-xpcnrhbijlbgln8lvw634",
+              "powerbarVisibility": "managed"
+            }
+          ],
+          "right": [
+            {
+              "id": "omarchy.tray",
+              "powerbarInstance": "pw-mvcxmhlt-lxr9wnbpehotbf6afbrtq"
+            },
+            {
+              "id": "omarchy.agents",
+              "powerbarInstance": "pw-mvcxmhlt-ea9foielxjybgyfukmf7m"
+            },
+            {
+              "id": "omarchy.bluetooth",
+              "powerbarInstance": "pw-mvcxmhlt-c2ol00m1nze"
+            },
+            {
+              "id": "omarchy.network",
+              "powerbarInstance": "pw-mvcxmhlt-asr1y6tq15qbk6yhijk2zk"
+            },
+            {
+              "id": "omarchy.audio",
+              "powerbarInstance": "pw-mvcxmhlt-4fm36t4zkujgljxqc94w0q"
+            },
+            {
+              "id": "omarchy.monitor",
+              "powerbarInstance": "pw-mvcxmhlt-fpvhgw1rvzbosi48ge1qh"
+            },
+            {
+              "id": "omarchy.power",
+              "powerbarInstance": "pw-mvcxmhlt-jo6dr8ufbcyl7gjamk5ljt"
+            },
+            {
+              "id": "omarchy.keyboard-layout",
+              "powerbarInstance": "pw-mvcxmhlt-rkij5p3s8mzio8gyw2yg8e"
+            },
+            {
+              "format": "dddd HH:mm",
+              "formatAlt": "d MMMM 'W'ww yyyy",
+              "id": "omarchy.clock",
+              "powerbarInstance": "pw-mvcxmhlt-xxx78dyzkvkbsab53b359",
+              "verticalFormat": "HH\n\u2014\nmm"
+            }
+          ],
+          "tray": []
+        }
+      }
+    }
+  },
+  "idle": {
+    "lock": 31536000,
+    "screensaver": 150
+  },
+  "plugins": [
+    {
+      "id": "radimsem.omafind"
+    }
+  ],
+  "version": 1
+}

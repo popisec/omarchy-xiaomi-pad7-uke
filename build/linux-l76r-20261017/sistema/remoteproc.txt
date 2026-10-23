@@ -1,0 +1,88 @@
+/sys/class/remoteproc/remoteproc0 wpss offline qca6750/wpss.mdt
+/sys/class/remoteproc/remoteproc1 adsp running adsp.mdt
+[    0.000000] [Firmware Bug]: Kernel image misaligned at boot, please fix your bootloader!
+[    0.000000] psci: PSCIv1.1 detected in firmware.
+[    0.000000] Kernel command line: msm.separate_gpu_kms=1 loglevel=6 kpti=0 log_buf_len=256K swiotlb=noforce loop.max_part=7 pcie_ports=compat irqaffinity=0-2 cpufreq.default_governor=performance sysctl.kernel.sched_pelt_multiplier=4 kasan=off cgroup.memory=nokmem,nosocket disable_dma32=on kernel.panic_on_rcu_stall=1 fw_devlink.strict=1 service_locator.enable=1 rcupdate.rcu_expedited=1 rcu_nocbs=0-7 no-steal-acc printk.console_no_auto_verbose=0 can.stats_timer=0 ftrace_dump_on_oops firmware_class.path=/vendor/firmware_mnt/image,/vendor/firmware_mnt/image/kiwi,/vendor/vm-system/oemvm/boot,/vendor/vm-system/trustedvm/boot,/vendor/firmware,/vendor/firmware/wlan/qca_cld/kiwi_v2 pci-msm-drv.pcie_sm_regs=0x1D07000,0x1040,0x1048,0x3000,0x1 video=vfb:640x400,bpp=32,memsize=3072000 swinfo.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user mtdoops.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user bootconfig rdinit=/ukeinit panic=10 memmap=0x1A12800$0xE3940000 console=tty0 fbcon=map:0 hung_task_timeout_secs=20 hung_task_panic=1 \
+[    0.278542] qcom_scm firmware:qcom_scm: qseecom: found qseecom with version 0x1402000
+[    0.278553] qcom_scm firmware:qcom_scm: qseecom: untested machine, skipping
+[    0.401281] remoteproc remoteproc0: releasing wpss
+[    0.401653] remoteproc remoteproc0: releasing adsp
+[    0.529819] X9WAVE-try 9bb00000.remoteproc-wpss
+[    0.529820] UKE-POKE: W:9bb00000.remoteproc-wpss
+[    0.529896] X9WAVE-poked 9bb00000.remoteproc-wpss
+[    0.531590] remoteproc remoteproc0: wpss is available
+[    0.531635] X9WAVE-try 3000000.remoteproc-adsp
+[    0.531636] UKE-POKE: W:3000000.remoteproc-adsp
+[    0.531714] X9WAVE-poked 3000000.remoteproc-adsp
+[    0.533271] remoteproc remoteproc1: adsp is available
+[    6.982771] systemd[1]: Clear SysFail Entry If The Boot Is Successful skipped, unmet condition check ConditionPathExists=/sys/firmware/efi/efivars/LoaderEntrySysFail-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+[    6.983007] systemd[1]: Clear Stale Hibernate Storage Info skipped, unmet condition check ConditionPathExists=/sys/firmware/efi/efivars/HibernateLocation-8cf2644b-4b0b-428f-9387-6d876050dc67
+[    9.870749] remoteproc remoteproc1: powering up adsp
+[    9.870819] remoteproc remoteproc1: Booting fw image adsp.mdt, size 8044
+[   10.361397] remoteproc remoteproc1: remote processor adsp is now up
+[   10.453294] qcom_q6v5_pas 3000000.remoteproc-adsp: Handover signaled, but it already happened
+[  171.426818] [drm] Loaded GMU firmware v4.5.1
+bdi
+binder
+block
+cec
+clear_warn_once
+clk
+cmd-db
+debug_enabled
+devfreq
+device_component
+devices_deferred
+dma_buf
+dma_pools
+dmaengine
+dri
+dynamic_debug
+energy_model
+extfrag
+f2fs
+fault_around_bytes
+gpio
+hid
+hte
+i2c
+iio
+interconnect
+kprobes
+lru_gen
+lru_gen_full
+mailbox
+memblock
+mtd
+multigrain_timestamps
+opp
+phy
+pinctrl
+pm_genpd
+psci
+pwm
+pwrseq
+qcom_aoss
+qcom_socinfo
+ramdisk_pages
+ras
+regmap
+regulator
+remoteproc
+rseq
+sched
+slab
+sleep_time
+split_huge_pages
+stackdepot
+suspend_stats
+swiotlb
+tracing
+tsens
+ufshcd
+ulpi
+usb
+virtio-ports
+wakeup_sources
+zram
+zsmalloc

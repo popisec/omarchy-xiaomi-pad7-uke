@@ -1,0 +1,53 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e7b-card-tdm.dtso — ETAPA E7b: tarjeta MINIMA con el backend TDM del altavoz (CON pines LPI gpio6-9 funcion 2: BCLK/WS/DATA al exterior). BORRADOR del PC (18-oct-2026), NO probado.
+ * ALTERNATIVA a uke-audio-e4c-card y e5-card (mismo modelo "UKE": cargar solo UNA tarjeta).
+ *
+ *   sound  qcom,sm8650-sndcard, model = "UKE"  -> pide qcom/sm8650/UKE-tplg.bin (la topologia nueva lleva "Primary TDM0 Playback")
+ *     └─ dai-link de BACKEND "TDM-LPAIF_VA-RX-PRIMARY": cpu = bedais PRIMARY_TDM_RX_0 (DAI "Primary TDM0 Playback"), platform = q6apm, codec = spdif-dit FICTICIO.
+ *   `pinctrl-0 = <&uke_tdm1_active>` (e3: gpio6 i2s1_clk, gpio7 i2s1_ws, gpio8/9 i2s1_data): el nucleo aplica el estado al hacer probe de la tarjeta => PRIMER ACCESO MMIO (escrituras) al LPASS TLMM, tras los votos PRM de E3b.
+ *
+ * Requiere el kernel con los modulos snd-q6apm + q6apm-lpass-dais de los parches 0005+0006 (updates/) y e2d (con bedais/dais). El TDM se configura en el ADSP con
+ * TDM_INTF_CFG del ACDB (LPAIF_VA PRIMARY, 4 slots x 32 bit, slot_mask = (1<<canales)-1, sync interna, short-sync-bit, retraso 1 BCLK).
+ * AVISO: los amplificadores FS19xx estan cableados a este TDM y SIN driver (sin I2C no deberian sacar sonido, INFERIDO). Usar silencio (/dev/zero) o -40 dBFS.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			uke_dit_e7b: spdif-dit {
+				compatible = "linux,spdif-dit";
+				#sound-dai-cells = <0>;
+			};
+
+			uke_sound_e7b: sound {
+				compatible = "qcom,sm8650-sndcard", "qcom,sm8450-sndcard";
+				model = "UKE";
+				pinctrl-names = "default";
+				pinctrl-0 = <&uke_tdm1_active>;
+
+				tdm-playback-dai-link {
+					link-name = "TDM-LPAIF_VA-RX-PRIMARY";
+
+					cpu {
+						sound-dai = <&uke_q6apmbedai PRIMARY_TDM_RX_0>;
+					};
+
+					codec {
+						sound-dai = <&uke_dit_e7b>;
+					};
+
+					platform {
+						sound-dai = <&uke_q6apm>;
+					};
+				};
+			};
+		};
+	};
+};

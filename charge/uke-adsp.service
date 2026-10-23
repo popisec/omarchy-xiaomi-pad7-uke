@@ -1,0 +1,18 @@
+[Unit]
+Description=uke: ADSP + pmic_glink + battmgr (carga de bateria)
+Documentation=file:///root/charge/INFORME-CHARGE-20261013.md
+# No arrancar sin los módulos staged fuera del escaneo de udev/kmod.
+ConditionPathExists=/usr/local/share/uke/mods/qcom_battmgr.ko
+ConditionPathExists=/lib/firmware/adsp.mdt
+After=multi-user.target
+Wants=systemd-udevd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/uke-adsp-load.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

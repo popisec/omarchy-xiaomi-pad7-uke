@@ -1,0 +1,72 @@
+#!/usr/bin/python3
+# uke-bateria-informe [dias=7] [--csv fichero ...] — resume /var/log/uke-bateria. 19-oct-2026.
+# Consumo medio por hora y por perfil (solo muestras en descarga), procesos que mas CPU acumularon,
+# drenaje durante la suspension (filas resume) y pistas de IRQ. Pensado para cazar procesos que gastan.
+import csv, glob, gzip, os, sys, time
+args = sys.argv[1:]
+files = []
+if "--csv" in args:
+    files = args[args.index("--csv") + 1:]; args = args[:args.index("--csv")]
+dias = int(args[0]) if args else 7
+if not files:
+    cut = time.strftime("%Y-%m-%d", time.localtime(time.time() - (dias - 1) * 86400))
+    files = sorted(f for f in glob.glob("/var/log/uke-bateria/????-??-??.csv*") if os.path.basename(f)[:10] >= cut)
+rows = []
+for f in files:
+    op = gzip.open if f.endswith(".gz") else open
+    with op(f, "rt") as fh: rows += list(csv.DictReader(fh))
+def fl(x):
+    try: return float(x)
+    except (TypeError, ValueError): return None
+if not rows:
+    print("sin datos todavia en /var/log/uke-bateria"); sys.exit(0)
+rows.sort(key=lambda r: int(r["ts"]))
+t0, t1 = int(rows[0]["ts"]), int(rows[-1]["ts"])
+fmt = lambda t: time.strftime("%d-%b %H:%M", time.localtime(t))
+print(f"== uke-bateria-informe: {fmt(t0)} -> {fmt(t1)}  ({len(rows)} muestras, {len(files)} ficheros)")
+# descarga real = status Discharging O drenaje neto >0,3 W (con cargador SDP debil el status dice Charging pero la bateria baja)
+dis = [r for r in rows if fl(r["w"]) is not None and r["event"] != "resume" and (r["estado"] == "Discharging" or fl(r["w"]) > 0.3)]
+chg = [r for r in rows if r["estado"] == "Charging"]
+print(f"   descarga: {len(dis)} min · carga: {len(chg)} min · primer %exacto {rows[0]['pct_exact']} -> ultimo {rows[-1]['pct_exact']}")
+print(f"   incoherencias capacity vs charge_counter (>1.5 pt): {sum(1 for r in rows if fl(r['pct']) is not None and fl(r['pct_exact']) is not None and abs(fl(r['pct'])-fl(r['pct_exact']))>1.5)}")
+def avg(xs): xs = [x for x in xs if x is not None]; return sum(xs) / len(xs) if xs else None
+def f2(x, u=""): return "   -  " if x is None else f"{x:6.2f}{u}"
+print("\n-- Consumo medio en descarga POR PERFIL (W, CPU%, brillo, Hz)")
+for p in sorted({r["perfil"] for r in dis}):
+    s = [r for r in dis if r["perfil"] == p]
+    print(f"   {p or '?':12} {len(s):5d} min  {f2(avg([fl(r['w']) for r in s]),' W')}  cpu {f2(avg([fl(r['cpu_pct']) for r in s]),'%')}  brillo {f2(avg([fl(r['brillo_pct']) for r in s]),'%')}  {f2(avg([fl(r['hz']) for r in s]),' Hz')}")
+print("\n-- Consumo medio POR HORA DEL DIA (descarga)")
+byh = {}
+for r in dis: byh.setdefault(time.strftime("%H", time.localtime(int(r["ts"]))), []).append(fl(r["w"]))
+for h in sorted(byh): print(f"   {h}h  {f2(avg(byh[h]),' W')}  ({len(byh[h])} min)  " + "#" * int(avg(byh[h]) * 4))
+print("\n-- Procesos que mas CPU acumularon (CPU-segundos = suma de % de nucleo * dt; en descarga y en total)")
+acc, accd = {}, {}
+for r in rows:
+    dt = fl(r["dt_s"]) or 60
+    for it in (r["top_cpu"] or "").split(";"):
+        if ":" in it:
+            n, v = it.rsplit(":", 1); v = fl(v) or 0
+            acc[n] = acc.get(n, 0) + v / 100 * dt
+            if r in dis[:0] or r["estado"] == "Discharging": accd[n] = accd.get(n, 0) + v / 100 * dt
+for n, v in sorted(acc.items(), key=lambda x: -x[1])[:10]:
+    print(f"   {n:24} {v:9.0f} s CPU   (en descarga: {accd.get(n,0):.0f} s)")
+print("\n-- Fuentes de interrupciones mas activas (media de IRQ/s donde aparecen top-3)")
+ir = {}
+for r in rows:
+    for it in (r["top_irq"] or "").split(";"):
+        if ":" in it:
+            n, v = it.rsplit(":", 1); ir.setdefault(n, []).append(fl(v) or 0)
+for n, v in sorted(ir.items(), key=lambda x: -sum(x[1]))[:6]: print(f"   {n:42} {avg(v):8.0f} /s  ({len(v)} min)")
+print("\n-- Suspensiones (filas resume)")
+prev = None; tot_s = tot_d = 0; n = 0
+for r in rows:
+    if r["event"] == "resume" and prev is not None and fl(r["susp_s"]):
+        s = fl(r["susp_s"]); a, b = fl(prev["charge_uah"]), fl(r["charge_uah"]); pa, pb = fl(prev["pct_exact"]), fl(r["pct_exact"])
+        if a and b and r["estado"] != "Charging" and prev["estado"] != "Charging":
+            dmah = (a - b) / 1000; v = fl(r["v"]) or 3.9
+            print(f"   {fmt(int(r['ts']))}  {s/3600:5.2f} h  -{dmah:6.1f} mAh  ({dmah/(s/3600):5.1f} mA ~ {dmah*v/(s/3600):5.0f} mW)  %exacto {pa}->{pb}")
+            tot_s += s; tot_d += dmah; n += 1
+        else: print(f"   {fmt(int(r['ts']))}  {s/3600:5.2f} h  (con cargador: sin dato de drenaje)")
+    prev = r
+if n: print(f"   TOTAL {n} suspensiones: {tot_s/3600:.2f} h, {tot_d:.1f} mAh -> {tot_d/(tot_s/3600):.1f} mA de media")
+else: print("   (ninguna suspension en descarga registrada todavia)")

@@ -1,0 +1,10 @@
+{
+  "fuente": "uke_pen.py: BTN_CODES/TABLET_BUTTONS/KEY_CODES; LAPIZ-20261018.md §27-§28. Datos de 20-oct-2026",
+  "botones": {
+    "small":    {"fisico": "boton pequeno (lateral)", "evento_tableta": 331, "nombre_tableta": "BTN_STYLUS (0x14B)", "tecla_fuera_de_rango": 189, "nombre_tecla": "KEY_F19"},
+    "big_up":   {"fisico": "boton grande, parte de arriba", "evento_tableta": null, "nombre_tableta": "NUNCA en la tableta (BTN_STYLUS2 provoca SIGSEGV de quickshell via Qt)", "tecla_fuera_de_rango": 104, "nombre_tecla": "KEY_PAGEUP"},
+    "big_down": {"fisico": "boton grande, parte de abajo", "evento_tableta": null, "nombre_tableta": "NUNCA en la tableta (BTN_STYLUS3 no es estandar de libinput)", "tecla_fuera_de_rango": 109, "nombre_tecla": "KEY_PAGEDOWN"}
+  },
+  "punta": {"evento": ["BTN_TOUCH", "ABS_PRESSURE"], "nota": "BTN_TOUCH lo decide el contacto del chip; ABS_PRESSURE 0..8191 (BLE), suelo 100 con contacto, 0 al levantar"},
+  "goma": null
+}

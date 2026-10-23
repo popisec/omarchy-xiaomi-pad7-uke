@@ -1,0 +1,24 @@
+# panel-o72-buildfix.diff — NO HAY CAMBIOS (diff deliberadamente VACIO)
+#
+# El enunciado pedia dejar aqui el diff de los arreglos de compilacion que
+# hicieran falta para construir el driver del panel o82 como modulo.
+#
+# RESULTADO MEDIDO (28-sep-2026, ver build/gates/INFORME-PHY-PANEL.md T2):
+#   El driver compila LIMPIO (0 errores, 0 warnings) contra el arbol palawan
+#   7.2-rc2 tal cual esta. NO se toco ni una linea del .c.
+#     log: /tmp/opencode/sg-panel-build.log
+#       linea 184: "CC [M]  panel-xiaomi-o82-dualdsi.o"
+#       linea 205: "CC [M]  panel-xiaomi-o82-dualdsi.mod.o"
+#       linea 224: "LD [M]  panel-xiaomi-o82-dualdsi.ko"
+#     (ninguna linea "error:" ni "warning:" en todo el log)
+#   Driver fuente (NO MODIFICADO): ~/gpu-work/palawan-linux/
+#     drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c  (681 lineas, sep 24)
+#
+# NOTA DE NOMBRE: el fichero pedido dice "o72"; el panel de esta tablet es
+# "o82" (qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid). Se conserva el nombre
+# pedido para que nadie lo busque en vano.
+#
+# Este fichero NO lleva hunks: 'patch -p1' con el debe fallar a proposito
+# ("Only garbage was found in the patch input"), porque no hay nada que aplicar.
+---
+# (fin: 0 hunks)

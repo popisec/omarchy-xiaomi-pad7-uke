@@ -1,0 +1,77 @@
+#!/bin/bash
+#
+# omarchy-pkg-add-tolerant — BORRADOR para uke/aarch64 (oct-2026, offline).
+#
+# ESTADO: borrador, NO instalado. Ver:
+#   build/gates/revision/RE-NOCTURNO-20261017/ATAQUE-OMARCHY-OFFLINE.md
+#
+# PROBLEMA (F6 §paso 4, docs/informes/A-port-omarchy-aarch64.md:455-456). El
+# /usr/bin/omarchy-pkg-add de upstream (omarchy 4.0.4-2) hace:
+#   pacman -S --noconfirm --needed "$@" || exit 1
+# y luego verifica con `pacman -Q` cada nombre. UN solo nombre irresoluble
+# (paquete x86-only del menú Install, AUR ausente, errata) aborta TODA la
+# transacción, y con `set -e` tumba `omarchy-migrate` y `omarchy update`.
+#
+# DISEÑO. Misma CLI que el original (`omarchy pkg add <pkgs...>`), mismo
+# requisito sudo. Cambios mínimos:
+#   1. Clasifica cada nombre: instalado (pacman -Q) → skip; en alguna DB de
+#      sync (pacman -Si) → candidato a instalar; en ninguna → SKIP con aviso.
+#   2. Instala TODOS los candidatos en UNA transacción (preserva --needed y
+#      los prompts de conflicto como --ask de las migraciones).
+#   3. Si la transacción real falla → exit 1 (un fallo de verdad sigue
+#      abortando; solo lo "no resoluble" se salta).
+#   4. La verificación secundaria `pacman -Q` solo se exige a los candidatos;
+#      los saltados se listan en el aviso, no fallan.
+#
+# INSTALACIÓN PREVISTA (no ejecutar aún): copiar a /usr/local/bin/omarchy-pkg-add
+# (PATH precede a /usr/bin en shell de usuario y en omarchy-migrate, que llama
+# al binario por nombre). NO tocar /usr/bin: A §7 lección 5 y 13 rutas
+# hardcodeadas; las unidades que llaman /usr/bin explícito conservan el
+# comportamiento estricto (fallar en voz alta en contexto de sistema = bueno).
+#
+# LÍMITE CONOCIDO: `pacman -Si` lee las DBs de sync. Con DBs obsoletas un
+# paquete nuevo parece "irresoluble" y se salta en silencio relativo (aviso a
+# stderr + lista final). Mitigación: el aviso dice explícito `pacman -Sy` y el
+# checklist del primer update exige DBs frescas antes de sellar migraciones.
+
+# omarchy:summary=Install Arch packages if they are missing (uke: skip unresolvable names)
+# omarchy:args=<packages...>
+# omarchy:examples=omarchy pkg add jq ripgrep
+# omarchy:requires-sudo=true
+
+installable=()
+skipped=()
+
+for pkg in "$@"; do
+  if pacman -Q "$pkg" &>/dev/null; then
+    continue # ya instalado: nada que hacer
+  fi
+  if pacman -Si "$pkg" &>/dev/null; then
+    installable+=("$pkg")
+  else
+    skipped+=("$pkg")
+  fi
+done
+
+if ((${#installable[@]} > 0)); then
+  if ((EUID == 0)); then
+    pacman -S --noconfirm --needed "${installable[@]}" || exit 1
+  else
+    sudo pacman -S --noconfirm --needed "${installable[@]}" || exit 1
+  fi
+
+  for pkg in "${installable[@]}"; do
+    # Chequeo secundario del original: pacman a veces no registra el error.
+    if ! pacman -Q "$pkg" &>/dev/null; then
+      echo -e "\033[31mError: Package '$pkg' did not install\033[0m" >&2
+      exit 1
+    fi
+  done
+fi
+
+if ((${#skipped[@]} > 0)); then
+  echo -e "\033[33mWarning (uke/aarch64): skipped unresolvable package(s): ${skipped[*]}\033[0m" >&2
+  echo -e "\033[33mIf a name above should exist, refresh DBs (pacman -Sy) and retry.\033[0m" >&2
+fi
+
+exit 0

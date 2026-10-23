@@ -1,0 +1,54 @@
+--- qcom-geni-se.c.orig
++++ qcom-geni-se.c.l43
+@@ -917,6 +917,23 @@
+ }
+ EXPORT_SYMBOL_GPL(geni_se_rx_dma_unprep);
+ 
++/* uke L43: en este target la ruta ICC "qup-core"/"qup-config" la provee
++ * clk_virt (interconnect@0), que no tiene driver -> devm_of_icc_get devuelve
++ * -EPROBE_DEFER y el probe del SE queda pendiente para siempre (medido en
++ * vivo: "a80000.i2c: deferred probe pending ... Failed to get 'qup-core' ICC
++ * path"). Los votos ya estan neutralizados (geni_icc_set_bw -> X9ICC-skip),
++ * asi que seguir sin path es funcionalmente equivalente y desbloquea el bus
++ * (i2c/spi/serial comparten este get). Marcador de build: UKE-L43-ICC.
++ */
++static void uke_icc_get_tolerante(struct device *dev, struct icc_path **path, const char *name)
++{
++	if (IS_ERR(*path)) {
++		dev_warn_once(dev, "UKE-L43-ICC: ruta '%s' no disponible (%ld); sigo sin voto\n",
++			      name, PTR_ERR(*path));
++		*path = NULL;
++	}
++}
++
+ int geni_icc_get(struct geni_se *se, const char *icc_ddr)
+ {
+ 	struct geni_icc_path *icc_paths = se->icc_paths;
+@@ -925,24 +942,14 @@
+ 		return 0;
+ 
+ 	icc_paths[GENI_TO_CORE].path = devm_of_icc_get(se->dev, "qup-core");
+-	if (IS_ERR(icc_paths[GENI_TO_CORE].path))
+-		return dev_err_probe(se->dev, PTR_ERR(icc_paths[GENI_TO_CORE].path),
+-				     "Failed to get 'qup-core' ICC path\n");
++	uke_icc_get_tolerante(se->dev, &icc_paths[GENI_TO_CORE].path, "qup-core");
+ 
+ 	icc_paths[CPU_TO_GENI].path = devm_of_icc_get(se->dev, "qup-config");
+-	if (IS_ERR(icc_paths[CPU_TO_GENI].path))
+-		return dev_err_probe(se->dev, PTR_ERR(icc_paths[CPU_TO_GENI].path),
+-				     "Failed to get 'qup-config' ICC path\n");
++	uke_icc_get_tolerante(se->dev, &icc_paths[CPU_TO_GENI].path, "qup-config");
+ 
+ 	/* The DDR path is optional, depending on protocol and hw capabilities */
+ 	icc_paths[GENI_TO_DDR].path = devm_of_icc_get(se->dev, "qup-memory");
+-	if (IS_ERR(icc_paths[GENI_TO_DDR].path)) {
+-		if (PTR_ERR(icc_paths[GENI_TO_DDR].path) == -ENODATA)
+-			icc_paths[GENI_TO_DDR].path = NULL;
+-		else
+-			return dev_err_probe(se->dev, PTR_ERR(icc_paths[GENI_TO_DDR].path),
+-					     "Failed to get 'qup-memory' ICC path\n");
+-	}
++	uke_icc_get_tolerante(se->dev, &icc_paths[GENI_TO_DDR].path, "qup-memory");
+ 
+ 	return 0;
+ }

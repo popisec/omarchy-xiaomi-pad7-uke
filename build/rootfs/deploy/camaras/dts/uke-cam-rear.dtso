@@ -1,0 +1,115 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-cam-rear.dtso -- C4: CCI0 + sensor trasero OV13B10 (modulo uke_ov13b10). Plan: CAMARAS-PLAN-20261019.md.
+ * C0, 19-oct-2026: compila y se aplica con fdtoverlay (tras uke-cam-camcc) en el PC; NO probado en la tablet.
+ * EXIGE kernel ouke5 (parche rpmh: ldob20, ldoe6 en la allowlist de qcom-rpmh-regulator-uke.c) y uke_camcc cargado.
+ *
+ * Origen de cada dato (DT de Android build/android/dt-full-uke-android/base/soc/qcom,cci0@ac15000/qcom,cam-sensor0):
+ *   slave 0x20 (8 bit) = 0x10 (7 bit); cci-master = 1 (SDA gpio72 / SCL gpio73, pinctrl uke_cci_i2c_*)
+ *   MCLK0 = camcc 0x69 vendor = gpio64 "cam_mclk", 19,2 MHz (clock-rates 0x124f800); reset gpio14
+ *   rails: cam_vio = pmxr2230_l20 (1,8 V) -> dovdd; cam_vana = gpio-regulator@1 (gpio79, 2,8 V) -> avdd;
+ *          cam_vdig = pmr735a_l6 (1,2 V) -> dvdd. custom1 = pmxr2230_s2 (1,256 V, 453 mA) y bob1: ya encendidos/no se piden.
+ *   lanes: 4 (INFERIDO: 4208x3120 del sensormodule de Android; el XML de lanes no esta cosechado) 
+ *
+ * Reescribe en sitio el nodo vendor qcom,cci0@ac15000 (compatible, clocks, interrupts a 3 celdas, pinctrl) y APAGA sus
+ * hijos vendor (el driver mainline exige `reg` en cada hijo disponible).
+ */
+#include <dt-bindings/clock/qcom,sm8650-camcc.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include "uke-cam-ph.h"
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/qcom,cci0@ac15000";
+
+		__overlay__ {
+			compatible = "qcom,sm8650-cci", "qcom,msm8996-cci";
+			#address-cells = <1>;
+			#size-cells = <0>;
+			interrupts = <GIC_SPI 426 IRQ_TYPE_EDGE_RISING>;
+			/* el nodo vendor trae gdscr-supply = <&qcom,gdsc@adf32bc> (un GDSC vendor SIN driver): fw_devlink dejaba el probe del CCI en espera eterna
+			 * («supplier adf32bc.qcom,gdsc not ready»). Se reapunta a camcc, que ya enlaza el driver (el GDSC real viene por power-domains). */
+			gdscr-supply = <&camcc>;
+			power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+			clocks = <&camcc CAM_CC_CAMNOC_AXI_NRT_CLK>,
+				 <&camcc CAM_CC_CPAS_AHB_CLK>,
+				 <&camcc CAM_CC_CCI_0_CLK>;
+			clock-names = "camnoc_axi", "cpas_ahb", "cci";
+			pinctrl-names = "default", "sleep";
+			pinctrl-0 = <PH_CCI_SCL1_ACT PH_CCI_SDA1_ACT>;
+			pinctrl-1 = <PH_CCI_SCL1_SUS PH_CCI_SDA1_SUS>;
+
+			/* master 0 sin dispositivos: el driver i2c-qcom-cci inicializa los `completion` SOLO de los masters declarados y cci_reset() espera
+			 * en master[0].irq_complete; sin este nodo => NULL deref en wait_for_common (oops del 19-oct 23:31, C4-ter, que colgo la tablet). */
+			cci0_i2c0: i2c-bus@0 {
+				reg = <0>;
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			cci0_i2c1: i2c-bus@1 {
+				reg = <1>;
+				clock-frequency = <400000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				camera@10 {
+					compatible = "ovti,ov13b10";
+					reg = <0x10>;
+					/* MCLK0 vive en el dominio titan_top: sin power-domains el reloj se queda «stuck at off» cuando el sensor se reanuda fuera de una
+					 * transaccion I2C (C5b: camss lo despierta tras el probe y el CCI ya dormia con su GDSC). */
+					power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+					clocks = <&camcc CAM_CC_MCLK0_CLK>;
+					assigned-clocks = <&camcc CAM_CC_MCLK0_CLK>;
+					assigned-clock-rates = <19200000>;
+					/* reset (XSHUTDN, gpio14) por PINCTRL, no por gpiolib: gpio14 es "shared" para gpiolib (lo citan cam-sensor0 y
+					 * eeprom0 del DT vendor) y rechaza consumidores posteriores. "default" = asertado (output-low), "rst_release" = liberado. */
+					pinctrl-names = "default", "sleep", "rst_release";
+					pinctrl-0 = <&cam_sensor_mclk0_active PH_WIDE_RST_SUS>;
+					pinctrl-1 = <&cam_sensor_mclk0_suspend PH_WIDE_RST_SUS>;
+					pinctrl-2 = <&cam_sensor_mclk0_active &uke_cam_rear_rst_hi>;
+					dovdd-supply = <&pmxr2230_l20>;
+					avdd-supply = <PH_WIDE_AVDD>;
+					dvdd-supply = <&pmr735a_l6>;
+					orientation = <1>;	/* trasera (Android: Facing Back) */
+					rotation = <90>;	/* Android: Orientation 90 */
+
+					port {
+						ov13b10_ep: endpoint {
+							link-frequencies = /bits/ 64 <560000000>;
+							data-lanes = <0 1 2 3>;	/* camss numera las posiciones del PHY desde 0: con <1 2 3 4> CTRL5=0xd4 (C5b: «uke-phy: data_pos=1,2,3,4»); Android: lane_enable 0xd5, lane_assign 0x3210 */
+						};
+					};
+				};
+			};
+		};
+	};
+
+	fragment@8 {
+		target-path = "/soc/pinctrl@f000000";
+
+		__overlay__ {
+			uke_cam_rear_rst_hi: uke-cam-rear-rst-hi {
+				pins = "gpio14";
+				function = "gpio";
+				drive-strength = <2>;
+				bias-disable;
+				output-high;
+			};
+		};
+	};
+
+	/* hijos vendor del CCI0: sin `reg`, el driver mainline los rechazaria */
+	fragment@1 { target-path = "/soc/qcom,cci0@ac15000/qcom,cam-sensor0"; __overlay__ { status = "disabled"; }; };
+	fragment@2 { target-path = "/soc/qcom,cci0@ac15000/qcom,actuator0";   __overlay__ { status = "disabled"; }; };
+	fragment@3 { target-path = "/soc/qcom,cci0@ac15000/qcom,eeprom0";     __overlay__ { status = "disabled"; }; };
+	fragment@4 { target-path = "/soc/qcom,cci0@ac15000/qcom,i2c_standard_mode";  __overlay__ { status = "disabled"; }; };
+	fragment@5 { target-path = "/soc/qcom,cci0@ac15000/qcom,i2c_fast_mode";      __overlay__ { status = "disabled"; }; };
+	fragment@6 { target-path = "/soc/qcom,cci0@ac15000/qcom,i2c_fast_plus_mode"; __overlay__ { status = "disabled"; }; };
+	fragment@7 { target-path = "/soc/qcom,cci0@ac15000/qcom,i2c_custom_mode";    __overlay__ { status = "disabled"; }; };
+};

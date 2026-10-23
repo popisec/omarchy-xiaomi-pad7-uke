@@ -1,0 +1,43 @@
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -186,6 +186,9 @@
+ 	bool registered;
+ 	bool power_on;
+ 	bool enabled;
++	/* UKE-FIX-B: rates ya votados en power_on (el re-voto por
++	 * transferencia es el glitch candidato R1). */
++	bool uke_link_rate_set;
+ 	int irq;
+ };
+ 
+@@ -2194,7 +2197,13 @@
+ 	 * mdp clock need to be enabled to receive dsi interrupt
+ 	 */
+ 	pm_runtime_get_sync(&msm_host->pdev->dev);
+-	cfg_hnd->ops->link_clk_set_rate(msm_host);
++	/*
++	 * UKE-FIX-B (R1, hipotesis): el set_rate ya quedo votado en power_on
++	 * al mismo rate; repetirlo por transferencia (con reparent a PLL en la
++	 * variante v2_9) es el glitch candidato. Solo enable (refcountado).
++	 */
++	if (!msm_host->uke_link_rate_set)
++		cfg_hnd->ops->link_clk_set_rate(msm_host);
+ 	cfg_hnd->ops->link_clk_enable(msm_host);
+ 
+ 	/* TODO: vote for bus bandwidth */
+@@ -2554,6 +2563,7 @@
+ 	dsi_ctrl_enable(msm_host, phy_shared_timings, phy);
+ 	uke_poke("L49-host-ctrl-ok");
+ 
++	msm_host->uke_link_rate_set = true;
+ 	msm_host->power_on = true;
+ 	mutex_unlock(&msm_host->dev_mutex);
+ 
+@@ -2595,6 +2605,7 @@
+ 
+ 	DBG("-");
+ 
++	msm_host->uke_link_rate_set = false;
+ 	msm_host->power_on = false;
+ 
+ unlock_ret:

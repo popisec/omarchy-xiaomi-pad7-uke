@@ -1,0 +1,459 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -12,6 +12,12 @@
+ #include <soc/qcom/cmd-db.h>
+ #include <soc/qcom/tcs.h>
+ #include <drm/drm_gem.h>
++#include <linux/clk-provider.h>	/* UKE-K61: __clk_is_enabled/__clk_get_enable_count */
++#include <linux/crc32.h>		/* UKE-K61: crc32_le (checksum del icache) */
++#include <linux/delay.h>		/* UKE-K61: mdelay en las ventanas del S3 */
++#include <linux/fs.h>		/* UKE-K61: rescate redundante en sda30 */
++#include <linux/pm_runtime.h>	/* UKE-K61: pm_runtime_status_suspended de cx/gx */
++#include <linux/unaligned.h>	/* UKE-K61: put_unaligned_le32 del registro rescate */
+ 
+ #include "a6xx_gpu.h"
+ #include <linux/uke-poke.h>
+@@ -355,6 +361,15 @@
+ 		pr_flush(120, false); \
+ 	} while (0)
+ 
++/* UKE-K61: canal unico de marcador persistente. pr_err -> printk -> consola
++ * pstore de ramoops (escritura SINCRONA en el buffer @0xa7000000: lo que pasa
++ * por aqui sobrevive a un reset duro) + pr_flush (espera a que la linea este
++ * en el wire de la UART). Todo veredicto del k61 pasa por AQUI. */
++#define UKE61_NOTE(fmt, ...) do { \
++	pr_err("UKE-K61: " fmt "\n", ##__VA_ARGS__); \
++	pr_flush(120, false); \
++} while (0)
++
+ /* UKE-K25: declarado aqui (no junto a uke_gmu_shared) porque su uso en
+  * a6xx_gmu_start() es ANTERIOR: si se declara mas abajo, no compila. */
+ static int uke_smmu_dump;
+@@ -651,6 +666,324 @@
+ 	UKE_K19_LOG("volcado K24 completo (CBbase=0x%llx numcb=%u target_iova=0x4000)",
+ 		    (unsigned long long)cb_base, numcb);
+ }
++/* ======================================================================
++ * UKE-K61 (8-oct-2026, diseno #543) — el dominio GMU bajo control
++ * ======================================================================
++ * Evidencia que disena esto (AUDIT-RAZONAMIENTO #541):
++ *  - 29/29 boots que ejecutaron S3-rst0 murieron en la ventana del poll
++ *    (<100 ms) SIN un solo print posterior: ni S4, ni panic, ni pstore.
++ *  - k56 NUNCA llego a S3: el volcado K19 murio antes, en el external
++ *    abort 0x96000010 leyendo la ventana CB +0x20000 de la kgsl-smmu.
++ *  - Sospechoso fisico (C5): gpu_cc_hlos1_vote_gpu_smmu (gate de la
++ *    interfaz del SMMU por donde fetch-ea el CM3) apagada por el
++ *    mismatch de clock-ids del DT fusionado.
++ * REGLAS del k61:
++ *  - PROHIBIDO tocar MMIO de la kgsl-smmu (0x3da0000..0x3de4000) y del
++ *    gpu_qtb (0x3de8000). De esos solo se consulta el CCF (clk_*).
++ *  - Toda lectura MMIO del dominio GMU DESPUES de soltar el reset pasa
++ *    por la whitelist (uke_k61_read) y va PRECEDIDA de un UKE61_NOTE ya
++ *    flushed con el nombre del registro: si la CPU muere en el readl,
++ *    el forklog dice CUAL era.
++ *  - Las ventanas post-S3 son de 50/200 ms en mdelay (busy-wait de CPU,
++ *    cero transacciones de bus) y acaban SIEMPRE en SYSRESET=1 + salida
++ *    limpia con -EAGAIN (el unwind de a6xx_gmu_resume ya existe).
++ *  - Default fail-closed: uke_s3_stage=0 NO suelta el reset.
++ */
++
++/* stage: 0 = NO soltar S3 (solo sondas de entorno, salida -EAGAIN)
++ *        1 = soltar, 50 ms, UNA lectura de FW_INIT_RESULT, re-assert
++ *        2 = soltar, 200 ms, autopsia completa (whitelist), re-assert
++ *        3 = flujo original: soltar y poll de 100 ms (comparable k56..k60)
++ * DEFAULT 0: un k61 sin cmdline no congela nada. Boot k61 recomendado:
++ * msm.uke_s3_stage=2 (y opcionalmente msm.uke_rescue=1). */
++static int uke_s3_stage;
++module_param(uke_s3_stage, int, 0444);
++MODULE_PARM_DESC(uke_s3_stage,
++	"UKE-K61: 0=NO soltar S3 (solo sondas de entorno, -EAGAIN); "
++	"1=soltar+50ms+1 lectura+rearm; 2=soltar+200ms+autopsia+rearm; "
++	"3=poll 100 ms (flujo k56). Defecto 0 (fail-closed).");
++
++/* Persistencia redundante por si pstore/ramoops no hubiera registrado la
++ * consola: 1 = escribir un registro marcado en el ULTIMO bloque de 4 KiB
++ * de sda30 (particion rescue, nunca montada, NUNCA el bloque 0). */
++static int uke_rescue;
++module_param(uke_rescue, int, 0444);
++MODULE_PARM_DESC(uke_rescue,
++	"UKE-K61: 1=escribir tambien el veredicto en el ultimo bloque 4K de "
++	"sda30 (zona rascador marcada UKE61RSC). Defecto 0 (pstore basta).");
++
++/* Whitelist de lecturas MMIO del dominio. Todo lo que no este aqui esta
++ * PROHIBIDO tras soltar el reset. Los offsets son word-offsets relativos
++ * a la base de la GPU (gmu_read: byte = off<<2 - mmio_offset).
++ *  0x25c00 = gpucc+0x7000 (gpu_cc_hlos1_vote_gpu_smmu, enable_reg del
++ *            gpucc-palawan.c) => phys 0x3d97000 => word GPU-rel 0x25c00,
++ *            byte de la ventana GMU 0x2f000 < 0x37000 (dentro del recurso). */
++enum uke_k61_reg_idx {
++	K61_RST,		/* 0x1f800 CM3_SYSRESET */
++	K61_BOOTCFG,		/* 0x1f801 CM3_BOOT_CONFIG */
++	K61_CFG,		/* 0x1f82d CM3_CFG */
++	K61_INITRES,		/* 0x1f81c CM3_FW_INIT_RESULT */
++	K61_FENCE,		/* 0x23b13 AHB_FENCE_STATUS */
++	K61_FENCE_R0,		/* 0x23b11 AHB_FENCE_RANGE_0 */
++	K61_AO_STATUS,		/* 0x23b05 AO_HOST_INTERRUPT_STATUS */
++	K61_SPTPRAC,		/* 0x1f8d0 SPTPRAC_PWR_CLK_STATUS */
++	K61_GX_GDSCR,		/* 0x24403 GPU_CC_GX_GDSCR */
++	K61_HLOS1,		/* 0x25c00 gpucc hlos1_vote (phys 3d97000) */
++	K61_DTCM_MAGIC,		/* 0x1d3f8 DTCM+0xff8 (magic de fin de init) */
++	K61_ITCM0,		/* 0x1b400 ITCM[0] (vector MSP) */
++	K61_ITCM1,		/* 0x1b401 ITCM[1] (reset Thumb @0x104) */
++	K61_ICACHE_CFG,		/* 0x1f400 */
++	K61_DCACHE_CFG,		/* 0x1f401 */
++	K61_SYSBUS_CFG,		/* 0x1f40f */
++	K61_HFI_INFO,		/* 0x1f984 */
++	K61_HFI_ADDR,		/* 0x1f985 */
++};
++
++static const char * const uke_k61_reg_names[] = {
++	"CM3_SYSRESET", "CM3_BOOT_CONFIG", "CM3_CFG", "CM3_FW_INIT_RESULT",
++	"AHB_FENCE_STATUS", "AHB_FENCE_RANGE_0", "AO_HOST_INTERRUPT_STATUS",
++	"SPTPRAC_PWR_CLK_STATUS", "GPUCC_GX_GDSCR", "GPUCC_HLOS1_VOTE",
++	"CM3_DTCM_MAGIC", "CM3_ITCM0", "CM3_ITCM1",
++	"ICACHE_CONFIG", "DCACHE_CONFIG", "SYS_BUS_CONFIG",
++	"HFI_QTBL_INFO", "HFI_QTBL_ADDR",
++};
++
++static const u32 uke_k61_reg_offs[] = {
++	[K61_RST]	= REG_A6XX_GMU_CM3_SYSRESET,
++	[K61_BOOTCFG]	= REG_A6XX_GMU_CM3_BOOT_CONFIG,
++	[K61_CFG]	= REG_A6XX_GMU_CM3_CFG,
++	[K61_INITRES]	= REG_A6XX_GMU_CM3_FW_INIT_RESULT,
++	[K61_FENCE]	= REG_A6XX_GMU_AHB_FENCE_STATUS,
++	[K61_FENCE_R0]	= REG_A6XX_GMU_AHB_FENCE_RANGE_0,
++	[K61_AO_STATUS]	= REG_A6XX_GMU_AO_HOST_INTERRUPT_STATUS,
++	[K61_SPTPRAC]	= REG_A6XX_GMU_SPTPRAC_PWR_CLK_STATUS,
++	[K61_GX_GDSCR]	= REG_A6XX_GPU_CC_GX_GDSCR,
++	[K61_HLOS1]	= 0x25c00,
++	[K61_DTCM_MAGIC] = REG_A6XX_GMU_CM3_DTCM_START + 0xff8,
++	[K61_ITCM0]	= REG_A6XX_GMU_CM3_ITCM_START,
++	[K61_ITCM1]	= REG_A6XX_GMU_CM3_ITCM_START + 1,
++	[K61_ICACHE_CFG] = REG_A6XX_GMU_ICACHE_CONFIG,
++	[K61_DCACHE_CFG] = REG_A6XX_GMU_DCACHE_CONFIG,
++	[K61_SYSBUS_CFG] = REG_A6XX_GMU_SYS_BUS_CONFIG,
++	[K61_HFI_INFO]	= REG_A6XX_GMU_HFI_QTBL_INFO,
++	[K61_HFI_ADDR]	= REG_A6XX_GMU_HFI_QTBL_ADDR,
++};
++
++static void a6xx_gmu_irq_disable(struct a6xx_gmu *gmu);
++
++/* Lectura con whitelist: lo que no este en la tabla NO se lee. */
++static u32 uke_k61_read(struct a6xx_gmu *gmu, int idx)
++{
++	if (idx < 0 || idx >= (int)ARRAY_SIZE(uke_k61_reg_offs) ||
++	    !uke_k61_reg_names[idx] || !uke_k61_reg_offs[idx]) {
++		UKE61_NOTE("WHITELIST: indice %d fuera de tabla — LECTURA DENEGADA", idx);
++		return 0;
++	}
++	return gmu_read(gmu, uke_k61_reg_offs[idx]);
++}
++
++/* Lectura bracketed (SOLO para post-S3): la linea con el nombre del
++ * registro ya esta en pstore/UART ANTES del readl. Si la CPU muere en el
++ * readl, el forklog dice exactamente CUAL fue. */
++static u32 uke_k61_bracket_read(struct a6xx_gmu *gmu, int idx)
++{
++	u32 v;
++
++	UKE61_NOTE("READ> %s", uke_k61_reg_names[idx]);
++	v = uke_k61_read(gmu, idx);
++	UKE61_NOTE("READ< %s = %08x", uke_k61_reg_names[idx], v);
++	return v;
++}
++
++/* Persistencia redundante: ULTIMO bloque 4 KiB de sda30 (zona designada,
++ * marcada con magic UKE61RSC, jamas montada, JAMAS el bloque 0). Solo con
++ * uke_rescue=1. Una escritura por hito, O_DSYNC, sin reintentos. */
++static void uke_k61_rescue_write(const char *tag, u32 a, u32 b)
++{
++	static bool dead;
++	struct file *f;
++	char buf[4096];
++	loff_t pos, size;
++	int len;
++
++	if (!uke_rescue || dead)
++		return;
++	f = filp_open("/dev/sda30", O_WRONLY | O_DSYNC, 0);
++	if (IS_ERR(f)) {
++		pr_err_once("UKE-K61: rescue sda30 no disponible (%ld)\n", PTR_ERR(f));
++		return;
++	}
++	size = i_size_read(file_inode(f));
++	if (size < 8192) {	/* particion absurda: no tocar */
++		dead = true;
++		goto out;
++	}
++	memset(buf, 0, sizeof(buf));
++	memcpy(buf, "UKE61RSC", 8);
++	len = scnprintf(buf + 8, sizeof(buf) - 8 - 4, "%s a=%u b=%u", tag, a, b);
++	put_unaligned_le32(crc32_le(0, buf + 8, len), buf + sizeof(buf) - 4);
++	pos = size - (loff_t)sizeof(buf);	/* SOLO el ultimo bloque */
++	if (kernel_write(f, buf, sizeof(buf), &pos) != sizeof(buf)) {
++		pr_err("UKE-K61: rescue: escritura incompleta\n");
++		dead = true;
++	}
++out:
++	filp_close(f, NULL);
++}
++
++/* Sondas de entorno PRE-S3. Todas SEGURAS: CCF, genpd y ventanas ya
++ * demostradas (K44/GX_GDSCR/gpucc). CERO MMIO de la SMMU.
++ * Lugar de llamada: a6xx_gmu_fw_start, tras P3-pwrOK (con los clocks bulk
++ * ya habilitados desde H3-clk: requisito para leer GPUCC). */
++static void uke_k61_env_probe(struct a6xx_gmu *gmu)
++{
++	/* clock-names del nodo kgsl-smmu en el DT fusionado (orden exacto) */
++	static const char * const smmu_clks[] = {
++		"gpu_cc_hlos1_vote_gpu_smmu",	/* LA gate sospechosa (C5) */
++		"gcc_gpu_memnoc_gfx",
++		"gcc_gpu_snoc_dvm_gfx",
++		"gpu_cc_ahb",
++	};
++	struct device_node *np;
++	u32 val;
++	int i;
++
++	UKE61_NOTE("ENV-BEGIN: sondas de entorno PRE-S3 (todas SEGURAS)");
++
++	/* a) los clocks del nodo GMU (clock-names del DT fusionado: ahb gmu
++	 *    cxo axi memnoc hub demet). rate=0 u on=0 aqui es hallazgo. */
++	for (i = 0; i < gmu->nr_clocks; i++) {
++		struct clk *c = gmu->clocks[i].clk;
++
++		UKE61_NOTE("ENV-CLK[%d/%d] %s: rate=%lu on=%d enccount=%u",
++			   i, gmu->nr_clocks, gmu->clocks[i].id,
++			   c ? clk_get_rate(c) : 0,
++			   c ? (int)__clk_is_enabled(c) : -1,
++			   c ? __clk_get_enable_count(c) : 0);
++	}
++
++	/* b) power domains cx/gx: en el DT del uke el GMU consume cx/gx como
++	 *    power-domains (GDSC), NO como regulators (no hay xxx-supply):
++	 *    el equivalente a regulator_is_enabled es el estado del genpd. */
++	if (!IS_ERR_OR_NULL(gmu->cxpd))
++		UKE61_NOTE("ENV-PD cx: suspended=%d",
++			   pm_runtime_status_suspended(gmu->cxpd));
++	if (!IS_ERR_OR_NULL(gmu->gxpd))
++		UKE61_NOTE("ENV-PD gx: suspended=%d",
++			   pm_runtime_status_suspended(gmu->gxpd));
++
++	/* d) GDSC hardware: GX por su GDSCR (dentro de la ventana GMU, mismo
++	 *    tipo de lectura que el K44) + resumen SPTPRAC (los mismos bits
++	 *    que decodifica gx_is_on()). */
++	val = gmu_read(gmu, REG_A6XX_GPU_CC_GX_GDSCR);
++	UKE61_NOTE("ENV-GDSC gx_gdscr=%08x (b31 power_on=%u b11 retention=%u)",
++		   val, !!(val & BIT(31)), !!(val & BIT(11)));
++	val = gmu_read(gmu, REG_A6XX_GMU_SPTPRAC_PWR_CLK_STATUS);
++	UKE61_NOTE("ENV-SPTPRAC %08x: gx_gdsc_off=%u gx_clk_off=%u spt_gdsc_off=%u sp_clk_off=%u",
++		   val,
++		   !!(val & A6XX_GMU_SPTPRAC_PWR_CLK_STATUS_GX_HM_GDSC_POWER_OFF),
++		   !!(val & A6XX_GMU_SPTPRAC_PWR_CLK_STATUS_GX_HM_CLK_OFF),
++		   !!(val & A6XX_GMU_SPTPRAC_PWR_CLK_STATUS_SPTPRAC_GDSC_POWER_OFF),
++		   !!(val & A6XX_GMU_SPTPRAC_PWR_CLK_STATUS_SP_CLOCK_OFF));
++
++	/* d2) la gate sospechosa EN REGISTRO (ademas del CCF de abajo):
++	 *     bit0 = voto del branch (enable_mask BIT(0)). Si aqui hay un 0
++	 *     con el sistema en H3-clk OK, C5 queda confirmado a nivel hw. */
++	val = gmu_read(gmu, uke_k61_reg_offs[K61_HLOS1]);
++	UKE61_NOTE("ENV-GATE hlos1_vote raw=%08x: vote_on(bit0)=%u raw_b31=%u  <<< sospechosa C5",
++		   val, val & 1u, !!(val & BIT(31)));
++
++	/* c) clocks de la kgsl-smmu SOLO via CCF. CERO readl del SMMU: la
++	 *    ventana CB +0x20000 external-aborts (0x96000010, k56) y todo el
++	 *    bloque esta fuera del menu del k61 (regla 4). */
++	np = of_find_node_by_path("/soc/kgsl-smmu@3da0000");
++	if (!np) {
++		UKE61_NOTE("ENV-SMMU: nodo no encontrado — nada que consultar");
++	} else {
++		for (i = 0; i < (int)ARRAY_SIZE(smmu_clks); i++) {
++			struct clk *c = of_clk_get_by_name(np, smmu_clks[i]);
++
++			if (IS_ERR(c)) {
++				UKE61_NOTE("ENV-SMMU-CLK %s: NO DISPONIBLE (%ld)",
++					   smmu_clks[i], PTR_ERR(c));
++				continue;
++			}
++			UKE61_NOTE("ENV-SMMU-CLK %s: rate=%lu on=%d enccount=%u",
++				   smmu_clks[i], clk_get_rate(c),
++				   (int)__clk_is_enabled(c),
++				   __clk_get_enable_count(c));
++			clk_put(c);
++		}
++		of_node_put(np);
++	}
++	UKE61_NOTE("ENV-END: SMMU MMIO NO tocado; todo lo anterior ya esta en pstore");
++	uke_k61_rescue_write("ENV-END", uke_s3_stage, 0);
++}
++
++/* S3 escalonado: soltar, esperar SIN tocar el bus (mdelay = busy-wait de
++ * CPU: cero transacciones), muestrear con lecturas bracketed y volver a
++ * asertar el reset. Salida -EAGAIN = probe aborta limpio. Stages 1/2 son
++ * single-shot: las irqs se dejan deshabilitadas a proposito. */
++static int uke_k61_stage_release(struct a6xx_gmu *gmu, int stage, unsigned ms)
++{
++	u32 initres;
++
++	/* Sin hardirqs de MMIO durante la ventana: si la isla se wedgea y el
++	 * AO dispara, el handler haria gmu_read() sobre un bus muerto. */
++	a6xx_gmu_irq_disable(gmu);
++
++	UKE61_NOTE("STAGE%d-ARM: irqs GMU/HFI off; escribiendo SYSRESET=0 AHORA (ventana %u ms)",
++		   stage, ms);
++	uke_k61_rescue_write("STAGE-ARM", stage, ms);
++	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
++	uke_poke(stage == 1 ? "S3-rst0-s1" : "S3-rst0-s2");
++	pr_flush(120, false);
++
++	mdelay(ms);
++
++	UKE61_NOTE("STAGE%d-T%u: ventana cumplida (el CM3 ha tenido %u ms para vivir o morir)",
++		   stage, ms, ms);
++	/* PREGUNTAS 1/2/3: tiene reloj? fetch-ea? murio en el primer fetch? */
++	initres = uke_k61_bracket_read(gmu, K61_INITRES);
++	UKE61_NOTE("STAGE%d-VEREDICTO initres=%08x: %s", stage, initres,
++		   initres == 0xbabeface ?
++		   "FW COMPLETO (el fetch SMMU/SID5-CB1 FUNCIONO)" :
++		   initres ? "PARCIAL/OTRO (fw vivo pero no completo)" :
++		   "CERO (sin reloj, o muerto ANTES de escribir el resultado)");
++	uke_k61_rescue_write("STAGE-SAMPLE", stage, initres);
++
++	if (stage >= 2) {
++		u32 dtcm, fence, ao, rst, ic0, ic1;
++
++		UKE61_NOTE("STAGE%d-AUTOPSIA: la maquina llego viva al sample; 6 lecturas bracketed",
++			   stage);
++		dtcm  = uke_k61_bracket_read(gmu, K61_DTCM_MAGIC);
++		fence = uke_k61_bracket_read(gmu, K61_FENCE);
++		ao    = uke_k61_bracket_read(gmu, K61_AO_STATUS);
++		rst   = uke_k61_bracket_read(gmu, K61_RST);
++		ic0   = uke_k61_bracket_read(gmu, K61_ITCM0);
++		ic1   = uke_k61_bracket_read(gmu, K61_ITCM1);
++		UKE61_NOTE("STAGE%d-CMD: rst=%08x dtcm=%08x fence=%08x aoirq=%08x itcm=%08x/%08x",
++			   stage, rst, dtcm, fence, ao, ic0, ic1);
++		UKE61_NOTE("STAGE%d-LEE: dtcm %s | fence %s", stage,
++			   dtcm == 0x40050001 ?
++			   "=0x40050001 PRE-CARGADO intacto (el fw NUNCA toco el DTCM)" :
++			   dtcm == 0x100 ?
++			   "=0x100 (el fw llego al fin de init)" :
++			   "=otro (parcial)",
++			   fence ?
++			   "NO-CERO = transaccion fenceada (bus fault del CM3)" :
++			   "=0 (sin bus fault fenceado)");
++	}
++
++	UKE61_NOTE("STAGE%d-REARM: SYSRESET=1 (CM3 a reset); salida limpia -EAGAIN", stage);
++	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 1);
++	wmb();
++	uke_k61_rescue_write("STAGE-REARM", stage, initres);
++	set_bit(GMU_STATUS_FW_START, &gmu->status);
++	return -EAGAIN;
++}
++
+ 
+ static int a6xx_gmu_start(struct a6xx_gmu *gmu)
+ {
+@@ -758,6 +1091,27 @@
+ 			"test H2: NO se lee el SMMU en este resume\n");
+ 	uke_poke("K19-dumpOK");
+ 
++	/* ===== UKE-K61: escala del S3 (module_param uke_s3_stage) ==========
++	 * 0: NO soltar (fail-closed): solo sondas de entorno, salida -EAGAIN
++	 * 1: soltar + 50 ms + UNA lectura + re-assert + -EAGAIN
++	 * 2: soltar + 200 ms + autopsia completa + re-assert + -EAGAIN
++	 * 3: flujo original (poll 100 ms) — sigue abajo */
++	UKE61_NOTE("DISPATCH: uke_s3_stage=%d", uke_s3_stage);
++	switch (uke_s3_stage) {
++	case 0:
++		UKE61_NOTE("STAGE0-NOGO: S3 NO se suelta; sondas de entorno ya impresas; salida limpia -EAGAIN");
++		uke_k61_rescue_write("STAGE0-NOGO", 0, 0);
++		set_bit(GMU_STATUS_FW_START, &gmu->status);
++		return -EAGAIN;
++	case 1:
++		return uke_k61_stage_release(gmu, 1, 50);
++	case 2:
++		return uke_k61_stage_release(gmu, 2, 200);
++	default:
++		break;
++	}
++	UKE61_NOTE("STAGE3-ARM: escribiendo SYSRESET=0 AHORA (poll 100 ms, flujo k56)");
++	uke_k61_rescue_write("STAGE3-ARM", 3, 0);
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
+ 	uke_poke("S3-rst0");
+ 	/* UKE-K23b: uke_poke() solo escribe en el framebuffer y hace pr_info SIN
+@@ -774,6 +1128,12 @@
+ 		gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 1);
+ 		pr_err("UKE-K56 C: poll FAIL -> SYSRESET re-assertado\n");
+ 		pr_flush(120, false);
++		/* UKE-K61: ya con el CM3 en reset, las lecturas vuelven a ser seguras */
++		UKE61_NOTE("S4-FAIL: initres=%08x fence=%08x aoirq=%08x (rst re-assertado)",
++			   uke_k61_read(gmu, K61_INITRES),
++			   uke_k61_read(gmu, K61_FENCE),
++			   uke_k61_read(gmu, K61_AO_STATUS));
++		uke_k61_rescue_write("STAGE3-S4FAIL", 3, 1);
+ 	}
+ 
+ 	/* UKE-K44': la MISMA lista, solo si el poll tuvo exito (maquina viva) */
+@@ -785,6 +1145,10 @@
+ 			gmu_read(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT));
+ 		pr_err("UKE-K44' E: fence=%08x (esp 0; si no: bus-fault fenceado)\n",
+ 			gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_STATUS));
++		/* UKE-K61: si esto se imprime, el CM3 ha completado por primera vez */
++		UKE61_NOTE("S4-OK: fw COMPLETO — dtcm=%08x aoirq=%08x (el fetch SMMU del CM3 FUNCIONO)",
++			   uke_k61_read(gmu, K61_DTCM_MAGIC),
++			   uke_k61_read(gmu, K61_AO_STATUS));
+ 	}
+ 
+ 	if (ret)
+@@ -1412,6 +1776,39 @@
+ 		     gmu->dummy.iova, gmu->debug.iova,
+ 		     gmu->hfi.iova, gmu->log.iova);
+ 
++	/* UKE-K61: verificacion CPU-side del BO icache (IOVA 0x4000), que es lo
++	 * que el CM3 fetch-ea via SID5/CB1. La vista del CM3 NO se puede leer
++	 * (SMMU prohibido, regla 4); esto prueba que el cuerpo llego a DRAM y
++	 * no se corrompio entre fw_load y el S3. PREGUNTA 4 (mitad CPU-side;
++	 * la mitad CM3-side la responde el stage>=1 con initres). */
++	{
++		const struct block_header *blk;
++		const unsigned char *img = NULL;
++		size_t blksz = 0, cmp;
++		u32 crc_img, crc_bo;
++
++		for (blk = (const struct block_header *) fw_image->data;
++		     (const u8 *) blk < fw_image->data + fw_image->size;
++		     blk = NEXT_BLK(blk)) {
++			if (blk->size &&
++			    in_range(blk->addr, gmu->icache.iova, gmu->icache.size)) {
++				img = (const unsigned char *) blk->data;
++				blksz = blk->size;
++				break;
++			}
++		}
++		cmp = min_t(size_t, blksz, 256);
++		crc_img = img ? crc32_le(0, img, cmp) : 0;
++		crc_bo = (img && gmu->icache.virt) ?
++			 crc32_le(0, gmu->icache.virt, cmp) : 0;
++		pr_err("UKE-K61 ICACHE-CPU: cuerpo=%zuB crc256 img=%08x bo=%08x => %s\n",
++		       blksz, crc_img, crc_bo,
++		       (crc_img && crc_img == crc_bo) ?
++		       "MATCH (el cuerpo del fw llego a DRAM)" :
++		       "MISMATCH/VACIO (el CM3 fetch-earia basura)");
++		pr_flush(120, false);
++	}
++
+ 	return 0;
+ }
+ 
+@@ -1539,6 +1936,10 @@
+ 	a6xx_gmu_power_config(gmu);
+ 	uke_poke("P3-pwrOK");
+ 
++	/* UKE-K61: sondas de entorno PRE-S3 (todas SEGURAS; requiere H3-clk OK:
++	 * los reads de GPUCC y GMU necesitan el ahb en pie). */
++	uke_k61_env_probe(gmu);
++
+ 	ret = a6xx_gmu_start(gmu);
+ 	if (ret) {
+ 		uke_poke("H8-cm3FAIL");

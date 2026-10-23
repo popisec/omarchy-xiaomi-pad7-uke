@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-tapa.dtso -- sensores hall de la funda/folio de la Xiaomi Pad 7 "uke" como gpio-keys (SW_LID / SW_TABLET_MODE).
+ * Ruta A de build/gates/revision/RE-NOCTURNO-20261017/RE-FOLIO-SENSORES.md §2: cero codigo nuevo, el gpio-keys de mainline sobre
+ * el TLMM. Informe: build/gates/revision/TAPA-HALL-20261018.md.
+ *
+ * Polaridad (DT de Android: hall_pin = <&tlmm N 1> = GPIO_ACTIVE_LOW en los dos) MEDIDA 18-oct-2026 en el gpio 99:
+ *   funda cerrada -> gpio99 = 0 (bajo) | funda abierta -> gpio99 = 1 (alto)  => activo-bajo = tapa CERRADA = SW_LID=1. Coincide.
+ *   gpio100 (table_hall): alto con la funda cerrada Y abierta (pull-down interno, no cambia con la funda): su polaridad NO esta
+ *   verificada, se deja la del DT de Android (activo-bajo). Con el pin en alto en reposo SW_TABLET_MODE=0.
+ *
+ * El nombre del input NO debe ser "Lid Switch": el Omarchy liga `switch:on:Lid Switch` a omarchy-system-lid-close, que BLOQUEA la
+ * pantalla; el dueño quiere suspender sin bloqueo (logind detecta el switch por su capacidad SW_LID, no por el nombre).
+ * Los nodos xiaomi_hall/{lid,table}_hall del DT de Android no tienen driver aqui y no se tocan.
+ */
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/linux-event-codes.h>
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc";
+
+		__overlay__ {
+			uke_hall: uke-hall {
+				compatible = "gpio-keys";
+				label = "uke-hall";
+
+				lid-hall {
+					label = "uke-lid-hall";
+					gpios = <&tlmm 99 GPIO_ACTIVE_LOW>;
+					linux,input-type = <EV_SW>;
+					linux,code = <SW_LID>;
+					debounce-interval = <30>;
+					wakeup-source;
+				};
+
+				table-hall {
+					label = "uke-table-hall";
+					gpios = <&tlmm 100 GPIO_ACTIVE_LOW>;
+					linux,input-type = <EV_SW>;
+					linux,code = <SW_TABLET_MODE>;
+					debounce-interval = <30>;
+					wakeup-source;
+				};
+			};
+		};
+	};
+};

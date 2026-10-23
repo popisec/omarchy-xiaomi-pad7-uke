@@ -1,0 +1,19 @@
+#!/bin/sh
+# camera-hook OUT.png — toma UN fotograma de la camara y lo deja en OUT.png (exit 0 si lo logra).
+# DESACTIVADO por defecto (/etc/uke/wifi-qr.conf CAMERA=0). SIN PROBAR: la camara aun no funciona en Linux;
+# ajustar cuando la sesion de la camara deje un nodo /dev/video* o libcamera operativo.
+out=${1:?uso: camera-hook OUT.png}
+# 1) libcamera (si existe `cam`): capturar 1 fotograma a PNG-compatible via ffmpeg
+if command -v cam >/dev/null 2>&1 && cam -l 2>/dev/null | grep -q '^[0-9]'; then
+	d=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/uke-cam.XXXXXX")
+	trap 'rm -rf "$d"' EXIT
+	cam -c1 --capture=3 --file="$d/f-#.bin" >/dev/null 2>&1 || true
+	# formato en bruto dependiente del sensor: pendiente de definir cuando haya camara real
+	echo "camera-hook: libcamera detectada pero sin conversion definida" >&2
+fi
+# 2) V4L2 clasico
+for v in /dev/video*; do
+	[ -e "$v" ] || continue
+	ffmpeg -v error -y -f v4l2 -i "$v" -frames:v 5 -update 1 "$out" 2>/dev/null && [ -s "$out" ] && exit 0
+done
+exit 1

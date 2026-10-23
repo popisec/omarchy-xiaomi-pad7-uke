@@ -1,0 +1,16 @@
+#!/bin/sh
+# 90-uke-wifi-ps — aplica el ahorro de energia del WiFi del perfil (WIFI_PS de /etc/uke/perfiles.conf) cada vez que wlan0 sube. 22-oct-2026.
+# Motivo: Omarchy fija wifi.powersave = 2 (desactivado) en /etc/NetworkManager/conf.d/omarchy-wifi-powersave.conf y NM lo reaplica en cada
+# conexion (p. ej. tras cada suspension), asi que el `iw ... power_save on` del perfil Ahorro se perdia a la primera reconexion
+# (visto 22-oct 18:54: perfil power-saver con «Power save: off»). Revertir: bateria/deploy.sh revert (o borrar este fichero).
+[ "$1" = wlan0 ] || exit 0
+case "$2" in up|dhcp4-change|connectivity-change) ;; *) exit 0 ;; esac
+CONF=/etc/uke/perfiles.conf; [ -r "$CONF" ] || exit 0
+. "$CONF"
+case "$(cat /var/lib/uke-bateria/perfil 2>/dev/null)" in
+	power-saver) ps=$P_ahorro_WIFI_PS ;; performance) ps=$P_rendimiento_WIFI_PS ;; *) ps=$P_equilibrado_WIFI_PS ;;
+esac
+[ -n "$ps" ] || exit 0
+cur=$(iw dev wlan0 get power_save 2>/dev/null | sed -n 's/^Power save: //p')
+[ "$cur" = "$ps" ] || iw dev wlan0 set power_save "$ps" 2>/dev/null
+exit 0

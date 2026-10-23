@@ -1,0 +1,39 @@
+BORRADOR DE E0 (18-oct-2026) — NO APLICADO a ningun arbol. Parche 2/3 de la serie de audio. REQUIERE FLASH.
+
+iommu/arm-smmu-qcom: admitir los SIDs de DMA de audio del LPASS en la lista blanca de la uke
+
+HALLAZGO de E0: qcom_uke_smmu_alloc_context_bank() (parches 0005/0010/0015/0023 de senemos) rechaza con
+-EOPNOTSUPP ("outside Uke boot SMMU scope") cualquier stream fuera de {0x40, 0xb6} y, solo con compat
+qcom,sm7675-boot-smmu (el del apps-smmu vivo), {0x60, 0xa3, 0x423, 0x436, 0x11400}. Los SIDs del cliente de audio
+q6apm-dais (identicos en sm8650.dtsi y en el msm-audio-ion vendor): <&apps_smmu 0x1001 0x80>, <&apps_smmu 0x1061 0>.
+arm_smmu_of_xlate() los codifica como id | mascara<<16: 0x801001 y 0x1061.
+
+Consecuencia para el plan: la hipotesis "E4 puede hacerse con un overlay en caliente" (AUDIO-SENEMOS §6 E4 y §7.6)
+queda REFUTADA por lectura de codigo: aunque el overlay cree el nodo, la union al dominio IOMMU falla. Hace falta
+un boot con este cambio (un ciclo de flash, ledger, gates de AGENTS.md). El transform de uke-abl.c NO es lo que
+bloquea (corre antes de que exista el nodo).
+
+Comprobado: la tabla qcom,actlr del apps-smmu vivo (31 entradas) no tiene ninguna que case con 0x1001 ni 0x1061, asi que
+la comprobacion posterior de ACTLR no los rechaza. Verificado el predicado de la lista blanca con un test C aparte
+(AUDIO-E0-20261018.md §3). NO compilado como kernel (no hay toolchain aarch64 ni .config en el PC), NO probado.
+Riesgo de E4: primera DMA del LPASS hacia memoria de Linux (AUDIO-SENEMOS §5a): un SID mal admitido o un contexto
+mal montado puede tumbar el ADSP, y con recovery_disabled=true tambien la carga.
+
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+@@ -834,9 +834,14 @@
+ 	for (i = 0; i < fwspec->num_ids; i++) {
+ 		u32 sid = fwspec->ids[i];
+ 
++		/*
++		 * LPASS audio DMA (q6apm-dais): <0x1001 mask 0x80> and <0x1061 mask 0>. fwspec IDs are
++		 * id | mask << 16 (arm_smmu_of_xlate), hence 0x801001 and 0x1061, as 0x11400 above.
++		 */
+ 		if (sid != 0x40 && sid != 0xb6 &&
+ 		    !((sid == 0x60 || sid == 0xa3 || sid == 0x423 ||
+-		       sid == 0x436 || sid == 0x11400) &&
++		       sid == 0x436 || sid == 0x11400 ||
++		       sid == 0x801001 || sid == 0x1061) &&
+ 		      of_device_is_compatible(smmu->dev->of_node, "qcom,sm7675-boot-smmu")))
+ 			return dev_err_probe(dev, -EOPNOTSUPP, "outside Uke boot SMMU scope\n");
+ 		/* None of these streams has an ACTLR override in OEM Cliffs DT. */

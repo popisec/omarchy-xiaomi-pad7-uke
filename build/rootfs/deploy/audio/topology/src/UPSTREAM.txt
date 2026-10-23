@@ -1,0 +1,7 @@
+Fuente: https://github.com/linux-msm/audioreach-topology  (rama principal, git clone --depth 1 el 18-oct-2026)
+Commit: 35e482d209ecacdda205eea75866a957396e7b0a  (16-oct-2026, "Nord topology (#79)")
+Licencia: BSD-3-Clause, Copyright 2021-2024 Linaro Ltd (LICENSE.BSD-3-Clause en esta carpeta).
+Copiados SIN MODIFICAR: audioreach/*.m4, util/*.m4 (mixer, pcm, route, util) y SM8550-HDK.m4 (como SM8550-HDK.m4.upstream,
+solo de referencia: es el fuente del que el CMakeLists upstream genera qcom/sm8650/SM8650-{QRD,MTP,HDK}-tplg.bin).
+No se copian util/gen_topology_html.py ni el resto de .m4 de placas. UPSTREAM.sha256 = sha256 de lo copiado.
+Esto son FUENTES de topologia (texto m4), no firmware de Qualcomm; el UKE-tplg.bin resultante es una compilacion de ellas.

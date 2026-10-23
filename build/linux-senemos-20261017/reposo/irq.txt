@@ -1,0 +1,52 @@
+            CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       
+  11:       7475       5071       5370       5482       4799       4296       4037       6607  GICv3       27 Level     arch_timer
+  13:          1          0          0          0          0          0          0          0  GICv3      261 Level     ipcc_0
+  14:          0          0          0          0          0          0          0          0  GICv3      262 Level     ipcc_1
+  15:          0          0          0          0          0          0          0          0  GICv3      962 Edge      qcom-scm
+  16:          0          0          0          0          0          0          0          0  GICv3      196 Level     bam_dma
+  17:          1          0          0          0          0          0          0          0  ipcc         0 Edge      aoss-qmp
+  18:          0          0          0          0          0          0          0          0  ipcc      196610 Edge      soc:qcom,smp2p-adsp
+  19:          0          0          0          0          0          0          0          0  ipcc      393218 Edge      soc:qcom,smp2p-cdsp
+  20:          0          0          0          0          0          0          0          0  ipcc      131074 Edge      soc:qcom,smp2p-modem
+  21:          0          0          0          0          0          0          0          0  ipcc      1572866 Edge      soc:qcom,smp2p-wpss
+  22:          0          0          0          0          0          0          0          0  GICv3       97 Level     arm-smmu global fault
+  23:          0          0          0          0          0          0          0          0  GICv3      129 Level     arm-smmu-context-fault
+  24:          0          0          0          0          0          0          0          0  GICv3      130 Level     arm-smmu-context-fault
+  26:          0          0          0          0          0          0          0          0  GICv3      132 Level     arm-smmu-context-fault
+  27:          0          0          0          0          0          0          0          0  GICv3      133 Level     arm-smmu-context-fault
+  28:          0          0          0          0          0          0          0          0  GICv3      134 Level     arm-smmu-context-fault
+  29:          0          0          0          0          0          0          0          0  GICv3      135 Level     arm-smmu-context-fault
+  30:          0          0          0          0          0          0          0          0  GICv3      136 Level     arm-smmu-context-fault
+  31:          0          0          0          0          0          0          0          0  GICv3      137 Level     arm-smmu-context-fault
+  32:          0          0          0          0          0          0          0          0  GICv3      138 Level     arm-smmu-context-fault
+ 120:          0          0          0          0          0          0          0          0  pmic_arb  1303004 Edge      pmic_pwrkey
+ 121:          0          0          0          0          0          0          0          0  pmic_arb  1294812 Edge      pmic_resin
+ 122:          0          0          0          0          0          0          0          0  GICv3      538 Level     c228000.tsens0
+ 123:          0          0          0          0          0          0          0          0  GICv3      672 Level     c228000.tsens0
+ 124:          0          0          0          0          0          0          0          0  GICv3      539 Level     c229000.tsens1
+ 125:          0          0          0          0          0          0          0          0  GICv3      673 Level     c229000.tsens1
+ 126:          0          0          0          0          0          0          0          0  GICv3      540 Level     c22a000.tsens2
+ 127:          0          0          0          0          0          0          0          0  GICv3      674 Level     c22a000.tsens2
+ 129:          0          0          0          0          0          0          0          0  GICv3       38 Level     arch_mem_timer
+ 130:          0          0          0          0          0          0          0          0  GICv3       23 Level     arm-pmu
+ 131:        794          0          0          0          0          0          0          0  GICv3       37 Level     apps_rsc-drv-2
+ 141:          0          0          0          0          0          0          0          0  GICv3       62 Level     dcvsh-irq-0
+ 142:          0          0          0          0          0          0          0          0  GICv3       63 Level     dcvsh-irq-3
+ 143:          0          0          0          0          0          0          0          0  GICv3       51 Level     dcvsh-irq-7
+ 144:        235          0          0          0          0          0          0          0  GICv3      385 Level     a80000.i2c
+ 146:        103          0          0          0          0          0          0          0  GICv3      618 Level     890000.i2c
+ 148:       9837          0          0          0          0          0          0          0  GICv3      165 Level     dwc3
+ 149:       4967          0          0          0          0          0          0          0  GICv3      297 Level     ufshcd
+ 150:         12          0          0          0          0          0          0          0  msm_mdss     5 Edge      dsi_isr
+ 151:         12          0          0          0          0          0          0          0  msm_mdss     4 Edge      dsi_isr
+ 152:      10279          0          0          0          0          0          0          0  msm_mdss     0 Edge      msm-kms
+ 153:          0          0          0          0          0          0          0          0  spmi-gpio    5 Edge      volume_up
+IPI0:        398        294        220        581        603        691        594        227  Rescheduling interrupts
+IPI1:       9652       9034      10410      12471      13979       9690       9265       9661  Function call interrupts
+IPI2:          0          0          0          0          0          0          0          0  CPU stop interrupts
+IPI3:          0          0          0          0          0          0          0          0  CPU stop NMIs
+IPI4:          0          0          0          0          0          0          0          0  Timer broadcast interrupts
+IPI5:         32         66         67         66         65         51         47         74  IRQ work interrupts
+IPI6:          0          0          0          0          0          0          0          0  CPU backtrace interrupts
+IPI7:          0          0          0          0          0          0          0          0  KGDB roundup interrupts
+ Err:          0

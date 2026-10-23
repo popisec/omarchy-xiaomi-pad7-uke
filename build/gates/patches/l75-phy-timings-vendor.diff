@@ -1,0 +1,64 @@
+--- a/drivers/gpu/drm/msm/dsi/phy/dsi_phy_7nm.c
++++ b/drivers/gpu/drm/msm/dsi/phy/dsi_phy_7nm.c
+@@ -984,6 +984,61 @@
+ 		return -EINVAL;
+ 	}
+ 
++	/*
++	 * L75 (uke, 17-oct-2026): tabla de la PHY del DTBO vendor
++	 * qcom,mdss-dsi-panel-phy-timings (42_02_0b y 36_02_0a; identica en
++	 * 120/90/144). El commit CAF la escribe 1:1 en TIMING_CTRL_0..13
++	 * (dsi_phy_hw_v4_0_commit_phy_timing) y los fijos 02/04/00 de
++	 * mainline (T9/T10/T11, writel de abajo) caen en las posiciones
++	 * 9/10/11: el mapeo byte[i] -> TIMING_CTRL_i es de registro. El calc
++	 * v4 (ui=841) difiere en 6 campos: T3 -2, T4 -12, T5 -12, T8 +3,
++	 * T12 -3, T13 -11. Gate fail-closed: solo la tasa pedida del panel
++	 * (byte 148.648.500 x8) y DPHY; otra tasa o build sigue con el calc
++	 * mainline y el marcador no aparece.
++	 */
++	if (!phy->cphy_mode && clk_req->bitclk_rate == 1189188000U) {
++		static const u8 o82_t[14] = { 0x00, 0x27, 0x0a, 0x0a, 0x1b,
++					      0x19, 0x0a, 0x0b, 0x0a, 0x02,
++					      0x04, 0x00, 0x20, 0x0f };
++		u8 calc_t[14];
++
++		/*
++		 * El calc previo en orden de registro T0..T13 (el mismo con
++		 * el que los writel de abajo lo llevan al HW): lo imprimo
++		 * para diff en vivo contra la tabla vendor.
++		 */
++		calc_t[0]  = 0x00;                                /* T0 fijo  */
++		calc_t[1]  = (u8)timing->clk_zero;                /* T1       */
++		calc_t[2]  = (u8)timing->clk_prepare;             /* T2       */
++		calc_t[3]  = (u8)timing->clk_trail;               /* T3       */
++		calc_t[4]  = (u8)timing->hs_exit;                 /* T4       */
++		calc_t[5]  = (u8)timing->hs_zero;                 /* T5       */
++		calc_t[6]  = (u8)timing->hs_prepare;              /* T6       */
++		calc_t[7]  = (u8)timing->hs_trail;                /* T7       */
++		calc_t[8]  = (u8)timing->hs_rqst;                 /* T8       */
++		calc_t[9]  = 0x02;                                /* T9 fijo  */
++		calc_t[10] = 0x04;                                /* T10 fijo */
++		calc_t[11] = 0x00;                                /* T11 fijo */
++		calc_t[12] = (u8)timing->shared_timings.clk_pre;  /* T12      */
++		calc_t[13] = (u8)timing->shared_timings.clk_post; /* T13      */
++
++		/* override de 10 campos; T0/T9/T10/T11 ya son identicos */
++		timing->clk_zero                = o82_t[1];
++		timing->clk_prepare             = o82_t[2];
++		timing->clk_trail               = o82_t[3];
++		timing->hs_exit                 = o82_t[4];
++		timing->hs_zero                 = o82_t[5];
++		timing->hs_prepare              = o82_t[6];
++		timing->hs_trail                = o82_t[7];
++		timing->hs_rqst                 = o82_t[8];
++		timing->shared_timings.clk_pre  = o82_t[12];
++		timing->shared_timings.clk_post = o82_t[13];
++
++		pr_info("UKE-L75: PHY%d timing override vendor @%lu Hz (was %*ph, now %*ph)\n",
++			phy->id, clk_req->bitclk_rate, (int)sizeof(calc_t),
++			calc_t, (int)sizeof(o82_t), o82_t);
++	}
++
+ 	if (dsi_phy_hw_v4_0_is_pll_on(phy))
+ 		pr_warn("PLL turned on before configuring PHY\n");
+ 

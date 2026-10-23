@@ -1,0 +1,65 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -18,6 +18,7 @@
+ #include <linux/fs.h>		/* UKE-K61: rescate redundante en sda30 */
+ #include <linux/pm_runtime.h>	/* UKE-K61: pm_runtime_status_suspended de cx/gx */
+ #include <linux/unaligned.h>	/* UKE-K61: put_unaligned_le32 del registro rescate */
++#include <linux/io.h>	/* UKE-C1: ioremap/iounmap + writel_relaxed/wmb del voto RDPM */
+ 
+ #include "a6xx_gpu.h"
+ #include <linux/uke-poke.h>
+@@ -2345,6 +2346,54 @@
+ 	a6xx_gmu_gxpd_get(gmu);
+ 	uke_poke("H2-gx");
+ 
++	/* UKE-C1 (2026-10-09, PLAN-C): voto CX estilo vendor, FAIL-OPEN.
++	 * Replica de gen7_gmu_enable_clks (vendor adreno_gen7_gmu.c:1868):
++	 *   gen7_rdpm_cx_freq_update(gmu, freqs[level]/1000)
++	 *     -> writel_relaxed(freq/1000, rdpm_cx_virt + 0xf14); wmb();
++	 * ANTES de cualquier set_rate/enable. Doble /1000 = el valor final
++	 * es MHz (220000000 -> 220000 -> 220).
++	 * El rate "guardado" antes del voto en el vendor es gmu->freqs[]
++	 * (DT qcom,gmu-freq-table, o default 220M/550M) + hub en
++	 * adreno_dev->gmu_hub_clk_freq (gpulist, default 150M/200M).
++	 * Aqui sin D1/D2 no hay rate objetivo: se vota el HEREDADO XBL
++	 * leido con clk_get_rate (si es 0, minimo vendor 220 MHz).
++	 * Si el recurso "rdpm_cx" NO existe en este DT (caso esperado E0:
++	 * grep rdpm = 0 en k52-tree, sin base fisica conocida en uke.dts
++	 * ni base-uke.dts), pr_err + sigue SIN tocar MMIO ni rates.
++	 * C1 NO sube ningun rate: core y hub conservan XBL.
++	 */
++	{
++		/* El recurso rdpm_cx en el vendor cuelga del pdev del GMU
++		 * (gen7_gmu_rdpm_probe: device->pdev). Aqui igual:
++		 * a6xx_gmu_rpmh_init hace to_platform_device(gmu->dev). */
++		struct platform_device *gpdev = to_platform_device(gmu->dev);
++		struct resource *rdpm = platform_get_resource_byname(gpdev,
++				IORESOURCE_MEM, "rdpm_cx");
++		unsigned long r = clk_get_rate(gmu->core_clk);
++		u32 mhz = r ? (u32)(r / 1000000) : 220;
++
++		pr_err("UKE-C1: voto CX pre-rate: rdpm_cx %s core_heredado=%lu mhz_votado=%u\n",
++		       rdpm ? "PRESENTE" : "ausente(fail-open, sin MMIO)",
++		       r, mhz);
++		if (rdpm) {
++			void __iomem *b = ioremap(rdpm->start,
++					resource_size(rdpm));
++			if (!b) {
++				pr_err("UKE-C1: ioremap rdpm_cx@%pa FAIL (fail-open, sigo)\n",
++				       &rdpm->start);
++			} else {
++				/* Replica exacta vendor: MHz en +0xf14, wmb. */
++				writel_relaxed(mhz, b + 0xf14);
++				wmb();
++				pr_err("UKE-C1: writel(%u) -> rdpm_cx@%pa+0xf14 OK\n",
++				       mhz, &rdpm->start);
++				iounmap(b);
++			}
++		}
++		pr_flush(120, false);
++	}
++	uke_poke("H2-cxvoto");
++
+ 	/* Use a known rate to bring up the GMU */
+ 	/* UKE-K68 (9-oct-2026, BARRIDO-W4): D2-SOLO SIN D1 SIN D3.
+ 	 * Rama gemela de K67: SOLO el hub a 200M (tabla real

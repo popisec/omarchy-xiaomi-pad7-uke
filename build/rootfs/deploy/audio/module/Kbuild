@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-2.0
+# Cargadores de overlays del audio de la uke. Los construye ../build-module.sh (make -C <senemos-build> M=<stage>).
+obj-m += uke_audio_e2.o uke_audio_e2b.o uke_audio_e2c.o uke_audio_e2d.o uke_audio_e3.o uke_audio_e4a.o uke_audio_e4b.o uke_audio_e4c.o uke_audio_e7a.o uke_audio_e7b.o uke_audio_e7i2c.o uke_audio_e8a.o uke_audio_e8b.o uke_audio_e5.o uke_audio_e9a.o
+CFLAGS_uke_audio_e2.o  := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e2-gpr.dtbo\"
+CFLAGS_uke_audio_e2b.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e2b-fastrpc.dtbo\"
+ccflags-y += -I$(src)
+CFLAGS_uke_audio_e2c.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e2c-fastrpc-heap.dtbo\"
+CFLAGS_uke_audio_e2d.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e2d-gpr-ports.dtbo\"
+CFLAGS_uke_audio_e3.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e3-lpi.dtbo\"
+CFLAGS_uke_audio_e4a.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e4a-bedais.dtbo\"
+CFLAGS_uke_audio_e4b.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e4b-dais.dtbo\"
+CFLAGS_uke_audio_e4c.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e4c-card.dtbo\"
+CFLAGS_uke_audio_e7a.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e7a-card-tdm.dtbo\"
+CFLAGS_uke_audio_e7b.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e7b-card-tdm-pins.dtbo\"
+CFLAGS_uke_audio_e7i2c.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e7-amps-i2c.dtbo\"
+CFLAGS_uke_audio_e8a.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e8a-card-fs19xx.dtbo\"
+CFLAGS_uke_audio_e8b.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e8b-card-fs19xx-pins.dtbo\"
+CFLAGS_uke_audio_e5.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e5-codec.dtbo\"
+CFLAGS_uke_audio_e9a.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-audio-e9a-card-fs19xx-wcd-capture.dtbo\"

@@ -1,0 +1,539 @@
+2026-10-18T08:54:17Z uke-bt-up: variante u, kernel 7.2.9-senemos.1.4054.3-ouke3; WiFi: wpa_state=COMPLETED
+2026-10-18T08:54:17Z uke-bt-up: uke_bt_uart cargado (overlay aplicado)
+2026-10-18T08:54:17Z uke-bt-up: VERDE: solo la UART (sin chip)
+2026-10-18T09:01:54Z uke-bt-up: hci_uart descargado
+2026-10-18T09:01:54Z uke-bt-up: uke_bt_uart descargado (overlay retirado)
+2026-10-18T09:04:25Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke3; WiFi: wpa_state=COMPLETED
+2026-10-18T09:04:25Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T09:04:25Z uke-bt-up: serdev: serial0-0 
+2026-10-18T09:04:25Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s)
+2026-10-18T09:04:27Z uke-bt-up: VERDE: [ 3987.797657] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T09:55:51Z uke-bt-up: hci_uart descargado
+2026-10-18T09:55:51Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-18T09:56:13Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke3; WiFi: wpa_state=COMPLETED
+2026-10-18T09:56:13Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T09:56:13Z uke-bt-up: serdev: serial0-0 
+2026-10-18T09:56:13Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s)
+2026-10-18T09:56:14Z uke-bt-up: VERDE: [ 7095.470864] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T10:02:59Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke3; WiFi: wpa_state=COMPLETED
+2026-10-18T10:02:59Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T10:02:59Z uke-bt-up: serdev: serial0-0 
+2026-10-18T10:02:59Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s)
+2026-10-18T10:03:02Z uke-bt-up: ROJO: el setup del chip fallo: [   25.553685] msm_dsi_phy ae95000.phy: Uke O82 FLL cold-start defaults applied|[   25.576533] msm_dsi_phy ae95000.phy: Uke O82 PLL rate trace: rate=1189188000 parent=19200000 pll_on=1|[   25.812060] panel-xiaomi-o82 ae94000.dsi.0: Uke O82 LP ON batching complete: commands=108 chunks=8 bytes=884|[   25.812684] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame arm: target=493|[   25.813377] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame boundary: target=493 current=493|[   25.830440] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame checked backlight: brightness=102 result=0|[   25.837845] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame normal-pixels complete|[   25.846164] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame dimming-on complete|
+2026-10-18T10:03:00Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke3; WiFi: wpa_state=COMPLETED
+2026-10-18T10:03:00Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.83 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T10:15:12Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T10:15:12Z uke-bt-up: serdev: serial0-0 
+2026-10-18T10:15:12Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T10:15:13Z uke-bt-up: VERDE: [   31.592836] Bluetooth: hci0: QCA controller version 0x01200102|[   32.295548] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T13:18:13Z uke-bt-up: no encuentro el modulo uke_bt_b (¿deploy.sh --module? ¿depmod?)
+2026-10-18T13:33:36Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=COMPLETED
+2026-10-18T13:33:36Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T13:33:36Z uke-bt-up: serdev: serial0-0 
+2026-10-18T13:33:36Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T13:33:37Z uke-bt-up: VERDE: [  372.436613] Bluetooth: hci0: QCA controller version 0x01200102|[  373.139291] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T14:32:11Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-18T14:32:11Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.84 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T14:32:19Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T14:32:19Z uke-bt-up: serdev: serial0-0 
+2026-10-18T14:32:19Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T14:32:20Z uke-bt-up: VERDE: [   24.636200] Bluetooth: hci0: QCA controller version 0x01200102|[   25.356509] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T14:32:11Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-18T14:32:11Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.90 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T14:32:19Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T14:32:19Z uke-bt-up: serdev: serial0-0 
+2026-10-18T14:32:19Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T14:32:20Z uke-bt-up: VERDE: [   24.570406] Bluetooth: hci0: QCA controller version 0x01200102|[   25.274656] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T14:32:11Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-18T14:32:11Z uke-bt-wait: org.bluez en el bus tras ~0.5 s: arranca el escritorio
+2026-10-18T14:32:11Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.86 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T14:32:19Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T14:32:19Z uke-bt-up: serdev: serial0-0 
+2026-10-18T14:32:19Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T14:32:20Z uke-bt-up: VERDE: [   24.569821] Bluetooth: hci0: QCA controller version 0x01200102|[   25.287730] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T14:32:11Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-18T14:32:11Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.84 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T14:32:19Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T14:32:19Z uke-bt-up: serdev: serial0-0 
+2026-10-18T14:32:19Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T14:32:35Z uke-bt-up: ROJO: el driver se rindio tras 3 reintentos y el ultimo intento tambien fallo: [   34.540932] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:bt_wcn6750|[   34.540933] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:regulator-ocp-notifier|[   34.540935] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:regulator-ocp-notifier|[   34.540936] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:qcom,dsi-display-primary|[   34.540937] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob12: sync_state() pending due to soc:regulator-ocp-notifier|[   34.540939] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob17: sync_state() pending due to soc:regulator-ocp-notifier|[   34.540940] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod1: sync_state() pending due to soc:regulator-ocp-notifier|[   34.540942] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod3: sync_state() pending due to soc:regulator-ocp-notifier|
+2026-10-18T14:32:36Z uke-bt-wait: org.bluez en el bus tras ~24.5 s: arranca el escritorio
+2026-10-18T15:33:26Z uke-bt-up: hci_uart descargado
+2026-10-18T15:33:26Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-18T15:33:26Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=COMPLETED
+2026-10-18T15:33:26Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T15:33:26Z uke-bt-up: serdev: serial0-0 
+2026-10-18T15:33:26Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T15:33:42Z uke-bt-up: ROJO: el driver se rindio tras 3 reintentos y el ultimo intento tambien fallo: [ 1808.507193] Bluetooth: hci0: Reading QCA version information failed (-110)|[ 1808.611054] Bluetooth: hci0: Retry BT power ON:1|[ 1809.151835] audit: type=1131 audit(1792337611.985:882): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=systemd-rfkill comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'|[ 1810.747148] Bluetooth: hci0: command 0xfc00 tx timeout|[ 1810.747988] Bluetooth: hci0: Reading QCA version information failed (-110)|[ 1810.851766] Bluetooth: hci0: Retry BT power ON:2|[ 1812.987382] Bluetooth: hci0: command 0xfc00 tx timeout|[ 1812.987545] Bluetooth: hci0: Reading QCA version information failed (-110)|
+2026-10-18T15:39:13Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-18T15:39:13Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.88 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T15:39:21Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T15:39:21Z uke-bt-up: serdev: serial0-0 
+2026-10-18T15:39:21Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T15:39:24Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [   27.990916] Bluetooth: hci0: QCA controller version 0x01200102|[   28.695108] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T15:39:24Z uke-bt-wait: org.bluez en el bus tras ~11.5 s: arranca el escritorio
+2026-10-18T19:11:35Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-18T19:11:35Z uke-bt-sleep: post: reanudacion lanzada (desacoplada)
+2026-10-18T19:12:16Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-18T19:12:16Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.87 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T19:12:24Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T19:12:24Z uke-bt-up: serdev: serial0-0 
+2026-10-18T19:12:24Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T19:12:42Z uke-bt-wait: timeout de 25 s sin org.bluez: arranca el escritorio igualmente (el panel de BT puede necesitar omarchy-restart-shell)
+2026-10-18T19:13:57Z uke-bt-up: AMARILLO: hci0 existe pero no vi el fin del setup en 90 s (3 reintento(s) del driver)
+2026-10-18T19:18:35Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T19:18:35Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-18T19:18:35Z uke-bt-sleep: pre: power off no respondio (se sigue)
+2026-10-18T19:19:01Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-18T19:19:01Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-18T19:19:02Z uke-bt-resume: power on no respondio
+2026-10-18T19:19:02Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-18T19:20:56Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T19:20:56Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-18T19:20:56Z uke-bt-sleep: pre: power off no respondio (se sigue)
+2026-10-18T19:21:01Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-18T19:21:01Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-18T19:21:01Z uke-bt-resume: power on no respondio
+2026-10-18T19:21:01Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-18T19:12:16Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-18T19:12:16Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.85 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-18T19:12:24Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-18T19:12:24Z uke-bt-up: serdev: serial0-0 
+2026-10-18T19:12:24Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-18T19:12:30Z uke-bt-up: VERDE (tras 2 reintento(s) del driver): [   29.035452] Bluetooth: hci0: QCA controller version 0x01200102|[   29.728914] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-18T19:12:30Z uke-bt-wait: org.bluez en el bus tras ~14.5 s: arranca el escritorio
+2026-10-18T19:25:02Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T19:25:02Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-18T19:25:28Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-18T19:25:28Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-18T19:25:29Z uke-bt-resume: adaptador encendido
+2026-10-18T19:25:33Z uke-bt-resume: reconexion de 2C:BE:EE:XX:XX:XX OK
+2026-10-18T19:54:51Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T19:54:51Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-18T21:14:30Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-18T21:14:30Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-18T21:14:31Z uke-bt-resume: adaptador encendido
+2026-10-18T21:14:31Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-18T21:15:01Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T21:15:01Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-18T21:15:05Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-18T21:15:05Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-18T21:15:06Z uke-bt-resume: adaptador encendido
+2026-10-18T21:15:06Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-18T21:30:47Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T21:30:47Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-18T21:30:49Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-18T21:30:49Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-18T21:30:50Z uke-bt-resume: adaptador encendido
+2026-10-18T21:30:50Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-18T21:48:44Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T21:48:44Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-18T21:48:47Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-18T21:48:47Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-18T21:48:48Z uke-bt-resume: adaptador encendido
+2026-10-18T21:48:48Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-18T22:25:55Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-18T22:25:55Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-19T07:28:40Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T07:28:40Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T07:28:40Z uke-bt-resume: adaptador encendido
+2026-10-19T07:28:40Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-19T07:54:57Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T07:54:57Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-19T07:55:00Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T07:55:00Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T07:55:01Z uke-bt-resume: adaptador encendido
+2026-10-19T07:55:01Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-19T08:00:28Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-19T08:00:28Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.85 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-19T08:00:36Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:00:36Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:00:36Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:00:37Z uke-bt-up: VERDE: [   24.611919] Bluetooth: hci0: QCA controller version 0x01200102|[   25.302546] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:00:37Z uke-bt-wait: org.bluez en el bus tras ~9.5 s: arranca el escritorio
+2026-10-19T08:14:51Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T08:14:51Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-19T08:14:54Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T08:14:54Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T08:14:55Z uke-bt-resume: adaptador encendido
+2026-10-19T08:14:58Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-19T08:15:50Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-19T08:15:50Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.88 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-19T08:15:58Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:15:58Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:15:58Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:16:14Z uke-bt-up: ROJO: el driver se rindio tras 3 reintentos y el ultimo intento tambien fallo: [   34.822153] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:bt_wcn6750|[   34.822173] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:regulator-ocp-notifier|[   34.822178] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:regulator-ocp-notifier|[   34.822182] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:qcom,dsi-display-primary|[   34.822187] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob12: sync_state() pending due to soc:regulator-ocp-notifier|[   34.822192] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob17: sync_state() pending due to soc:regulator-ocp-notifier|[   34.822197] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod1: sync_state() pending due to soc:regulator-ocp-notifier|[   34.822202] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod3: sync_state() pending due to soc:regulator-ocp-notifier|
+2026-10-19T08:16:15Z uke-bt-wait: org.bluez en el bus tras ~24.5 s: arranca el escritorio
+2026-10-19T08:15:48Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-19T08:15:49Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.82 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-19T08:15:56Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:15:56Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:15:56Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:16:03Z uke-bt-up: VERDE (tras 2 reintento(s) del driver): [   27.778570] Bluetooth: hci0: QCA controller version 0x01200102|[   28.493453] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:16:03Z uke-bt-wait: org.bluez en el bus tras ~14.5 s: arranca el escritorio
+2026-10-19T08:15:50Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-19T08:15:51Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.84 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-19T08:15:58Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:15:58Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:15:59Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:16:00Z uke-bt-up: VERDE: [   25.239903] Bluetooth: hci0: QCA controller version 0x01200102|[   25.968337] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:16:00Z uke-bt-wait: org.bluez en el bus tras ~9.5 s: arranca el escritorio
+2026-10-19T08:15:51Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-19T08:15:51Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.83 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-19T08:15:58Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:15:58Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:15:59Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:16:15Z uke-bt-up: ROJO: el driver se rindio tras 3 reintentos y el ultimo intento tambien fallo: [   35.391765] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:bt_wcn6750|[   35.391771] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:regulator-ocp-notifier|[   35.391779] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:regulator-ocp-notifier|[   35.391786] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:qcom,dsi-display-primary|[   35.391795] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob12: sync_state() pending due to soc:regulator-ocp-notifier|[   35.391804] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob17: sync_state() pending due to soc:regulator-ocp-notifier|[   35.391813] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod1: sync_state() pending due to soc:regulator-ocp-notifier|[   35.391821] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod3: sync_state() pending due to soc:regulator-ocp-notifier|
+2026-10-19T08:16:16Z uke-bt-wait: org.bluez en el bus tras ~24.5 s: arranca el escritorio
+2026-10-19T08:15:50Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: n/d
+2026-10-19T08:15:50Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.79 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-19T08:15:57Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:15:58Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:15:58Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:16:15Z uke-bt-up: ROJO: el driver se rindio tras 3 reintentos y el ultimo intento tambien fallo: [   34.432450] audit: type=1006 audit(1792397768.483:200): pid=1832 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=10 res=1|[   34.436297] audit: type=1300 audit(1792397768.483:200): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffe6001fe0 a2=1 a3=0 items=0 ppid=587 pid=1832 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=10 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)|[   34.443464] audit: type=1327 audit(1792397768.483:200): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D|[   34.447115] audit: type=1105 audit(1792397768.507:201): pid=1832 uid=0 auid=0 ses=10 subj=kernel msg='op=PAM:session_open grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[   34.454155] audit: type=1103 audit(1792397768.511:202): pid=1835 uid=0 auid=0 ses=10 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[   34.461234] audit: type=1103 audit(1792397768.515:203): pid=1836 uid=0 auid=0 ses=10 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[   34.475769] audit: type=1106 audit(1792397768.539:204): pid=1832 uid=0 auid=0 ses=10 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[   34.479498] audit: type=1104 audit(1792397768.539:205): pid=1832 uid=0 auid=0 ses=10 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|
+2026-10-19T08:16:15Z uke-bt-wait: org.bluez en el bus tras ~24.0 s: arranca el escritorio
+2026-10-19T08:24:18Z uke-bt-up: hci_uart descargado
+2026-10-19T08:24:18Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:24:19Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:24:19Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:24:19Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:24:19Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:24:27Z uke-bt-up: VERDE (tras 3 reintento(s) del driver): [  532.151632] Bluetooth: hci0: QCA controller version 0x01200102|[  532.858051] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:27:15Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T08:27:15Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-19T08:27:18Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T08:27:18Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T08:27:19Z uke-bt-resume: adaptador encendido
+2026-10-19T08:27:39Z uke-bt-resume: reconexion de 2C:BE:EE:XX:XX:XX OK
+2026-10-19T08:51:25Z uke-bt-up: hci_uart descargado
+2026-10-19T08:51:25Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:51:27Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:51:27Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:51:27Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:51:27Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:51:30Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2154.190837] Bluetooth: hci0: QCA controller version 0x01200102|[ 2154.901290] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:51:31Z uke-bt-up: hci_uart descargado
+2026-10-19T08:51:31Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:51:33Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:51:33Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:51:33Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:51:33Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:51:34Z uke-bt-up: VERDE: [ 2157.970990] Bluetooth: hci0: QCA controller version 0x01200102|[ 2158.676950] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:51:34Z uke-bt-up: hci_uart descargado
+2026-10-19T08:51:35Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:51:37Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:51:37Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:51:37Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:51:37Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:51:40Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2164.108451] Bluetooth: hci0: QCA controller version 0x01200102|[ 2164.806591] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:51:41Z uke-bt-up: hci_uart descargado
+2026-10-19T08:51:41Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:51:43Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:51:43Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:51:43Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:51:43Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:51:44Z uke-bt-up: VERDE: [ 2167.875786] Bluetooth: hci0: QCA controller version 0x01200102|[ 2168.577150] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:51:44Z uke-bt-up: hci_uart descargado
+2026-10-19T08:51:44Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:51:47Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:51:47Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:51:47Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:51:47Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:05Z uke-bt-up: ROJO: el driver se rindio tras 3 reintentos y el ultimo intento tambien fallo: [ 2179.824233] audit: type=1327 audit(1792399915.441:4467): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D|[ 2179.858360] audit: type=1105 audit(1792399915.473:4468): pid=46745 uid=0 auid=0 ses=493 subj=kernel msg='op=PAM:session_open grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[ 2179.860960] audit: type=1103 audit(1792399915.477:4469): pid=46748 uid=0 auid=0 ses=493 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[ 2179.866918] audit: type=1103 audit(1792399915.481:4470): pid=46749 uid=0 auid=0 ses=493 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[ 2180.547364] Bluetooth: hci0: command 0xfc00 tx timeout|[ 2180.547462] Bluetooth: hci0: Reading QCA version information failed (-110)|[ 2183.013667] audit: type=1106 audit(1792399918.629:4471): pid=46745 uid=0 auid=0 ses=493 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|[ 2183.013755] audit: type=1104 audit(1792399918.629:4472): pid=46745 uid=0 auid=0 ses=493 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'|
+2026-10-19T08:52:05Z uke-bt-up: ciclo 1/3: el chip no respondio; --down, pausa de 3 s y nuevo ciclo
+2026-10-19T08:52:05Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:05Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:09Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:09Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:09Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:09Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:12Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2196.037194] Bluetooth: hci0: QCA controller version 0x01200102|[ 2196.739226] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:52:12Z uke-bt-up: ciclo 2/3: resultado final rc=0 tras 1 ciclo(s) fallido(s)
+2026-10-19T08:52:12Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:12Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:15Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:15Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:15Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:15Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:18Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2202.031605] Bluetooth: hci0: QCA controller version 0x01200102|[ 2202.733876] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:52:18Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:18Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:21Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:21Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:21Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:21Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:24Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2208.080569] Bluetooth: hci0: QCA controller version 0x01200102|[ 2208.771612] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:52:25Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:25Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:27Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:27Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:27Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:27Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:28Z uke-bt-up: VERDE: [ 2211.992779] Bluetooth: hci0: QCA controller version 0x01200102|[ 2212.691542] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:52:29Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:29Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:31Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:31Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:31Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:31Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:34Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [ 2218.257394] Bluetooth: hci0: QCA controller version 0x01200102|[ 2218.955377] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:52:35Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:35Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:37Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:37Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:37Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:37Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:38Z uke-bt-up: VERDE: [ 2222.080927] Bluetooth: hci0: QCA controller version 0x01200102|[ 2222.779666] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:52:39Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:39Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:41Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:41Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:41Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:41Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:42Z uke-bt-up: VERDE: [ 2226.159450] Bluetooth: hci0: QCA controller version 0x01200102|[ 2226.866687] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T08:52:43Z uke-bt-up: hci_uart descargado
+2026-10-19T08:52:43Z uke-bt-up: uke_bt_b descargado (overlay retirado)
+2026-10-19T08:52:45Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke4; WiFi: wpa_state=DISCONNECTED
+2026-10-19T08:52:45Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T08:52:45Z uke-bt-up: serdev: serial0-0 
+2026-10-19T08:52:45Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T08:52:46Z uke-bt-up: VERDE: [ 2230.214638] Bluetooth: hci0: QCA controller version 0x01200102|[ 2230.922011] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-19T09:27:33Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T09:27:33Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-19T11:46:16Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T11:46:16Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T11:46:17Z uke-bt-resume: adaptador encendido
+2026-10-19T11:46:17Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-19T11:46:45Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T11:46:45Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-19T13:59:49Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T13:59:49Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T13:59:50Z uke-bt-resume: adaptador encendido
+2026-10-19T14:00:18Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T14:00:18Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-19T14:04:15Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T14:04:15Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T14:04:16Z uke-bt-resume: adaptador encendido
+2026-10-19T14:04:16Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-19T14:04:17Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX NO tras 6 intentos
+2026-10-19T20:50:20Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T20:50:20Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-19T20:50:27Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T20:50:27Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T20:50:28Z uke-bt-resume: adaptador encendido
+2026-10-19T20:50:28Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-19T21:03:11Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T21:03:11Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-19T21:03:13Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-19T21:03:13Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T21:03:14Z uke-bt-resume: adaptador encendido
+2026-10-19T21:03:14Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-19T21:04:18Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-19T21:04:18Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-19T20:58:41Z uke-bt-up: no encuentro el modulo uke_bt_b (¿deploy.sh --module? ¿depmod?)
+2026-10-19T20:58:42Z uke-bt-wait: uke-bt.service fallo: no espero mas
+2026-10-19T20:58:47Z uke-bt-sleep: pre: bluetooth.service inactivo, nada que apagar
+2026-10-19T20:58:56Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T20:59:17Z uke-bt-resume: bluetooth.service no esta activo: no hago nada
+2026-10-19T21:19:34Z uke-bt-sleep: pre: bluetooth.service inactivo, nada que apagar
+2026-10-19T21:19:36Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-19T21:19:56Z uke-bt-resume: bluetooth.service no esta activo: no hago nada
+2026-10-19T21:20:06Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-19T21:20:06Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-19T21:20:07Z uke-bt-up: serdev: serial0-0 
+2026-10-19T21:20:07Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-19T21:20:08Z uke-bt-up: VERDE: [  805.024511] Bluetooth: hci0: QCA controller version 0x01200102|[  805.758651] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T06:53:30Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T06:53:30Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.86 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T06:53:38Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T06:53:38Z uke-bt-up: serdev: serial0-0 
+2026-10-20T06:53:38Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T06:53:41Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [   26.399908] Bluetooth: hci0: QCA controller version 0x01200102|[   27.126273] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T06:53:42Z uke-bt-wait: org.bluez en el bus tras ~11.5 s: arranca el escritorio
+2026-10-20T06:54:08Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T06:54:08Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T07:47:21Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T07:47:21Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T07:47:22Z uke-bt-resume: adaptador encendido
+2026-10-20T07:47:22Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T07:56:25Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T07:56:25Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T09:53:34Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T09:53:34Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T09:53:35Z uke-bt-resume: adaptador encendido
+2026-10-20T09:53:38Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T09:53:38Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T09:53:38Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T09:54:12Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T09:54:12Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T09:54:13Z uke-bt-resume: adaptador encendido
+2026-10-20T09:54:16Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:01:57Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:01:57Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:06:11Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:06:11Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:06:12Z uke-bt-resume: adaptador encendido
+2026-10-20T10:06:33Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:06:44Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:06:44Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:08:36Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:08:36Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:08:37Z uke-bt-resume: adaptador encendido
+2026-10-20T10:08:40Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:08:57Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:08:57Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:08:59Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:08:59Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:09:00Z uke-bt-resume: adaptador encendido
+2026-10-20T10:09:03Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:09:21Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:09:21Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:09:23Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:09:23Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:09:24Z uke-bt-resume: adaptador encendido
+2026-10-20T10:09:24Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:10:08Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:10:08Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:13:09Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:13:09Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:13:10Z uke-bt-resume: adaptador encendido
+2026-10-20T10:13:41Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX NO tras 6 intentos
+2026-10-20T10:15:01Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:15:02Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-20T10:15:02Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:15:02Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:15:03Z uke-bt-resume: adaptador encendido
+2026-10-20T10:15:03Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-20T10:15:38Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:15:39Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:15:40Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:15:40Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:15:41Z uke-bt-resume: adaptador encendido
+2026-10-20T10:15:44Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:16:05Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:16:05Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:16:07Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:16:07Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:16:08Z uke-bt-resume: adaptador encendido
+2026-10-20T10:16:11Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:16:28Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:16:28Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:20:12Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:20:12Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:20:13Z uke-bt-resume: adaptador encendido
+2026-10-20T10:20:44Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX NO tras 6 intentos
+2026-10-20T10:20:51Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:20:51Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-20T10:20:54Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:20:54Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:20:55Z uke-bt-resume: adaptador encendido
+2026-10-20T10:20:55Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-20T10:21:19Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:21:19Z uke-bt-sleep: pre: conectados guardados=0; apago el adaptador
+2026-10-20T10:21:26Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:21:26Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:21:27Z uke-bt-resume: adaptador encendido
+2026-10-20T10:21:27Z uke-bt-resume: sin dispositivos que reconectar
+2026-10-20T10:22:36Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T10:22:36Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.1 s; espero 7.88 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T10:22:44Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T10:22:44Z uke-bt-up: serdev: serial0-0 
+2026-10-20T10:22:44Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T10:22:45Z uke-bt-up: VERDE: [   24.534896] Bluetooth: hci0: QCA controller version 0x01200102|[   25.225988] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T10:22:45Z uke-bt-wait: org.bluez en el bus tras ~9.5 s: arranca el escritorio
+2026-10-20T10:23:09Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:23:09Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:23:12Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:23:12Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:23:13Z uke-bt-resume: adaptador encendido
+2026-10-20T10:23:17Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:23:33Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:23:33Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:24:21Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:24:21Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:24:22Z uke-bt-resume: adaptador encendido
+2026-10-20T10:24:22Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T10:32:17Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T10:32:17Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.75 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T10:32:25Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T10:32:25Z uke-bt-up: serdev: serial0-0 
+2026-10-20T10:32:25Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T10:32:31Z uke-bt-up: VERDE (tras 2 reintento(s) del driver): [   28.716545] Bluetooth: hci0: QCA controller version 0x01200102|[   29.457587] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T10:32:32Z uke-bt-wait: org.bluez en el bus tras ~14.5 s: arranca el escritorio
+2026-10-20T10:36:06Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T10:36:06Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T10:40:44Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T10:40:44Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T10:40:45Z uke-bt-resume: adaptador encendido
+2026-10-20T10:40:48Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T14:48:56Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T14:48:56Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.81 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T14:49:04Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T14:49:04Z uke-bt-up: serdev: serial0-0 
+2026-10-20T14:49:04Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T14:49:07Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [   27.367932] Bluetooth: hci0: QCA controller version 0x01200102|[   28.098635] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T14:49:08Z uke-bt-wait: org.bluez en el bus tras ~11.5 s: arranca el escritorio
+2026-10-20T15:08:21Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T15:08:21Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.82 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T15:08:29Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T15:08:29Z uke-bt-up: serdev: serial0-0 
+2026-10-20T15:08:29Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T15:08:30Z uke-bt-up: VERDE: [   25.120857] Bluetooth: hci0: QCA controller version 0x01200102|[   25.856929] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T15:08:31Z uke-bt-wait: org.bluez en el bus tras ~9.5 s: arranca el escritorio
+2026-10-20T15:18:38Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T15:18:38Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T15:45:31Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T15:45:31Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T15:45:32Z uke-bt-resume: adaptador encendido
+2026-10-20T15:45:32Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T15:55:32Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T15:55:32Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T19:20:31Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T19:20:31Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T19:20:32Z uke-bt-resume: adaptador encendido
+2026-10-20T19:21:02Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX NO tras 6 intentos
+2026-10-20T19:27:32Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T19:27:32Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T19:27:37Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T19:27:37Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T19:27:38Z uke-bt-resume: adaptador encendido
+2026-10-20T19:27:38Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX OK
+2026-10-20T21:03:30Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T21:03:30Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.83 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T21:03:38Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T21:03:38Z uke-bt-up: serdev: serial0-0 
+2026-10-20T21:03:38Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T21:03:39Z uke-bt-up: VERDE: [   24.021846] Bluetooth: hci0: QCA controller version 0x01200102|[   24.745147] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T21:03:40Z uke-bt-wait: org.bluez en el bus tras ~9.5 s: arranca el escritorio
+2026-10-20T21:31:39Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T21:31:39Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.84 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T21:31:47Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T21:31:47Z uke-bt-up: serdev: serial0-0 
+2026-10-20T21:31:47Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T21:31:50Z uke-bt-up: VERDE (tras 1 reintento(s) del driver): [   26.305599] Bluetooth: hci0: QCA controller version 0x01200102|[   27.045036] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T21:31:51Z uke-bt-wait: org.bluez en el bus tras ~11.5 s: arranca el escritorio
+2026-10-20T21:36:47Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T21:36:47Z uke-bt-sleep: pre: bluetooth.service inactivo, nada que apagar
+2026-10-20T21:36:49Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T21:36:49Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T21:37:10Z uke-bt-resume: bluetooth.service no esta activo: no hago nada
+2026-10-20T21:45:44Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T21:45:44Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.80 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T21:45:52Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T21:45:52Z uke-bt-up: serdev: serial0-0 
+2026-10-20T21:45:52Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T21:45:59Z uke-bt-up: VERDE (tras 2 reintento(s) del driver): [   30.708502] Bluetooth: hci0: QCA controller version 0x01200102|[   31.430378] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T21:45:59Z uke-bt-wait: org.bluez en el bus tras ~14.5 s: arranca el escritorio
+2026-10-20T22:30:12Z uke-bt-sleep: pre: despertar por el UART del BT desactivado (/sys/devices/platform/soc/8c0000.qcom,qupv3_1_geni_se/888000.qcom,qup_uart/power/wakeup)
+2026-10-20T22:30:12Z uke-bt-sleep: pre: conectados guardados=1; apago el adaptador
+2026-10-20T23:13:44Z uke-bt-sleep: post: despertar por el UART del BT restaurado a 'enabled'
+2026-10-20T23:13:45Z uke-bt-sleep: post: reanudacion lanzada (systemd-run)
+2026-10-20T23:13:46Z uke-bt-resume: adaptador encendido
+2026-10-20T23:14:16Z uke-bt-resume: reconexion de 70:61:EE:XX:XX:XX NO tras 6 intentos
+2026-10-20T23:27:08Z uke-bt-up: variante b, kernel 7.2.9-senemos.1.4054.3-ouke5; WiFi: n/d
+2026-10-20T23:27:08Z uke-bt-up: colchon: uke-wifi quedo activo hace 0.2 s; espero 7.84 s (UKE_BT_SETTLE=8) antes de encender el BT
+2026-10-20T23:27:16Z uke-bt-up: uke_bt_b cargado (overlay aplicado)
+2026-10-20T23:27:16Z uke-bt-up: serdev: serial0-0 
+2026-10-20T23:27:16Z uke-bt-up: hci_uart cargado; espero el setup del chip (hasta 90 s; el driver reintenta solo hasta 3 veces)
+2026-10-20T23:27:17Z uke-bt-up: VERDE: [   25.109539] Bluetooth: hci0: QCA controller version 0x01200102|[   25.820231] Bluetooth: hci0: QCA setup on UART is completed|
+2026-10-20T23:27:18Z uke-bt-wait: org.bluez en el bus tras ~9.5 s: arranca el escritorio

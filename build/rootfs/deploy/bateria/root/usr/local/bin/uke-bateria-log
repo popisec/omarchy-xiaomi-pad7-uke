@@ -1,0 +1,106 @@
+#!/usr/bin/python3
+# uke-bateria-log — demonio ligero: una fila CSV cada INTERVALO s en /var/log/uke-bateria/AAAA-MM-DD.csv. 19-oct-2026.
+# Marca arranque (start) y reanudaciones (resume: dif. CLOCK_BOOTTIME-MONOTONIC = tiempo suspendido).
+# Rotacion propia (no hay logrotate): .csv de >2 dias se comprimen, >60 dias se borran.
+import glob, gzip, importlib.machinery, importlib.util, json, os, shutil, subprocess, sys, time
+INT = int(os.environ.get("UKE_BAT_INTERVALO", "60")); DIR = "/var/log/uke-bateria"
+l = importlib.machinery.SourceFileLoader("lect", "/usr/local/bin/uke-bateria-lectura")
+lect = importlib.util.module_from_spec(importlib.util.spec_from_loader("lect", l)); l.exec_module(lect)
+COLS = ("ts,event,dt_s,susp_s,estado,pct,pct_exact,charge_uah,v,i_a,w,temp_c,perfil,brillo_pct,hz,"
+        "cpu_pct,cpu_l,cpu_m,cpu_p,mhz_l,mhz_m,mhz_p,gpu_mhz,irq_s,top_irq,top_cpu").split(",")
+CL = {"l": "0-2", "m": "3-6", "p": "7"}
+def rd(p, d=""):
+    try: return open(p).read().strip()
+    except OSError: return d
+def cpu_times():
+    t = {}
+    for ln in open("/proc/stat"):
+        if ln.startswith("cpu") and ln[3].isdigit():
+            a = list(map(int, ln.split()[1:])); t[int(ln.split()[0][3:])] = (sum(a), a[3] + a[4])
+    return t
+def util(prev, cur, cpus):
+    tot = idle = 0
+    for c in cpus:
+        tot += cur[c][0] - prev[c][0]; idle += cur[c][1] - prev[c][1]
+    return round(100 * (1 - idle / tot), 1) if tot > 0 else 0.0
+def proc_times():
+    out = {}; tick = os.sysconf("SC_CLK_TCK")
+    for d in os.listdir("/proc"):
+        if d.isdigit():
+            try:
+                s = open(f"/proc/{d}/stat").read(); r = s.rfind(")"); f = s[r + 2:].split()
+                out[int(d)] = (s[s.find("(") + 1:r], (int(f[11]) + int(f[12])) / tick)
+            except (OSError, IndexError, ValueError): pass
+    return out
+def top_cpu(prev, cur, dt):
+    agg = {}
+    for pid, (name, t) in cur.items():
+        if pid in prev and prev[pid][0] == name:
+            d = t - prev[pid][1]
+            if d > 0: agg[name] = agg.get(name, 0) + d
+    top = sorted(agg.items(), key=lambda x: -x[1])[:5]
+    return ";".join(f"{n.replace(';', '_').replace(',', '_')}:{round(100 * v / dt, 1)}" for n, v in top)
+def irqs():
+    out = {}
+    for ln in open("/proc/interrupts"):
+        p = ln.split()
+        if not p or not p[0].endswith(":"): continue
+        n = 0
+        for x in p[1:]:
+            if x.isdigit(): n += int(x)
+            else: break
+        name = " ".join(p[1 + sum(1 for x in p[1:] if x.isdigit()):])[:40].replace(",", "_").replace(";", "_")
+        out[p[0] + name] = (n, name)
+    return out
+def hz():
+    try:
+        sig = (os.listdir("/run/user/1001/hypr") or [""])[0]
+        env = dict(os.environ, XDG_RUNTIME_DIR="/run/user/1001", HYPRLAND_INSTANCE_SIGNATURE=sig)
+        j = subprocess.run(["setpriv", "--reuid=1001", "--regid=1001", "--init-groups", "hyprctl", "monitors", "-j"], env=env, capture_output=True, text=True, timeout=5).stdout
+        return round(json.loads(j)[0]["refreshRate"])
+    except Exception: return ""
+def rotate():
+    now = time.time()
+    for f in glob.glob(DIR + "/????-??-??.csv"):
+        if now - os.path.getmtime(f) > 2 * 86400:
+            with open(f, "rb") as a, gzip.open(f + ".gz", "wb") as b: shutil.copyfileobj(a, b)
+            os.remove(f)
+    for f in glob.glob(DIR + "/*.csv.gz"):
+        if now - os.path.getmtime(f) > 60 * 86400: os.remove(f)
+def fila(**k):
+    day = time.strftime("%Y-%m-%d", time.localtime(k["ts"])); p = f"{DIR}/{day}.csv"
+    new = not os.path.exists(p)
+    with open(p, "a") as f:
+        if new: f.write(",".join(COLS) + "\n")
+        f.write(",".join("" if k.get(c) is None else str(k.get(c)) for c in COLS) + "\n")
+def main():
+    os.makedirs(DIR, exist_ok=True)
+    pt, ct, it = proc_times(), cpu_times(), irqs()
+    mono, boot = time.monotonic(), time.clock_gettime(time.CLOCK_BOOTTIME)
+    first = True; last_rotate = 0
+    while True:
+        time.sleep(INT if not first else 2)
+        m2, b2 = time.monotonic(), time.clock_gettime(time.CLOCK_BOOTTIME)
+        dt = m2 - mono; susp = max(0.0, (b2 - boot) - dt)
+        event = "start" if first else ("resume" if susp > 5 else "")
+        pt2, ct2, it2 = proc_times(), cpu_times(), irqs()
+        subprocess.run(["/usr/local/bin/uke-icl"], timeout=5)   # red de seguridad si el ICL vuelve a 100 mA
+        r = lect.lee()
+        d = dict(r); d.update(event=event, dt_s=round(dt, 1), susp_s=round(susp) if susp > 5 else "")
+        d["brillo_pct"] = round(100 * int(rd("/sys/class/backlight/uke-backlight/brightness", 0)) / max(1, int(rd("/sys/class/backlight/uke-backlight/max_brightness", 1))), 1)
+        d["hz"] = hz()
+        d["cpu_pct"] = util(ct, ct2, list(ct2))
+        for c, rg in CL.items():
+            a, b = (int(rg.split("-")[0]), int(rg.split("-")[-1]))
+            d["cpu_" + c] = util(ct, ct2, range(a, b + 1))
+            d["mhz_" + c] = round(int(rd(f"/sys/devices/system/cpu/cpu{a}/cpufreq/scaling_cur_freq", 0)) / 1000)
+        d["gpu_mhz"] = round(int(rd("/sys/class/devfreq/3d00000.qcom,kgsl-3d0/cur_freq", 0)) / 1e6)
+        # dt de CPU = tiempo de ejecucion (sin suspension), para que top_cpu sea % de un nucleo
+        d["top_cpu"] = top_cpu(pt, pt2, max(dt, 1))
+        diffs = sorted(((it2[k][0] - it[k][0], it2[k][1]) for k in it2 if k in it), reverse=True)
+        d["irq_s"] = round(sum(x for x, _ in diffs if x > 0) / max(dt, 1))
+        d["top_irq"] = ";".join(f"{n}:{round(x / max(dt, 1))}" for x, n in diffs[:3] if x > 0)
+        fila(**d)
+        pt, ct, it, mono, boot, first = pt2, ct2, it2, m2, b2, False
+        if time.time() - last_rotate > 3600: rotate(); last_rotate = time.time()
+main()

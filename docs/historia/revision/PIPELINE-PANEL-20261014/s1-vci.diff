@@ -1,0 +1,99 @@
+--- a/build/gates/patches/k52L39-fuentes/fase4-display.dts
++++ b/build/gates/patches/k52L39-fuentes/fase4-display.dts
+@@ -564,4 +564,15 @@
+ 			backlight = <&ktz_bl_0>;
+ 		};
+ 	};
++
++	/* fragment@10: vci/L19 2,6 V del panel o82 (Android vci-supply=0x150,
++	 * init 2,6 V, rango 2,6-3,544 V; stock2-Cliffs7P-uke.dts:6956).
++	 * Sin esto el voto opcional del driver es NULL (L27-vci-absent). */
++	fragment@10 {
++		target-path = "/soc/display-subsystem@ae00000/dsi@ae94000/panel@0";
++
++		__overlay__ {
++			vci-supply = <&L19B>;
++		};
++	};
+ };
+--- a/build/kernel-pokes/k52-L16-tree/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/build/kernel-pokes/k52-L16-tree/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -52,6 +52,10 @@
+ 	struct drm_dsc_config dsc;
+ 	struct regulator_bulk_data *supplies;
+ 	struct gpio_desc *reset_gpio;
++	/* L27 (§E.2 informe 12-oct): rail vci = pmxr2230 L19 (Android
++	 * vci-supply=0x150, init 2.6 V). Opcional: el dtbo vivo aun no
++	 * declara vci-supply; NULL = seguir con los 3 rails. */
++	struct regulator *vci;
+ 	/* K49 (#509): vendor declara mi,esd-err-irq-gpio TLMM 168 y
+ 	 * mi,esd-err-irq-gpio-second TLMM 169 (flags 0x2004); el port no los
+ 	 * tocaba y quedaban en el estado del bootloader mientras el panel TDDI
+@@ -294,6 +298,25 @@
+ 	unsigned int i;
+ 	int ret;
+ 
++	/* L27 (§E.2 informe 12-oct): rail vci = pmxr2230 L19 (Android
++	 * vci-supply=0x150, init 2.6 V, rango 2.6-3.544 V; vddio=L8 ya lo
++	 * cubre supplies[0]). Sin voto de load: el path vendor
++	 * (dsi_pwr_enable_regulator) no lo pone. Fallo de set_voltage no
++	 * fatal: se habilita con la del DT. */
++	if (ctx->vci) {
++		ret = regulator_set_voltage(ctx->vci, 2600000, 3544000);
++		if (ret < 0)
++			pr_warn("UKE-P82: vci: set_voltage 2.6V fallo %d (sigo con la del DT)\n", ret);
++		ret = regulator_enable(ctx->vci);
++		if (ret < 0) {
++			pr_err("UKE-P82: vci: enable FALLO %d\n", ret);
++			return ret;
++		}
++		usleep_range(2000, 2500);
++		uke_poke("L27-vci-ok");
++		pr_info("UKE-P82: power_on: vci(L19,2.6V) ENABLED\n");
++	}
++
+ 	pr_info("UKE-P82: power_on: inicio (%zu supplies)\n", ARRAY_SIZE(o82_supplies));
+ 	for (i = 0; i < ARRAY_SIZE(o82_supplies); i++) {
+ 		pr_info("UKE-P82: power_on[%u]: %s enable-load\n", i, o82_supplies[i].supply);
+@@ -319,6 +342,8 @@
+ 		regulator_disable(ctx->supplies[i].consumer);
+ 		regulator_set_load(ctx->supplies[i].consumer, 0);
+ 	}
++	if (ctx->vci)
++		regulator_disable(ctx->vci);
+ 	return ret;
+ }
+ 
+@@ -451,6 +476,9 @@
+ 
+ 	regulator_bulk_disable(ARRAY_SIZE(o82_supplies), ctx->supplies);
+ 
++	if (ctx->vci)
++		regulator_disable(ctx->vci);
++
+ 	return 0;
+ }
+ 
+@@ -653,6 +681,22 @@
+ 		uke_poke("P82-inh-probe");
+ 	}
+ 
++	/* L27 (§E.2 informe 12-oct): vci/L19 opcional (el dtbo vivo aun no
++	 * lo declara; bulk_get con 4 fallaria el probe). Reposicionado tras
++	 * el bloque de reset (en L27 iba antes del gpiod_get) para no partir
++	 * el hunk 4 de s3-reset-tddi.diff; funcionalmente identico (gets
++	 * independientes con cleanup devm). */
++	ctx->vci = devm_regulator_get_optional(dev, "vci");
++	if (IS_ERR(ctx->vci)) {
++		if (PTR_ERR(ctx->vci) == -ENODEV) {
++			ctx->vci = NULL;
++			uke_poke("L27-vci-absent");
++		} else {
++			return dev_err_probe(dev, PTR_ERR(ctx->vci),
++				     "failed to get vci regulator\n");
++		}
++	}
++
+ 	/* K49 (#509): registrar las lineas ESD del TDDI como el vendor y
+ 	 * absorber sus aseveraciones con una irq con dueno. El mux/pull lo
+ 	 * pone el estado pinctrl uke-esd-active (s266) al probe. */

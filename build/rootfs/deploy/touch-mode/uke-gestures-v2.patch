@@ -1,0 +1,336 @@
+--- ../tablet-t4-gestos/uke-gestures.py	2026-10-18 17:51:26.610643699 +0200
++++ uke-gestures.py	2026-10-18 20:50:11.540345441 +0200
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""uke-gestures.py — gestos de borde y de 3 dedos para la tablet uke (T4, 18-oct-2026).
++"""uke-gestures.py v2 (touch-mode, 18-oct-2026) — gestos de borde, 2 y 3 dedos para la tablet uke. Base: T4.
+ 
+ Lee en modo PASIVO (sin EVIOCGRAB) el evdev del tactil «uke NT36532 THP touchscreen»: Hyprland sigue recibiendo
+ todos los toques; este demonio solo observa y lanza comandos.  Python puro, sin dependencias.
+@@ -7,15 +7,22 @@
+ Gestos (bordes segun la orientacion VISUAL del monitor, leida de `hyprctl monitors -j` -> transform):
+   edge_top / edge_bottom / edge_left / edge_right   un dedo que EMPIEZA en el margen y recorre > edge_dist hacia dentro
+   three_up / three_down / three_left / three_right  tres dedos que se desplazan > three_dist (centroide)
++  three_pinch_in / three_pinch_out                  tres dedos que se juntan / separan (radio medio < pinch_in / > pinch_out)
++  two_edge_top/bottom/left/right                    DOS dedos que empiezan juntos en ese borde y entran > two_edge_dist
++  tap2                                              toque corto con 2 dedos casi quietos (= clic derecho: accion "@rightclick")
++Scroll y pellizco de 2 dedos EN MEDIO de la pantalla no se tocan: los hacen las apps.
++Acciones especiales (en vez de un comando de shell): "@rightclick" (clic derecho en el punto del toque, por uinput) y
++"@key alt+left" (pulsa esa combinacion por un teclado virtual uinput).
+ Cada gesto lanza el comando de [actions] del conf (vacio = solo registrar).
+ 
+-Uso: uke-gestures.py [--conf F] [--log] [--act] [--record F] [--replay F [--transform N]] [--device /dev/input/eventN]
++Uso: uke-gestures.py [--inject rightclick FX FY | --inject key COMBO] [--conf F] [--log] [--act] [--record F] [--replay F [--transform N]] [--device /dev/input/eventN]
+   --log      imprime cada toque (inicio/fin, coordenadas visuales) y cada gesto; con --log NO se ejecutan acciones (--act las activa)
+   --record   guarda los eventos crudos (24 B c/u) para reproducirlos luego
+   --replay   lee un fichero grabado, con sus marcas de tiempo, sin ejecutar acciones (siempre en seco)
+   SIGHUP recarga el conf.
+ """
+ import argparse, configparser, fcntl, glob, json, os, re, select, signal, struct, subprocess, sys, time
++import math
+ 
+ NAME = "uke NT36532 THP touchscreen"
+ EV_SYN, EV_KEY, EV_ABS = 0, 1, 3
+@@ -35,6 +42,15 @@
+         "cooldown_ms": "500",      # tras un gesto no se acepta otro durante este tiempo
+         "monitor": "",             # nombre del monitor para la rotacion (vacio = el primero)
+         "rotation_poll_s": "2",    # reconsulta hyprctl si la ultima lectura es mas vieja que esto (al tocar)
++        "pinch_in": "0.65",        # 3 dedos: radio medio final / inicial por debajo de esto = pinch_in
++        "pinch_out": "1.5",        # ... por encima de esto = pinch_out
++        "pinch_move_max": "150",   # px: el centroide no debe haberse movido mas que esto (si no, es un deslizamiento)
++        "two_edge_dist": "200",    # 2 dedos desde el borde: recorrido hacia dentro del centroide
++        "two_edge_window_ms": "250",  # el 2.o dedo debe tocar como mucho este tiempo despues del 1.o
++        "two_edge_time_ms": "900",
++        "tap2_time_ms": "350",     # toque con 2 dedos: duracion maxima desde que toca el 1.o hasta que se suelta el ultimo
++        "tap2_window_ms": "150",   # ... los dos dedos deben tocar dentro de esta ventana
++        "tap2_move": "50",         # ... ningun dedo se mueve mas de esto (px) -> si no es scroll/pellizco
+     },
+     "actions": {
+         "edge_top": "omarchy-shell omarchy.power toggle",
+@@ -45,6 +61,13 @@
+         "three_up": "hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen({ mode = \"fullscreen\" }))'",
+         "three_left": "",
+         "three_right": "",
++        "three_pinch_in": "",
++        "three_pinch_out": "",
++        "two_edge_top": "",
++        "two_edge_bottom": "",
++        "two_edge_left": "",
++        "two_edge_right": "",
++        "tap2": "",
+     },
+ }
+ 
+@@ -60,9 +83,11 @@
+     cfg = {k: g[k] for k in DEFAULTS["gestures"]}
+     for k in ("edge_margin", "edge_dist", "three_dist"):
+         cfg[k] = int(cfg[k])
+-    for k in ("edge_max_lateral", "three_dominance", "rotation_poll_s"):
++    for k in ("pinch_move_max", "two_edge_dist", "tap2_move"):
++        cfg[k] = int(cfg[k])
++    for k in ("edge_max_lateral", "three_dominance", "rotation_poll_s", "pinch_in", "pinch_out"):
+         cfg[k] = float(cfg[k])
+-    for k in ("edge_time_ms", "three_time_ms", "cooldown_ms"):
++    for k in ("edge_time_ms", "three_time_ms", "cooldown_ms", "two_edge_window_ms", "two_edge_time_ms", "tap2_time_ms", "tap2_window_ms"):
+         cfg[k] = int(cfg[k]) / 1000.0
+     cfg["actions"] = dict(cp["actions"])
+     return cfg
+@@ -145,6 +170,72 @@
+     return y, W - 1 - x, H, W
+ 
+ 
++UI_SET_EVBIT, UI_SET_KEYBIT, UI_SET_ABSBIT = 0x40045564, 0x40045565, 0x40045567
++UI_DEV_SETUP, UI_ABS_SETUP, UI_DEV_CREATE, UI_DEV_DESTROY = 0x405C5503, 0x401C5504, 0x5501, 0x5502
++BTN_LEFT, BTN_RIGHT, ABS_X, ABS_Y, ABS_RES = 0x110, 0x111, 0, 1, 32767
++KEYS = {"ctrl": 29, "shift": 42, "alt": 56, "super": 125, "esc": 1, "tab": 15, "enter": 28, "space": 57,
++        "left": 105, "right": 106, "up": 103, "down": 108, "home": 102, "end": 107, "pageup": 104, "pagedown": 109,
++        "f5": 63, "w": 17, "t": 20, "r": 19, "l": 38, "plus": 13, "minus": 12}
++
++
++class Injector:
++    """Dispositivos virtuales uinput: un puntero ABSOLUTO (clic en el punto del toque) y un teclado (combinaciones)."""
++    def __init__(self, log):
++        self.log, self.ptr, self.kbd, self.ok = log, None, None, False
++
++    def _dev(self, name, keys, absaxes):
++        fd = os.open("/dev/uinput", os.O_WRONLY | os.O_NONBLOCK)
++        fcntl.ioctl(fd, UI_SET_EVBIT, EV_KEY)
++        for k in keys:
++            fcntl.ioctl(fd, UI_SET_KEYBIT, k)
++        if absaxes:
++            fcntl.ioctl(fd, UI_SET_EVBIT, EV_ABS)
++            for a in absaxes:
++                fcntl.ioctl(fd, UI_SET_ABSBIT, a)
++                fcntl.ioctl(fd, UI_ABS_SETUP, struct.pack("H2x6i", a, 0, 0, ABS_RES, 0, 0, 0))
++        fcntl.ioctl(fd, UI_DEV_SETUP, struct.pack("4H80sI", 0x03, 0x1209, 0x0cb2 + len(keys), 1, name.encode(), 0))
++        fcntl.ioctl(fd, UI_DEV_CREATE)
++        return fd
++
++    def open(self):
++        try:
++            self.ptr = self._dev("uke-gestures virtual pointer", [BTN_LEFT, BTN_RIGHT], [ABS_X, ABS_Y])
++            self.kbd = self._dev("uke-gestures virtual keyboard", sorted(set(KEYS.values())), [])
++            time.sleep(0.4)      # que el compositor los descubra antes del primer uso
++            self.ok = True
++            self.log("uinput: puntero y teclado virtuales creados")
++        except OSError as e:
++            self.log(f"uinput no disponible ({e}): '@rightclick' y '@key' no funcionaran (¿regla udev 71-uke-uinput.rules?)")
++
++    def _w(self, fd, typ, code, val):
++        os.write(fd, struct.pack(EVFMT, 0, 0, typ, code, val))
++
++    def _syn(self, fd):
++        self._w(fd, EV_SYN, 0, 0)
++
++    def rightclick(self, fx, fy):
++        if not self.ok:
++            return
++        fx, fy = min(max(fx, 0.0), 1.0), min(max(fy, 0.0), 1.0)
++        self._w(self.ptr, EV_ABS, ABS_X, int(fx * ABS_RES)); self._w(self.ptr, EV_ABS, ABS_Y, int(fy * ABS_RES)); self._syn(self.ptr)
++        time.sleep(0.04)
++        self._w(self.ptr, EV_KEY, BTN_RIGHT, 1); self._syn(self.ptr)
++        time.sleep(0.05)
++        self._w(self.ptr, EV_KEY, BTN_RIGHT, 0); self._syn(self.ptr)
++
++    def key(self, combo):
++        if not self.ok:
++            return
++        codes = [KEYS[p] for p in combo.lower().split("+") if p in KEYS]
++        for c in codes:
++            self._w(self.kbd, EV_KEY, c, 1)
++        self._syn(self.kbd)
++        time.sleep(0.03)
++        for c in reversed(codes):
++            self._w(self.kbd, EV_KEY, c, 0)
++        self._syn(self.kbd)
++
++
+ class Gestures:
+     def __init__(self, cfg, W, H, rot, fire, log=None):
+         self.cfg, self.W, self.H, self.rot, self.fire, self.log = cfg, W, H, rot, fire, log
+@@ -183,7 +274,7 @@
+         for s in self.slots.values():
+             if s["x"] is not None and s["y"] is not None:
+                 vx, vy, vw, vh = to_visual(s["x"], s["y"], self.W, self.H, tr)
+-                out.append((vx, vy, vw, vh))
++                out.append((vx, vy, vw, vh, s["id"]))
+         return out
+ 
+     def step(self, t):
+@@ -191,30 +282,81 @@
+         seq = self.seq
+         if n == 0:
+             if seq is not None:
++                self.tap2(t, seq)
+                 self.say(f"fin   t={t:.3f} dur={t - seq['t0']:.2f}s maxdedos={seq['maxn']} fired={seq['done']}")
+             self.reset_seq()
+             return
+         if seq is None:
+             tr = self.rot.get(t)
+             pts = self.points(tr)
+-            vx, vy, vw, vh = pts[0]
++            vx, vy, vw, vh = pts[0][:4]
+             m = self.cfg["edge_margin"]
+             edges = [e for e, ok in (("top", vy < m), ("bottom", vy >= vh - m), ("left", vx < m), ("right", vx >= vw - m)) if ok] if n == 1 else []
+             seq = self.seq = {"t0": t, "tr": tr, "vw": vw, "vh": vh, "start": (vx, vy), "edges": edges, "maxn": n,
+-                              "done": False, "c0": None, "t3": None}
++                              "done": False, "c0": None, "t3": None, "r0": None,
++                              "fingers": {}, "two_checked": False, "two": None}
+             self.say(f"toque t={t:.3f} transform={tr} visual=({vx},{vy}) de {vw}x{vh} bordes={edges or '-'}")
+         pts = self.points(seq["tr"])
+         if len(pts) > seq["maxn"]:
+             seq["maxn"] = len(pts)
++        for vx, vy, vw, vh, fid in pts:
++            f = seq["fingers"].setdefault(fid, {"t0": t, "s": (vx, vy), "move": 0.0})
++            f["p"] = (vx, vy)
++            f["move"] = max(f["move"], math.hypot(vx - f["s"][0], vy - f["s"][1]))
+         if seq["done"]:
+             return
+         if seq["maxn"] >= 2:
+             seq["edges"] = []          # un segundo dedo anula el candidato a borde
++        if seq["maxn"] == 2 and not seq["two_checked"] and len(seq["fingers"]) == 2:
++            self.two_edge_init(seq)
+         if len(pts) >= 3:
++            seq["two"] = None
+             self.three(t, seq, pts)
++        elif len(pts) == 2 and seq["two"]:
++            self.two_edge(t, seq, pts)
+         elif len(pts) == 1 and seq["edges"]:
+             self.edge(t, seq, pts[0])
+ 
++    def tap2(self, t, seq):
++        c, fs = self.cfg, list(seq["fingers"].values())
++        if seq["done"] or seq["maxn"] != 2 or len(fs) != 2 or t - seq["t0"] > c["tap2_time_ms"]:
++            return
++        if abs(fs[0]["t0"] - fs[1]["t0"]) > c["tap2_window_ms"] or max(f["move"] for f in fs) > c["tap2_move"]:
++            return
++        mx = (fs[0]["s"][0] + fs[1]["s"][0]) / 2 / seq["vw"]
++        my = (fs[0]["s"][1] + fs[1]["s"][1]) / 2 / seq["vh"]
++        self.trigger(t, seq, "tap2", f"dur={t - seq['t0']:.2f}s mov={max(f['move'] for f in fs):.0f}px", pos=(mx, my))
++
++    def two_edge_init(self, seq):
++        """Cuando aparece el 2.o dedo: ¿empezaron los dos en el mismo margen y casi a la vez?"""
++        c, vw, vh = self.cfg, seq["vw"], seq["vh"]
++        seq["two_checked"] = True
++        fs = list(seq["fingers"].values())
++        if abs(fs[0]["t0"] - fs[1]["t0"]) > c["two_edge_window_ms"]:
++            return
++        m = c["edge_margin"]
++        tests = {"top": lambda p: p[1] < m, "bottom": lambda p: p[1] >= vh - m,
++                 "left": lambda p: p[0] < m, "right": lambda p: p[0] >= vw - m}
++        edges = [e for e, ok in tests.items() if all(ok(f["s"]) for f in fs)]
++        if edges:
++            cs = (sum(f["s"][0] for f in fs) / 2, sum(f["s"][1] for f in fs) / 2)
++            seq["two"] = {"edges": edges, "c0": cs, "t0": min(f["t0"] for f in fs)}
++            self.say(f"  2 dedos en borde {edges}")
++
++    def two_edge(self, t, seq, pts):
++        c, tw = self.cfg, seq["two"]
++        if t - tw["t0"] > c["two_edge_time_ms"]:
++            seq["two"] = None
++            return
++        cx = sum(p[0] for p in pts) / 2
++        cy = sum(p[1] for p in pts) / 2
++        dx, dy = cx - tw["c0"][0], cy - tw["c0"][1]
++        for e in tw["edges"]:
++            inward, lateral = {"top": (dy, dx), "bottom": (-dy, dx), "left": (dx, dy), "right": (-dx, dy)}[e]
++            if inward >= c["two_edge_dist"] and abs(lateral) <= c["edge_max_lateral"] * inward:
++                self.trigger(t, seq, f"two_edge_{e}", f"inward={inward:.0f} lateral={lateral:.0f}")
++                return
++
+     def edge(self, t, seq, p):
+         c = self.cfg
+         if t - seq["t0"] > c["edge_time_ms"]:
+@@ -231,13 +373,22 @@
+         c = self.cfg
+         cx = sum(p[0] for p in pts) / len(pts)
+         cy = sum(p[1] for p in pts) / len(pts)
+-        if seq["c0"] is None:      # referencia = centroide en el instante en que hay 3 dedos
+-            seq["c0"], seq["t3"] = (cx, cy), t
++        rad = sum(math.hypot(p[0] - cx, p[1] - cy) for p in pts) / len(pts)
++        if seq["c0"] is None:      # referencia = centroide y radio en el instante en que hay 3 dedos
++            seq["c0"], seq["t3"], seq["r0"] = (cx, cy), t, max(rad, 1.0)
+             return
+         if t - seq["t3"] > c["three_time_ms"]:
+             return
+         dx, dy = cx - seq["c0"][0], cy - seq["c0"][1]
+         ax, ay = abs(dx), abs(dy)
++        ratio = rad / seq["r0"]
++        if math.hypot(dx, dy) <= c["pinch_move_max"]:
++            if ratio <= c["pinch_in"]:
++                self.trigger(t, seq, "three_pinch_in", f"radio x{ratio:.2f}")
++                return
++            if ratio >= c["pinch_out"]:
++                self.trigger(t, seq, "three_pinch_out", f"radio x{ratio:.2f}")
++                return
+         if max(ax, ay) < c["three_dist"]:
+             return
+         if ay >= c["three_dominance"] * ax:
+@@ -248,7 +399,7 @@
+             return
+         self.trigger(t, seq, name, f"dx={dx:.0f} dy={dy:.0f}")
+ 
+-    def trigger(self, t, seq, name, detail):
++    def trigger(self, t, seq, name, detail, pos=None):
+         seq["done"] = True
+         if t - self.last_fire < self.cfg["cooldown_ms"]:
+             self.say(f"GESTO {name} ({detail}) ignorado por cooldown")
+@@ -257,10 +408,27 @@
+         cmd = self.cfg["actions"].get(name, "").strip()
+         self.say(f"GESTO {name} ({detail}) t={t:.3f} -> {cmd or '(sin accion)'}")
+         if cmd:
+-            self.fire(name, cmd)
++            self.fire(name, cmd, pos)
++
+ 
++INJ = None
+ 
+-def run_cmd(name, cmd):
++
++def run_cmd(name, cmd, pos=None):
++    if cmd.startswith("@"):
++        verb, _, arg = cmd[1:].partition(" ")
++        if INJ is None:
++            return
++        try:
++            if verb == "rightclick":
++                INJ.rightclick(*(pos or (0.5, 0.5)))
++            elif verb == "key":
++                INJ.key(arg.strip())
++            else:
++                print(f"accion especial desconocida: {cmd}", file=sys.stderr, flush=True)
++        except OSError as e:
++            print(f"accion {name} fallo: {e}", file=sys.stderr, flush=True)
++        return
+     try:
+         subprocess.Popen(["/bin/sh", "-c", cmd], env=hypr_env(), stdin=subprocess.DEVNULL,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+@@ -284,13 +452,27 @@
+     ap.add_argument("--act", action="store_true", help="con --log, ejecutar tambien las acciones")
+     ap.add_argument("--record")
+     ap.add_argument("--replay")
++    ap.add_argument("--inject", nargs="+", metavar="ARG", help="prueba: --inject rightclick FX FY (fracciones 0..1) | --inject key alt+left")
+     ap.add_argument("--transform", type=int, help="fija la rotacion (replay, o forzar sin hyprctl)")
+     a = ap.parse_args()
+     cfg = load_conf(a.conf)
+     W, H = 3200, 2136
+     out = lambda m: print(m, flush=True)
++    global INJ
++    if a.inject:
++        INJ = Injector(out)
++        INJ.open()
++        if a.inject[0] == "rightclick":
++            INJ.rightclick(float(a.inject[1]), float(a.inject[2]))
++        elif a.inject[0] == "key":
++            INJ.key(a.inject[1])
++        time.sleep(0.2)
++        return
+     dry = a.replay is not None or (a.log and not a.act)
+-    fire = (lambda n, c: None) if dry else run_cmd
++    fire = (lambda n, c, p=None: None) if dry else run_cmd
++    if not dry:
++        INJ = Injector(out)
++        INJ.open()
+     tr = a.transform if a.transform is not None else (0 if a.replay else None)
+ 
+     if a.replay:

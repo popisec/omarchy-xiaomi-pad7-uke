@@ -1,0 +1,55 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -589,9 +589,52 @@
+ 	return desc->num_modes;
+ }
+ 
++/*
++ * L63 (14-oct): re-enviar la PPS DESPUES del encendido (post-0x29).
++ *
++ * PPS-COMPARA.md: nuestra PPS es byte-equivalente a la del vendor tras L62;
++ * el unico delta real es el ORDEN: nosotros la enviamos en prepare (panel
++ * dormido, pre-0x11/0x29) y el vendor en dsi_display_enable ->>
++ * dsi_panel_update_pps (panel despierto, post-0x29). El analogo mainline del
++ * display-enable post-modeset es el hook .enable: el core lo llama via
++ * panel_bridge (.enable, bridge/panel.c:148) ->> drm_panel_enable
++ * (drm_panel.c:240) al final de la cadena enable, con el video ya andando.
++ * Se MANTIENE el envio pre de prepare (L37/L62): el vendor "no envia antes"
++ * es ausencia en sus arrays de init, no prueba de dano; quitarlo seria una
++ * segunda variable. Patron L62 reutilizado (copia local, dims por link).
++ */
++static int o82_enable(struct drm_panel *panel)
++{
++	struct o82_panel *ctx = to_o82_panel(panel);
++	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi[0] };
++	struct drm_dsc_picture_parameter_set pps;
++	struct drm_dsc_config dsc_link = ctx->dsc;
++
++	if (uke_panel_inherit()) {
++		pr_info("UKE-P82-INHERIT: enable SIN PPS (panel heredado, sin prepare previo)\n");
++		return 0;
++	}
++
++	uke_poke("L63-pps-post");
++	dsc_link.pic_width = ctx->desc->modes[0].hdisplay / 2;
++	dsc_link.pic_height = ctx->desc->modes[0].vdisplay;
++	drm_dsc_pps_payload_pack(&pps, &dsc_link);
++	dsi_ctx.dsi = ctx->dsi[0];
++	mipi_dsi_picture_parameter_set_multi(&dsi_ctx, &pps);
++	dsi_ctx.dsi = ctx->dsi[1];
++	mipi_dsi_picture_parameter_set_multi(&dsi_ctx, &pps);
++	dsi_ctx.dsi = ctx->dsi[0];
++	pr_info("UKE-L63: PPS post-0x29 enviada (dims=%ux%u por link, err=%d)\n",
++		dsc_link.pic_width, dsc_link.pic_height, dsi_ctx.accum_err);
++	if (dsi_ctx.accum_err)
++		return dsi_ctx.accum_err;
++	return 0;
++}
++
+ static const struct drm_panel_funcs o82_panel_funcs = {
+ 	.prepare = o82_prepare,
+ 	.unprepare = o82_unprepare,
++	.enable = o82_enable,
+ 	.get_modes = o82_get_modes,
+ };
+ 

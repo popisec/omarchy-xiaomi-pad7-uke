@@ -1,0 +1,4 @@
+71803b5cf7a112b8027f081b7db52f379440a74dae65db3b1dfcb475ac4d86a2  ./etc/systemd/system/uke-desktop.service
+fa799caa3ca43d3f3b255215ec52023923d4e13709fb5465af8a1040f82f40b2  ./etc/uke/LEEME
+9642e4d8fe74198336ac2f64d4ae8b9ee125d29fc138561074aae1782d6138ba  ./usr/local/sbin/uke-bootguard
+db697e56802af1467c1a3fecea2e5256e30c675913bca6d9914673e8a2fc98ff  ./usr/local/sbin/uke-desktop-start

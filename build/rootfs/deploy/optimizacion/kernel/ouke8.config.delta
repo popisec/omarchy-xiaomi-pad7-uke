@@ -1,0 +1,60 @@
+# ouke8.config.delta — 23-oct-2026 (sesion kernel-v8). PROPUESTA: nada compilado, nada flasheado.
+# Base: build/kernel-pokes/optim-ouke6/build7/.config (== /proc/config.gz de la tablet, cmp identico 23-oct).
+# Informe: build/gates/revision/KERNEL-V8-PROPUESTA-20261023.md
+#
+# Uso (en una COPIA del arbol de build, nunca en build7):
+#   cp build7/.config build8/.config
+#   linux-7.2.9/scripts/config --file build8/.config <lineas de abajo sin el '#'>
+#   make -C linux-7.2.9 O=build8 ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
+#   y COMPROBAR con 'diff build7/.config build8/.config' que solo cambia lo listado (+ dependencias automaticas).
+#
+# ⚠️ ABI: MODVERSIONS=n. PSI (sched.h:1320 psi_flags en task_struct), LRU_GEN (mm_types.h:1390-1402 en mm_struct,
+#    page-flags-layout.h:58 LRU_GEN_WIDTH en folio->flags) y NR_CPUS cambian la disposicion de structs que los .ko
+#    propios usan en linea. Con la MISMA release (-ouke5) cargarian SIN error y con offsets equivocados.
+#    => Este bloque exige release nueva: LOCALVERSION=-senemos.1.4054.3-ouke8 (variable de entorno del build, como
+#       en build-v7.sh; CONFIG_LOCALVERSION sigue ""), y recompilar TODOS los .ko propios contra build8:
+#       extra/ (15), updates/ (3), /usr/lib/uke-camaras (11, insmod por ruta) y revisar /usr/local/share/uke/mods (10).
+#       Con release nueva un .ko viejo se rechaza por vermagic (falla seguro) en vez de cargar y corromper.
+
+# === BLOQUE A (ciclo v8b, con release -ouke8): memoria ===
+# PSI: /proc/pressure/* y systemd-oomd posibles. Activo por defecto (sin psi=1 en cmdline).
+--enable PSI
+--disable PSI_DEFAULT_DISABLED
+# MGLRU compilado pero DORMIDO: se activa en caliente (echo y > /sys/kernel/mm/lru_gen/enabled, reversible con n)
+# para medir A/B en el mismo arranque; luego persistir con tmpfiles. Sin estadisticas extra (cuestan RAM/CPU).
+--enable LRU_GEN
+--disable LRU_GEN_ENABLED
+--disable LRU_GEN_STATS
+# THP: el valor por defecto del kernel pasa a madvise (userspace ya lo pone en runtime; esto cubre el arranque).
+--disable TRANSPARENT_HUGEPAGE_ALWAYS
+--enable TRANSPARENT_HUGEPAGE_MADVISE
+
+# === BLOQUE B (opcional, mismo ciclo v8b porque ya se recompila todo; decision del dueño) ===
+# Ayuda al bring-up (oops de slab de camaras 22-oct): detector por muestreo, ~2 MiB de RAM, coste de CPU despreciable.
+# --enable KFENCE
+# --set-val KFENCE_SAMPLE_INTERVAL 100
+# Simbolos para faddr2line/decode_stacktrace EN EL PC: no cambia el Image (objcopy quita .debug_*) ni los .ko
+# instalados (INSTALL_MOD_STRIP=1); solo build mas lento y vmlinux grande en el PC. NO activar DEBUG_INFO_BTF.
+# --disable DEBUG_INFO_NONE
+# --enable DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
+# --disable DEBUG_INFO_BTF
+# NR_CPUS 512 -> 16 (cpumask de 64 B -> 8 B en cada task_struct y otras structs; ganancia pequena, <1 MiB est.).
+# --set-val NR_CPUS 16
+# PREEMPT_DYNAMIC: deja elegir preempt=full|lazy|voluntary por cmdline para A/B sin recompilar (sigue full por defecto).
+# --enable PREEMPT_DYNAMIC
+
+# === BLOQUE C (ciclo propio, DESPUES de v8b; riesgo medio): RCU perezoso para reposo ===
+# Activa tambien el 'rcu_nocbs=0-7' que ya trae el /chosen/bootargs del DT vendor (hoy muerto: RCU_NOCB_CPU=n).
+# --enable RCU_EXPERT
+# --enable RCU_NOCB_CPU
+# --enable RCU_LAZY
+
+# === NO TOCAR (explicito; ver informe §1.3) ===
+# HZ_250, NO_HZ_IDLE, PREEMPT (full), SCHED_MC/SCHED_CLUSTER, ENERGY_MODEL (EAS activo: sched_energy_aware=1),
+# CPU_FREQ_DEFAULT_GOV_SCHEDUTIL, CPU_IDLE_GOV_TEO/MENU, ZRAM=m/ZSMALLOC=m/CRYPTO_ZSTD=y, ZSWAP=n (con zram seria doble
+# compresion), KSM=y (run=0), DAMON=n, PAGE_REPORTING, CMA/DMA_CMA (561 MiB de pools del DT), NUMA, ARM64_VA_BITS,
+# CC_OPTIMIZE_FOR_PERFORMANCE, LTO_NONE (no ThinLTO), CFI=n, MODVERSIONS=n, INIT_STACK_ALL_ZERO,
+# DEBUG_FS, DYNAMIC_DEBUG, KALLSYMS_ALL, FTRACE/FUNCTION_(GRAPH_)TRACER/DYNAMIC_FTRACE, KPROBES/KPROBE_EVENTS,
+# SLUB_DEBUG (compilado, apagado), PM_DEBUG/PM_SLEEP_DEBUG, DRM_MSM_GPU_STATE, PSTORE_RAM, MAGIC_SYSRQ, IKCONFIG_PROC,
+# LOG_BUF_SHIFT=21, y todo MEDIA/V4L2/I2C_QCOM_CCI/SND/BT/ATH11K/DRM_MSM (camaras, audio, BT, WiFi, pantalla).
+# Ya apagados y que siguen apagados: KASAN, LOCKDEP/PROVE_LOCKING, DEBUG_KMEMLEAK, DEBUG_PAGEALLOC, DEBUG_VM, UBSAN, KCSAN.

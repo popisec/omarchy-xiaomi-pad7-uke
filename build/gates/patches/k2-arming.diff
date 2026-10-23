@@ -1,0 +1,145 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -71,21 +71,80 @@
+ static bool using_legacy_binding, using_generic_binding;
+ 
+ /*
+- * UKE-SMMU-CLK (K1): ARMING por token.
++ * UKE-SMMU-CLK (K2): ARMING en caliente por parámetro de módulo.
+  *
+  * El probe de apps-smmu (base 0x15000000) se difiere SIEMPRE (bloque UKE-POKE de
+- * arm_smmu_device_probe). Solo con "uke_smmu_probe=1" en la cmdline el reintento
+- * procede. Sin token este kernel arranca igual que el s244 (el SMMU del vendor se
+- * queda sin bindear, como hasta ahora) y la consola demuestra que el Image es
+- * sano antes de gastar el intento de riesgo del SMMU.
++ * arm_smmu_device_probe). Aquí NO hay early_param: nada de la cmdline arma nada,
++ * porque con el token en la cmdline el reintento del deferred probe entraba
++ * demasiado pronto (antes de que la consola/SSH estuvieran vivos) y el arranque
++ * moría mudo pre-consola. Sin nada en la cmdline este kernel arranca igual que el
++ * s244 (SMMU del vendor sin bindear, consola viva, SSH funcionando) y el
++ * experimento se arma DESDE el sistema vivo con:
++ *
++ *     echo 1 > /sys/module/arm_smmu/parameters/uke_smmu_probe
++ *
++ * Nombre del módulo en sysfs: KBUILD_MODNAME de este objeto es "arm_smmu" (el
++ * driver se llama "arm-smmu", pero el param cuelga del módulo arm_smmu, igual que
++ * el disable_bypass de este mismo fichero). built-in (=y) => params creados por
++ * param_sysfs_builtin() a partir del prefijo "arm_smmu." de kernel_param->name.
++ *
++ * El .set, además de guardar el valor, llama a driver_deferred_probe_trigger():
++ * sin ese trigger el nodo (que lleva difiriéndose desde el arranque y está en la
++ * lista de pendientes) solo se reintentaría cuando otro driver se bindeara, cosa
++ * que puede no volver a pasar. Es deliberado NO hacer flush_work: el "echo 1"
++ * vuelve en el acto y la sesión SSH sobrevive aunque el probe real se cuelgue.
+  */
+-static bool uke_smmu_armado __ro_after_init;
+-static int __init uke_smmu_armado_setup(char *s)
++static bool uke_smmu_armado;
++
++/* Rate-limit de la miga "desarmado" (retry loop del deferred probe). */
++static unsigned long uke_smmu_ultimo_print;
++
++/*
++ * driver_deferred_probe_trigger() vive en drivers/base/dd.c y NO está exportada a
++ * módulos: la única del par que lleva EXPORT_SYMBOL_GPL es
++ * driver_deferred_probe_check_state(), y la declaración pública está en
++ * drivers/base/base.h, que es privado de drivers/base. Se declara aquí a mano; es
++ * legal porque arm_smmu es built-in (=y en el .config del #82), y el enlazador
++ * resuelve el símbolo contra vmlinux. Si algún día se compilara =m, modpost
++ * rechazaría el símbolo (queda anotado en INFORME-K2-BUILD.md). La función se
++ * protege sola: con driver_deferred_probe_enable==false (primerísimo arranque)
++ * retorna sin tocar nada.
++ */
++extern void driver_deferred_probe_trigger(void);
++
++static int uke_smmu_probe_set(const char *val, const struct kernel_param *kp)
+ {
+-	uke_smmu_armado = (s && (s[0] == '1' || s[0] == 'y'));
++	int ret;
++
++	ret = param_set_bool(val, kp);
++	if (ret)
++		return ret;
++
++	pr_info("UKE-POKE: arming en caliente: uke_smmu_probe=%d\n", uke_smmu_armado);
++	if (uke_smmu_armado)
++		driver_deferred_probe_trigger();	/* reintenta los diferidos YA */
++
+ 	return 0;
+ }
+-early_param("uke_smmu_probe", uke_smmu_armado_setup);
++
++static const struct kernel_param_ops uke_smmu_probe_ops = {
++	.set	= uke_smmu_probe_set,
++	.get	= param_get_bool,
++};
++
++module_param_cb(uke_smmu_probe, &uke_smmu_probe_ops, &uke_smmu_armado, 0644);
++MODULE_PARM_DESC(uke_smmu_probe,
++	"UKE (K2): 1 = arma el probe real del apps-smmu (0x15000000) EN CALIENTE y dispara el reintento del deferred probe; 0/sin tocar = el bloque no se toca nunca.");
++
++/* ¿Es este SMMU el apps-smmu del DT del vendor (reg = <0x15000000 ...>)? */
++static bool uke_smmu_es_apps(struct arm_smmu_device *smmu)
++{
++	u32 base;
++
++	return smmu->dev->of_node &&
++	       of_property_read_u32(smmu->dev->of_node, "reg", &base) == 0 &&
++	       base == 0x15000000;
++}
+ 
+ static inline int arm_smmu_rpm_get(struct arm_smmu_device *smmu)
+ {
+@@ -1775,7 +1834,17 @@
+ 	dev_notice(smmu->dev, "SMMUv%d with:\n",
+ 			smmu->version == ARM_SMMU_V2 ? 2 : 1);
+ 
+-	/* ID0 */
++	/*
++	 * ID0
++	 *
++	 * UKE-SMMU-CLK (K2): esta es la ÚLTIMA miga antes del PRIMER MMIO del probe
++	 * real (todo lo anterior es DT/asignaciones/clocks). Si la consola enmudece
++	 * a partir de aquí, el cuelgue es del acceso al registro ID0 o posterior.
++	 * Solo apps-smmu: el kgsl-smmu del mismo DT también pasa por esta función
++	 * (en el arranque normal, con uke_smmu_armado==0) y no debe confundir.
++	 */
++	if (uke_smmu_armado && uke_smmu_es_apps(smmu))
++		pr_info("UKE-POKE: ARMADO — probe real del apps-smmu, lo que sigue puede colgar\n");
+ 	id = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_ID0);
+ 	pr_info("UKE-POKE: cfg_probe ID0=0x%08x (SMS=%u groups)\n", id,
+ 		(unsigned int)FIELD_GET(ARM_SMMU_ID0_NUMSMRG, id));
+@@ -2211,15 +2280,26 @@
+ 				return -EPROBE_DEFER;
+ 			}
+ 			/*
+-			 * UKE-SMMU-CLK (K1): ARMING por token. Sin el token el bloque no se
+-			 * toca NUNCA: el gate 0 (kernel nuevo con el dtbo bueno) tiene que
+-			 * arrancar sano y dejar que la consola demuestre que el Image
+-			 * arranca. Con uke_smmu_probe=1 en la cmdline el reintento procede y
+-			 * todo lo que imprima antes del cuelgue es el diagnostico.
++			 * UKE-SMMU-CLK (K2): ARMING en caliente. Sin "1" en
++			 * /sys/module/arm_smmu/parameters/uke_smmu_probe el bloque no se
++			 * toca NUNCA: el arranque (s258 + este Image) tiene que llegar a
++			 * userspace sano y con SSH vivo, y el experimento se arma después
++			 * desde ahí. Al escribir 1, el .set del param dispara el deferred
++			 * probe y este reintento entra de verdad.
++			 *
++			 * Por aquí se pasa muchas veces (cada bindeo de otro driver
++			 * reencola el nodo diferido), así que el print va limitado a 1/s
++			 * con jiffies para no inundar la consola; el primero siempre sale
++			 * (uke_smmu_ultimo_print == 0).
+ 			 */
+ 			if (!uke_smmu_armado) {
+-				pr_info("UKE-POKE: apps-smmu: desarmado (falta uke_smmu_probe=1); "
+-					"no se toca el bloque. Arranque sano.\n");
++				if (!uke_smmu_ultimo_print ||
++				    time_after(jiffies, uke_smmu_ultimo_print + HZ)) {
++					uke_smmu_ultimo_print = jiffies;
++					pr_info("UKE-POKE: apps-smmu: desarmado (echo 1 > "
++						"/sys/module/arm_smmu/parameters/uke_smmu_probe); "
++						"no se toca el bloque. Arranque sano.\n");
++				}
+ 				return -EPROBE_DEFER;
+ 			}
+ 			pr_info("UKE-POKE: apps-smmu: REINTENTO del probe, consola ya viva. "

@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-bt.dtso -- Bluetooth del WCN6750 sobre senemos ouke3 (Xiaomi Pad 7 "uke").
+ * Plan: build/gates/revision/BT-SENEMOS-20261018.md (App. A). B0, 18-oct-2026: compila y se aplica con
+ * fdtoverlay en el PC; NO probado en la tablet.
+ *
+ * Tres variantes de UN solo fuente (las compila build.sh con cpp -D...):
+ *   (sin -D)          variante B   UART + nodo serdev + 5 de los 6 rails (sin vddrfa2p2). Es la de B4/B7.
+ *   -DUART_ONLY       variante U   solo la UART (SE2 de QUP1), sin nodo serdev, sin GPIO ni rails. Es la de B3.
+ *   -DWITH_PA_RAIL    variante A   como B + vddrfa2p2 <- pmr735a_s3. EXIGE kernel v4: el rail no esta en la allowlist
+ *                                  de qcom-rpmh-regulator-uke.c y, con fw_devlink.strict=1, el probe se quedaria diferido.
+ *
+ * Son EXCLUYENTES (las tres reescriben el mismo nodo): descargar una antes de cargar otra.
+ *
+ * Direccion BD: el nodo lleva `local-bd-address` con el MARCADOR "UKEBT!" (55 4b 45 42 54 21). El .dtbo del repo
+ * jamas lleva una direccion real: el cargador (module/uke-ovl.h) sustituye el marcador en una copia en memoria por
+ * el parametro de modulo `bdaddr=` (o por ceros, que el nucleo ignora: hci_sync.c rechaza 00:00:00:00:00:00) ANTES
+ * de llamar a of_overlay_fdt_apply(). El marcador solo llega al nucleo si alguien aplica este .dtbo "a pelo".
+ */
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/qcom,qup_uart@888000";
+
+		__overlay__ {
+			/* Lo que hace que el driver mainline acepte el nodo vendor: se reescriben compatible y clock-names,
+			 * y se INTERCAMBIAN default<->sleep del pinctrl (en el vendor default=GPIO en reposo, active=UART).
+			 * pinctrl-2/3, qcom,wakeup-byte y reg-names quedan como residuo inocuo (un overlay no borra propiedades). */
+			compatible = "qcom,geni-uart";
+			clock-names = "se";
+			status = "okay";
+			pinctrl-names = "default", "sleep";
+			pinctrl-0 = <&qupv3_se10_cts &qupv3_se10_rts &qupv3_se10_tx &qupv3_se10_rx>;
+			pinctrl-1 = <&qupv3_se10_default_cts &qupv3_se10_default_rts
+				     &qupv3_se10_default_tx &qupv3_se10_default_rx>;
+			/* IRQ principal y polaridad: los del DT vendor (SPI 584). La de wake: flanco de bajada en el RX/CTS (gpio 43) */
+			interrupts-extended = <&intc GIC_SPI 584 IRQ_TYPE_LEVEL_HIGH>,
+					      <&tlmm 43 IRQ_TYPE_EDGE_FALLING>;
+
+#ifndef UART_ONLY
+			bluetooth {
+				compatible = "qcom,wcn6750-bt";
+				pinctrl-names = "default";
+				pinctrl-0 = <&bt_en_sleep>;
+				enable-gpios = <&tlmm 156 GPIO_ACTIVE_HIGH>;
+				swctrl-gpios = <&tlmm 80 GPIO_ACTIVE_HIGH>;
+				vddio-supply = <&pmxr2230_l7>;
+				vddaon-supply = <&pmxr2230_s3>;
+				vddbtcxmx-supply = <&pmxr2230_s3>;
+				vddrfacmn-supply = <&pmxr2230_s3>;
+				vddrfa0p8-supply = <&pmxr2230_s3>;
+				vddrfa1p7-supply = <&pmxr2230_s1>;
+				vddrfa1p2-supply = <&pmxr2230_s2>;
+#ifdef WITH_PA_RAIL
+				vddrfa2p2-supply = <&pmr735a_s3>;	/* exige kernel v4 (allowlist de rails) */
+#endif
+				/* 6 bytes, orden del nucleo (LSB primero = direccion impresa al reves). Marcador, no direccion real. */
+				local-bd-address = [55 4b 45 42 54 21];
+			};
+#endif
+		};
+	};
+};

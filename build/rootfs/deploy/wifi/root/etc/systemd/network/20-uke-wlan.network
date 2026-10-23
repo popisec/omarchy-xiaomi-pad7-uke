@@ -1,0 +1,19 @@
+# 20-uke-wlan.network — WiFi cliente de la tablet uke (DHCP). Convive con 10-uke-usb.network (gadget
+# USB estatico 192.168.42.129 SIN gateway): la ruta por defecto sale solo por wlan0.
+# NO se enciende nada por defecto: wlan0 solo existe tras uke-wifi-up.sh; wpa_supplicant lo arranca
+# ese guion cuando la interfaz ya existe (no hay unidad enabled que espere al dispositivo).
+[Match]
+Type=wlan
+
+[Network]
+DHCP=yes
+IPv6AcceptRA=yes
+DNSSEC=no
+
+[DHCP]
+RouteMetric=600
+UseDNS=yes
+
+[Link]
+# La tablet debe arrancar sin esperar al WiFi (el SSH real va por el gadget USB).
+RequiredForOnline=no

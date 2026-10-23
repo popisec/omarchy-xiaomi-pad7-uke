@@ -1,0 +1,20 @@
+# firmware-gpu.sha256 — manifiesto del firmware de la GPU Adreno 732 (uke).
+#
+# 3 blobs vendor (los 8 ficheros instalados salen de estos 3 por copia;
+# ver build/gates/paquete-firmware-gpu.sh para el mapa de instalación).
+#
+# FUENTE DE CADA SHA (ninguno es "generado nuevo": los 3 están publicados):
+#  - gmu 435c7bac…: uke-staging/firmware/SHA256SUMS del hermano (11-sep-2026),
+#    NOTAS-OMARCHY.md entrada 27-sep-2026, PKGBUILD sha256sums, REFUTADO.md
+#    del hermano (las 6 copias de gen71100_gmu.bin de la máquina son idénticas).
+#  - sqe b6df660d…: idem (uke-staging SHA256SUMS + NOTAS 27-sep + PKGBUILD;
+#    cruza con criticas R4 §3.1 / R7 §3 del hermano).
+#  - zap 0c86e4ae…: idem. OJO: es el blob VENDOR de esta tablet
+#    (proyectos/ubuntu-uke/stock/firmware/, 12 088 B); el del QRD
+#    (~/gpu-work/fw-qrd8635/, sha a6a4265b…) es OTRO fichero y NO se usa
+#    (el ZAP va firmado por SKU; uke-staging/firmware/README.md).
+#
+# Formato: "<sha256>  <relativo a build/pkg/uke-gpu-firmware/>".
+435c7bac9a328b8a100df930b84b65b4d579e42be44785d0e60e3729291bb864  gen71100_gmu.bin
+b6df660d109504dbea5a266910b037a33d893a11c6de52f524a5fd112008c401  gen71100_sqe.fw
+0c86e4ae6ed618101949965df451510a3216e0f0de1aef4920bd1888a15ea8e6  gen71100_zap.mbn

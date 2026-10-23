@@ -1,0 +1,17 @@
+=== /sys/class/drm/card0
+=== /sys/class/drm/card0-DSI-1
+-- status
+connected
+-- enabled
+enabled
+-- dpms
+On
+-- modes
+3200x2136
+3200x2136
+3200x2136
+3200x2136
+3200x2136
+3200x2136
+3200x2136
+=== /sys/class/drm/version

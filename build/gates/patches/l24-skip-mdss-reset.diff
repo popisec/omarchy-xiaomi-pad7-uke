@@ -1,0 +1,229 @@
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -59,22 +59,15 @@
+ MODULE_PARM_DESC(separate_gpu_drm, "Use separate DRM device for the GPU (0=single DRM device for both GPU and display (default), 1=two DRM devices)");
+ module_param(separate_gpu_kms, bool, 0600);
+ 
+-/*
+- * UKE-P82-INHERIT (L22): herencia cont_splash estilo vendor. Con =1 el panel
+- * LLEGA ENCENDIDO del ABL (el dueno VE el splash y el log en el LCD y muere
+- * despues): el driver del panel no pone rieles, no aserta reset, no envia
+- * init-DCS, y el DPU no reescribe el vbif sobre el scanout andando. Ver
+- * docs/historia/revision/PANEL-INHERIT-20261012.md.
+- */
+-static bool uke_panel_inherit_val;
+-module_param_named(uke_panel_inherit, uke_panel_inherit_val, bool, 0644);
+-MODULE_PARM_DESC(uke_panel_inherit,
+-		 "panel heredado encendido del ABL: no tocar rieles/reset/init-DCS del panel ni vbif del DPU");
+-bool uke_panel_inherit(void)
++static bool uke_skip_mdss_reset_val;
++module_param_named(uke_skip_mdss_reset, uke_skip_mdss_reset_val, bool, 0644);
++MODULE_PARM_DESC(uke_skip_mdss_reset,
++		 "saltar el reset duro DISP_CC_MDSS_CORE_BCR de msm_mdss_reset (diagnostico L24)");
++bool uke_skip_mdss_reset(void)
+ {
+-	return uke_panel_inherit_val;
++	return uke_skip_mdss_reset_val;
+ }
+-EXPORT_SYMBOL_GPL(uke_panel_inherit);
++EXPORT_SYMBOL_GPL(uke_skip_mdss_reset);
+ 
+ DECLARE_FAULT_ATTR(fail_gem_alloc);
+ DECLARE_FAULT_ATTR(fail_gem_iova);
+--- a/include/linux/uke-poke.h
++++ b/include/linux/uke-poke.h
+@@ -20,12 +20,12 @@
+ #if IS_ENABLED(CONFIG_ARCH_QCOM)
+ void uke_poke(const char *tag);
+ void uke_lastpoke_set(const char *tag);
+-/* L22: herencia cont_splash del panel (param msm.uke_panel_inherit=1). */
+-bool uke_panel_inherit(void);
++/* L24: gate unico de diagnostico (param msm.uke_skip_mdss_reset=1). */
++bool uke_skip_mdss_reset(void);
+ #else
+ static inline void uke_poke(const char *tag) { }
+ static inline void uke_lastpoke_set(const char *tag) { }
+-static inline bool uke_panel_inherit(void) { return false; }
++static inline bool uke_skip_mdss_reset(void) { return false; }
+ #endif
+ 
+ #endif /* _UKE_POKE_H */
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -332,16 +332,6 @@
+ 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi[0] };
+ 	int ret;
+ 
+-	/* UKE-P82-INHERIT: el panel VINO ENCENDIDO del ABL (splash heredada).
+-	 * Sin rieles (ya puestos), sin reset, sin init-DCS (105 cmds), sin
+-	 * freq_sel/sleep-out/display-on y sin backlight_enable: cualquier
+-	 * escritura sobre un panel vivo en video-mode mata el link.
+-	 */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: prepare SALTADO (riel/reset/init del ABL intactos)\n");
+-		uke_poke("P82-inh-prep");
+-		return 0;
+-	}
+ 	pr_info("UKE-P82: prepare: INICIO\n");
+ 	ret = o82_power_on(ctx);
+ 	if (ret < 0) {
+@@ -415,14 +405,6 @@
+ 	struct o82_panel *ctx = to_o82_panel(panel);
+ 	int ret, i;
+ 
+-	/* UKE-P82-INHERIT: tampoco APAGAMOS en herencia: un disable/dpms-off
+-	 * del conector no puede cortar rieles ni asertar el reset del panel
+-	 * heredado (se quedaria negro sin modo de recuperacion).
+-	 */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: unprepare SALTADO (panel heredado sigue vivo)\n");
+-		return 0;
+-	}
+ 	backlight_disable(ctx->backlight);
+ 
+ 	/* Vendor off command, en BROADCAST a los dos links (como el init):
+@@ -680,21 +662,10 @@
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "failed to get regulators\n");
+ 
+-	/* UKE-P82-INHERIT: con herencia el reset NO se aserta en el probe
+-	 * (GPIOD_OUT_HIGH = fisico LOW con el DT ACTIVE_LOW = reset asertado
+-	 * desde el probe); pedimos OUT_LOW (fisico HIGH = liberado), la linea
+-	 * queda tal y como la dejo el ABL.
+-	 */
+-	ctx->reset_gpio = devm_gpiod_get(dev, "reset",
+-					 uke_panel_inherit() ? GPIOD_OUT_LOW
+-							     : GPIOD_OUT_HIGH);
++	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
+ 	if (IS_ERR(ctx->reset_gpio))
+ 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
+ 				     "failed to get reset gpio\n");
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: probe: reset pedido liberado (no asertado), rieles sin tocar\n");
+-		uke_poke("P82-inh-probe");
+-	}
+ 
+ 	/* K49 (#509): registrar las lineas ESD del TDDI como el vendor y
+ 	 * absorber sus aseveraciones con una irq con dueno. El mux/pull lo
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -13,7 +13,6 @@
+ #include <linux/dma-buf.h>
+ #include <linux/of_irq.h>
+ #include <linux/pm_opp.h>
+-#include <linux/uke-poke.h>
+ 
+ #include <drm/drm_crtc.h>
+ #include <drm/drm_file.h>
+@@ -1278,13 +1277,7 @@
+ 		goto err_pm_put;
+ 	}
+ 
+-	/* L22b (#612): el vbif-memtype NO se reescribe con el panel heredado
+-	 * (el gate en runtime_resume no cubria este camino del hw_init). */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: dpu_vbif_init_memtypes SALTADO (hw_init)\n");
+-	} else {
+-		dpu_vbif_init_memtypes(dpu_kms);
+-	}
++	dpu_vbif_init_memtypes(dpu_kms);
+ 
+ 	pm_runtime_put_sync(&dpu_kms->pdev->dev);
+ 
+@@ -1464,33 +1457,12 @@
+ 
+ 	ddev = dpu_kms->dev;
+ 
+-	/* L22b (#612): con herencia, NO tocar clk_bulk: el primer enable sobre
+-	 * los RCG compartidos (mdp/ahb heredados del ABL) escribe parked_cfg=0
+-	 * (clk_rcg2_shared_enable) y reprograma los relojes del scanout vivo.
+-	 * Los clocks ABL ya estan ON; irq_preinstall escribe regs MDP igual. */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: dpu_runtime_resume: clk_bulk SALTADO (clocks ABL)\n");
+-		return 0;
+-	}
+-
+ 	rc = clk_bulk_prepare_enable(dpu_kms->num_clocks, dpu_kms->clocks);
+ 	if (rc) {
+ 		DPU_ERROR("clock enable failed rc:%d\n", rc);
+ 		return rc;
+ 	}
+ 
+-	/* UKE-P82-INHERIT: el scanout del ABL sigue vivo (splash heredada).
+-	 * Reescribir VBIF_*_AMEMTYPE (y reanudar encoders) sobre el pipeline
+-	 * andando rompe el fetch del framebuffer heredado: pantalla negra a
+-	 * los ~4.1 s, en el bind del DPU. Con herencia dejamos el vbif y los
+-	 * encoders EXACTAMENTE como los configuro el ABL (los clocks SI se
+-	 * habilitan: irq_preinstall escribe regs MDP despues).
+-	 */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: dpu_runtime_resume: vbif-memtype/encoders SALTADOS (scanout ABL vivo)\n");
+-		uke_poke("P82-inh-dpu");
+-		return 0;
+-	}
+ 	dpu_vbif_init_memtypes(dpu_kms);
+ 
+ 	drm_for_each_encoder(encoder, ddev)
+--- a/drivers/gpu/drm/msm/msm_mdss.c
++++ b/drivers/gpu/drm/msm/msm_mdss.c
+@@ -13,7 +13,7 @@
+ #include <linux/irqchip/chained_irq.h>
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+-#include <linux/uke-poke.h>  /* L22b: uke_panel_inherit */
++#include <linux/uke-poke.h>  /* L24: uke_skip_mdss_reset + uke_poke */
+ #include <linux/pm_runtime.h>
+ #include <linux/reset.h>
+ 
+@@ -312,12 +312,13 @@
+ 	struct reset_control *reset;
+ 
+ 	/*
+-	 * L22b (#612): con el panel heredado del ABL, este reset duro de 20 ms
+-	 * del display core MATA el scanout vivo (el dueño ve el log y se apaga
+-	 * a ~0,5 s, justo aqui). Saltarlo entero.
++	 * L24: gate unico de diagnostico (param msm.uke_skip_mdss_reset=1).
++	 * Sin herencia: el prepare CORRE; solo se salta el reset duro de
++	 * 20 ms del display core para ver si mata la imagen del ABL.
+ 	 */
+-	if (uke_panel_inherit()) {
+-		pr_info("UKE-P82-INHERIT: msm_mdss_reset SALTADO (scanout ABL vivo)\n");
++	if (uke_skip_mdss_reset()) {
++		pr_info("UKE-L24: msm_mdss_reset SALTADO (gate msm.uke_skip_mdss_reset=1)\n");
++		uke_poke("L24-skip-mdss-reset");
+ 		return 0;
+ 	}
+ 
+--- a/drivers/clk/qcom/dispcc-sm8550.c
++++ b/drivers/clk/qcom/dispcc-sm8550.c
+@@ -14,11 +14,6 @@
+ 
+ #include <dt-bindings/clock/qcom,sm8550-dispcc.h>
+ 
+-/* L22b (#612): saltar pll_configure cuando el panel es heredado del ABL
+- * (cmdline dispcc.uke_skip_pll=1; el scanout vivo depende de las PLLs ABL). */
+-static bool uke_dispcc_skip_pll;
+-module_param_named(uke_skip_pll, uke_dispcc_skip_pll, bool, 0444);
+-
+ #include "common.h"
+ #include "clk-alpha-pll.h"
+ #include "clk-branch.h"
+@@ -1819,16 +1814,8 @@
+ 		disp_cc_mdss_mdp_clk_src.freq_tbl = ftbl_disp_cc_mdss_mdp_clk_src_sar2130p;
+ 	}
+ 
+-	/* L22b (#612): con el panel heredado del ABL, NO reconfigurar las PLLs
+-	 * ni tocar MISC_CMD/gating: el scanout vivo depende de los PLLs que el
+-	 * ABL dejo puestos (defensivo — mismo criterio que dpu gates). El param
+-	 * es global temprano (module_param en este fichero, cmdline lo pone). */
+-	if (uke_dispcc_skip_pll) {
+-		pr_info("UKE-P82-INHERIT: dispcc probe: pll_configure SALTADO (panel heredado)\n");
+-	} else {
+-		clk_lucid_ole_pll_configure(&disp_cc_pll0, regmap, &disp_cc_pll0_config);
+-		clk_lucid_ole_pll_configure(&disp_cc_pll1, regmap, &disp_cc_pll1_config);
+-	}
++	clk_lucid_ole_pll_configure(&disp_cc_pll0, regmap, &disp_cc_pll0_config);
++	clk_lucid_ole_pll_configure(&disp_cc_pll1, regmap, &disp_cc_pll1_config);
+ 
+ 	/* Enable clock gating for MDP clocks */
+ 	regmap_update_bits(regmap, DISP_CC_MISC_CMD, 0x10, 0x10);

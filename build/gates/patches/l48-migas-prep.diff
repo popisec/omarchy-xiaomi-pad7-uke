@@ -1,0 +1,148 @@
+diff -u -r a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c	2026-10-14 13:01:59.947572420 +0200
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c	2026-10-14 13:02:28.445257366 +0200
+@@ -1166,6 +1166,8 @@
+ 	if (rc < 0)
+ 		goto error;
+ 
++	uke_poke("K48-hw-resume-ok");
++
+ 	core_rev = readl_relaxed(dpu_kms->mmio + 0x0);
+ 
+ 	pr_info("dpu hardware revision:0x%x\n", core_rev);
+@@ -1187,6 +1189,8 @@
+ 		goto err_pm_put;
+ 	}
+ 
++	uke_poke("K48-hw-mmu-ok");
++
+ 	dpu_kms->mdss = qcom_ubwc_config_get_data();
+ 	if (IS_ERR(dpu_kms->mdss)) {
+ 		rc = PTR_ERR(dpu_kms->mdss);
+@@ -1286,6 +1290,7 @@
+ 		pr_info("UKE-P82-INHERIT: dpu_vbif_init_memtypes SALTADO (hw_init)\n");
+ 	} else {
+ 		dpu_vbif_init_memtypes(dpu_kms);
++		uke_poke("K48-hw-vbif-ok");
+ 	}
+ 
+ 	pm_runtime_put_sync(&dpu_kms->pdev->dev);
+@@ -1316,6 +1321,15 @@
+ 
+ 	dev_pm_opp_set_rate(dev, max_freq);
+ 
++	/* L48: verificacion en vivo de E9 (AUDITORIA-METODO §E9): con los clocks
++	 * aun apagados, clk_get_rate recalcula desde parked_cfg: si la siembra
++	 * OPP llego al SRC, esto lee 514000000; si lee otra cosa, FASE-1 revive. */
++	{
++		unsigned long k48_core_rate = dpu_kms_get_clk_rate(dpu_kms, "core");
++		pr_err("UKE-POKE: K48-opp-rate core=%lu (esperado 514000000)\n",
++		       k48_core_rate);
++	}
++
+ 	ret = msm_kms_init(&dpu_kms->base, &kms_funcs);
+ 	if (ret) {
+ 		DPU_ERROR("failed to init kms, ret=%d\n", ret);
+@@ -1476,12 +1490,15 @@
+ 		return 0;
+ 	}
+ 
++	uke_poke("K48-res-clk-in");
+ 	rc = clk_bulk_prepare_enable(dpu_kms->num_clocks, dpu_kms->clocks);
+ 	if (rc) {
+ 		DPU_ERROR("clock enable failed rc:%d\n", rc);
+ 		return rc;
+ 	}
+ 
++	uke_poke("K48-res-clk-ok");
++
+ 	/* UKE-P82-INHERIT: el scanout del ABL sigue vivo (splash heredada).
+ 	 * Reescribir VBIF_*_AMEMTYPE (y reanudar encoders) sobre el pipeline
+ 	 * andando rompe el fetch del framebuffer heredado: pantalla negra a
+@@ -1495,10 +1512,13 @@
+ 		return 0;
+ 	}
+ 	dpu_vbif_init_memtypes(dpu_kms);
++	uke_poke("K48-res-vbif-ok");
+ 
+ 	drm_for_each_encoder(encoder, ddev)
+ 		dpu_encoder_virt_runtime_resume(encoder);
+ 
++	uke_poke("K48-res-enc-ok");
++
+ 	return rc;
+ }
+ 
+diff -u -r a/drivers/gpu/drm/msm/msm_kms.c b/drivers/gpu/drm/msm/msm_kms.c
+--- a/drivers/gpu/drm/msm/msm_kms.c	2026-10-14 13:01:59.952473248 +0200
++++ b/drivers/gpu/drm/msm/msm_kms.c	2026-10-14 13:02:22.395231588 +0200
+@@ -6,8 +6,11 @@
+  */
+ 
+ #include <linux/aperture.h>
++#include <linux/jiffies.h>
+ #include <linux/kthread.h>
+ #include <linux/sched/mm.h>
++#include <linux/uke-poke.h>
++#include <linux/workqueue.h>
+ #include <uapi/linux/sched/types.h>
+ 
+ #include <drm/drm_drv.h>
+@@ -389,12 +392,36 @@
+ 		drm_atomic_helper_shutdown(drm);
+ }
+ 
++/* L48: corchete temporal post-bind. Si el SoC muere tras "Initialized" sin
++ * dejar rastro (FALLA-A de L47), el ultimo K48-alive impreso en el ACM dice
++ * si la muerte fue inmediata al bind (+3 s), intermedia (+8 s) o tardia
++ * (+15 s). Inerte: solo pr_err + pintado (mismo canal que uke_poke). */
++static struct delayed_work uke_k48_alive_work;
++static int uke_k48_alive_n;
++
++static void uke_k48_alive_fn(struct work_struct *w)
++{
++	uke_k48_alive_n++;
++	pr_err("UKE-POKE: K48-alive-%d\n", uke_k48_alive_n);
++	if (uke_k48_alive_n == 1)
++		schedule_delayed_work(&uke_k48_alive_work,
++				      msecs_to_jiffies(5000));
++	else if (uke_k48_alive_n == 2)
++		schedule_delayed_work(&uke_k48_alive_work,
++				      msecs_to_jiffies(7000));
++}
++
+ void msm_drm_kms_post_init(struct device *dev)
+ {
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct msm_drm_private *priv = platform_get_drvdata(pdev);
+ 	struct drm_device *ddev = priv->dev;
+ 
++	uke_poke("K48-post-init");
++	uke_k48_alive_n = 0;
++	INIT_DELAYED_WORK(&uke_k48_alive_work, uke_k48_alive_fn);
++	schedule_delayed_work(&uke_k48_alive_work, msecs_to_jiffies(3000));
++
+ 	drm_kms_helper_poll_init(ddev);
+ 	drm_client_setup(ddev, NULL);
+ }
+diff -u -r a/drivers/gpu/drm/msm/msm_mdss.c b/drivers/gpu/drm/msm/msm_mdss.c
+--- a/drivers/gpu/drm/msm/msm_mdss.c	2026-10-14 13:01:59.950132169 +0200
++++ b/drivers/gpu/drm/msm/msm_mdss.c	2026-10-14 13:02:15.695202298 +0200
+@@ -234,6 +234,8 @@
+ 	int ret, i;
+ 	u32 hw_rev;
+ 
++	uke_poke("K48-mdss-en-in");
++
+ 	/*
+ 	 * Several components have AXI clocks that can only be turned on if
+ 	 * the interconnect is enabled (non-zero bandwidth). Let's make sure
+@@ -259,6 +261,8 @@
+ 		return ret;
+ 	}
+ 
++	uke_poke("K48-mdss-en-ok");
++
+ 	/*
+ 	 * Register access requires MDSS_MDP_CLK, which is not enabled by the
+ 	 * mdss on mdp5 hardware. Skip it for now.

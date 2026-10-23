@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e4-dais.dtso — ETAPA E4: DAIs de q6apm (DMA del LPASS hacia memoria de Linux) + SMMU.
+ * REFERENCIA (division en e4a + e4b). No probado en la tablet.
+ *
+ * Requiere e2-gpr aplicado antes (cuelga de service@3 (q6apm de E2d, reg 3)).
+ *
+ *   bedais (qcom,q6apm-lpass-dais) : DAIs de backend (CODEC_DMA, I2S, DP) que usara la tarjeta.
+ *   dais   (qcom,q6apm-dais)       : DAIs de frontend PCM (MultiMedia1..n). Lleva `iommus` hacia apps-smmu con
+ *                                    los SIDs del LPASS, IDENTICOS en sm8650.dtsi y en el `qcom,msm-audio-ion` vendor:
+ *                                       0x1001 mascara 0x80   y   0x1061 mascara 0
+ *
+ * NOTA (18-oct-2026): el kernel v4 ya admite 0x801001 y 0x1061 (parche 0002 flasheado), asi que NO hace falta otro flash. Este fichero combinado queda
+ * como REFERENCIA: la cadena usa la division e4a (bedais, sin riesgo) + e4b (dais + SMMU), ver sus cabeceras.
+ *
+ * `dma-coherent` no se pone: sm8650.dtsi tampoco lo pone en este nodo (el vendor msm-audio-ion si lo tiene
+ * en su cma; INFERIDO que no hace falta, a comprobar con el puntero PCM en E4).
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr/service@3";
+
+		__overlay__ {
+			uke_q6apmbedai: bedais {
+				compatible = "qcom,q6apm-lpass-dais";
+				#sound-dai-cells = <1>;
+			};
+
+			uke_q6apmdai: dais {
+				compatible = "qcom,q6apm-dais";
+				iommus = <&apps_smmu 0x1001 0x80>,
+					 <&apps_smmu 0x1061 0x0>;
+			};
+		};
+	};
+};

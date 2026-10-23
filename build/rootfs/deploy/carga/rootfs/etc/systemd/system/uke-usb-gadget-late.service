@@ -1,0 +1,18 @@
+[Unit]
+Description=uke: gadget USB tardío (el UDC puede salir tras battmgr con el kernel senemos)
+ConditionKernelVersion=*senemos*
+ConditionPathExists=/usr/local/sbin/uke-usb-gadget-late.sh
+After=uke-carga.service systemd-udevd.service
+Wants=uke-carga.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/uke-usb-gadget-late.sh
+TimeoutStartSec=200
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=uke-gadget-late
+
+[Install]
+WantedBy=multi-user.target

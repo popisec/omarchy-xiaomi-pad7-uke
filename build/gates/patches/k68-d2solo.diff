@@ -1,0 +1,99 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -866,9 +866,45 @@
+ 	gmu_write(gmu, 0x1f8f1, 1);
+ 	gmu_write(gmu, 0x1f984, 1);
+ 	gmu_write(gmu, 0x0, 0x3c45);
+-	gmu_write(gmu, 0x1f9cd, 0xf);
++	/* UKE-K68 (BARRIDO-W4 D2-solo; base W2-RE 2-3): 0x1f9cf=chipid real (el fw lo valida en 0x14520:
++	 * ((x>>16)&0xfff) en {701,702,703,705,706,709,70a,70b,70f}; con 0xf el fw
++	 * devuelve 3 y FW_INIT_RESULT=0x101) y 0x1f9cd=(log.iova&~0xfff)|(size/4K-1)
++	 * (K64 lo pisaba con 0xf DESPUES de programarlo bien mainline; el fw lo lee
++	 * en el stage 5). Si la familia no valida, NO se escribe 0xf: se conserva
++	 * el valor de mainline y se deja testigo. */
++	{
++		struct a6xx_gpu *k68_a6xx = container_of(gmu, struct a6xx_gpu, gmu);
++		struct adreno_gpu *k68_adreno = &k68_a6xx->base;
++		const struct a6xx_info *k68_info = k68_adreno->info->a6xx;
++		u32 k68_chipid, k68_fam;
++		if (k68_info->gmu_chipid)
++			k68_chipid = k68_info->gmu_chipid;
++		else {
++			k68_chipid  = k68_adreno->chip_id & 0xffff0000;
++			k68_chipid |= (k68_adreno->chip_id << 4) & 0xf000;
++			k68_chipid |= (k68_adreno->chip_id << 8) & 0x0f00;
++		}
++		k68_fam = (k68_chipid >> 16) & 0xfff;
++		if (k68_fam == 0x701 || k68_fam == 0x702 || k68_fam == 0x703 ||
++		    k68_fam == 0x705 || k68_fam == 0x706 || k68_fam == 0x709 ||
++		    k68_fam == 0x70a || k68_fam == 0x70b || k68_fam == 0x70f) {
++			gmu_write(gmu, 0x1f9cf, k68_chipid);
++			pr_err("UKE-K68: GENERAL_10 chipid=%#x fam=%#x OK\n",
++			       k68_chipid, k68_fam);
++		} else {
++			pr_err("UKE-K68: GENERAL_10 chipid=%#x fam=%#x NO-VALIDO (se conserva mainline)\n",
++			       k68_chipid, k68_fam);
++		}
++		gmu_write(gmu, 0x1f9cd,
++			  (gmu->log.iova & GENMASK(31, 12)) |
++			  ((gmu->log.size / SZ_4K - 1) & GENMASK(7, 0)));
++		pr_err("UKE-K68: GENERAL_8 log=%#x size=%zu\n",
++		       (u32)((gmu->log.iova & GENMASK(31, 12)) |
++			     ((gmu->log.size / SZ_4K - 1) & GENMASK(7, 0))),
++		       gmu->log.size);
++		pr_flush(120, false);
++	}
+ 	gmu_write(gmu, 0x1f9ce, 0xf);
+-	gmu_write(gmu, 0x1f9cf, 0xf);
+ 	gmu_write(gmu, 0x1f9d0, 0xf);
+ 	/* RSC wake del vendor: 0x02003b07=2, dsb, poll 0x02003b08&2 <=100ms, luego 0 */
+ 	gmu_write_rscc(gmu, 0x3b07, 2);
+@@ -1066,9 +1102,13 @@
+ 	/* K58: el magic 0x40050001 lo escribe fw_load() desde el propio binario
+ 	 * (addr 0x10007fdc) ANTES de leerlo aqui => la heurística elegía la rama
+ 	 * WARM (mask 0x1ff/0x100) y un cold-boot sano (0xbabeface) daba pollFAIL.
+-	 * COLD boot verificado (K56 A: TCM_RET=0): palancas fijas de cold. */
+-	mask = 0xffffffff;
+-	reset_val = 0xbabeface;
++	 * COLD boot verificado (K56 A: TCM_RET=0): palancas fijas de cold.
++	 * UKE-K68 (BARRIDO-W4 D2-solo; base W2-RE 4): poll VENDOR (val&0x1ff)==0x100. El fw JAMAS escribe
++	 * 0xbabeface (exito=0x100 via ACK-HFI, error=0x101, progreso=0x200/0x400/
++	 * 0x600/0x800): con el criterio mainline el poll era imposible. */
++	pr_err("UKE-K68: poll vendor (val&0x1ff)==0x100\n");
++	mask = 0x1ff;
++	reset_val = 0x100;
+ 
+ 	/* UKE-CM3DBG: magic que el fw debe dejar al final del DTCM. Si es 0 o
+ 	 * basura, la imagen no llego a la RAM vista por el CM3 (fetch icache via
+@@ -2306,21 +2346,17 @@
+ 	uke_poke("H2-gx");
+ 
+ 	/* Use a known rate to bring up the GMU */
+-	/* UKE-K65 (9-oct-2026, BARRIDO-FASE2): estado CX viable del vendor.
+-	 * D1: GMU a 220M (tabla real ftbl_gpu_cc_gmu_clk_src; pedir 200M caia
+-	 *     por floor a 19.2M XO). D2: hub a 200M (gpulist A735; pedir 150M
+-	 *     sobre tabla {200M} daba -EINVAL y rate heredado XBL). D3: voto CX
+-	 *     LOW_SVS explicito via OPP 220M (level 0x40 = LOW_SVS ->
+-	 *     performance-state del genpd CX por _set_opp_level).
+-	 *     Testigos pr_err (nivel 3: pasan el tope de consola K41).
+-	 *     Sin tocar SYSRESET ni SMMU. Los rc NO abortan: el experimento
+-	 *     debe medir D1/D2 aunque D3 falle. */
+-	ret = clk_set_rate(gmu->core_clk, 220000000);
+-	pr_err("UKE-K65: D1 gmu clk_set 220M rc=%d\n", ret);
++	/* UKE-K68 (9-oct-2026, BARRIDO-W4): D2-SOLO SIN D1 SIN D3.
++	 * Rama gemela de K67: SOLO el hub a 200M (tabla real
++	 * ftbl_gpu_cc_hub_clk_src={200M} desde GPLL0; pedir 150M daba -EINVAL
++	 * y rate heredado XBL en k52b2). D1 ELIMINADO (core_clk sin tocar:
++	 * el GMU conserva el rate heredado de XBL; D1 programaba el PLL
++	 * dedicado gpu_cc_pll1, la rama menos sistémica). D3 ELIMINADO como
++	 * en K66 (voto CX que no votaba y mataba en resume). Los rc NO
++	 * abortan: el experimento debe medir D2 aunque el rate falle. */
+ 	ret = clk_set_rate(gmu->hub_clk, 200000000);
+-	pr_err("UKE-K65: D2 hub clk_set 200M rc=%d\n", ret);
+-	ret = dev_pm_opp_set_rate(gmu->dev, 220000000);
+-	pr_err("UKE-K65: D3 cx LOW_SVS opp_set_rate 220M rc=%d\n", ret);
++	pr_err("UKE-K68: D2 hub clk_set 200M rc=%d\n", ret);
++	pr_err("UKE-K68: SIN-D1 (core_clk sin tocar: rate heredado XBL) + SIN-D3 (voto CX eliminado)\n");
+ 	pr_flush(120, false);
+ 	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
+ 	if (ret) {

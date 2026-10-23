@@ -1,0 +1,107 @@
+# Rechazo de palma con lapiz para uke-touchd (20-oct-2026). NO aplicado. Se aplica sobre la copia YA parcheada con ../uke-touchd-pen.patch:
+#   cp tactil/uke-touchd.py /tmp/uke-touchd.py; patch -p0 /tmp/uke-touchd.py lapiz/uke-touchd-pen.patch; mv /tmp/uke-touchd.py /tmp/uke-touchd-pen.py
+#   patch -p0 /tmp/uke-touchd-pen.py lapiz/desktop/uke-touchd-palm.patch   (el original uke-touchd.py no se toca; test_desktop.py lo comprueba)
+--- uke-touchd-pen.py
++++ uke-touchd-pen.py
+@@ -140,6 +140,18 @@
+     def ev(self, t, c, v):
+         self.buf.append(struct.pack("qqHHi", 0, 0, t, c, v))
+ 
++    def cancel_all(self, mode="lift"):
++        """Palma: levanta los toques activos (fin normal, puede dar un clic). NO se usa MT_TOOL_PALM: declarar ABS_MT_TOOL_TYPE rompia el
++        pellizco de 2 dedos (20-oct 21:40) y el valor PALM persistia en el slot. `mode` se conserva por compatibilidad de CLI."""
++        for tid in list(self.slot_of):
++            self.ev(EV_ABS, ABS_MT_SLOT, self.slot_of.pop(tid))
++            self.ev(EV_ABS, ABS_MT_TRACKING_ID, -1)
++        self.ev(EV_KEY, BTN_TOUCH, 0)
++        self.ev(EV_KEY, BTN_TOOL_FINGER, 0)
++        self.ev(EV_SYN, 0, 0)
++        os.write(self.fd, b"".join(self.buf))
++        self.buf = []
++
+     def frame(self, pts):
+         alive = {tid for tid, *_ in pts}
+         for tid in [t for t in self.slot_of if t not in alive]:
+@@ -177,6 +189,31 @@
+ FWINFO = EVENT_BUF + 0x78
+ 
+ 
++class PalmGuard:
++    """Rechazo de palma con lapiz: bloquea dedos mientras el lapiz esta en rango y `hold` s despues del ultimo frame de lapiz; los toques
++    que aparecieron durante el bloqueo (tid) siguen ignorados mientras no se levanten (la palma que vuelve a los 0,25-0,5 s)."""
++
++    def __init__(self, hold=0.5, area=0):
++        self.hold, self.area, self.until, self.ban = hold, area, -1e9, set()
++
++    def pen_seen(self, now):
++        self.until = now + self.hold
++
++    def blocked(self, now, in_range=False):
++        return in_range or now < self.until
++
++    def filter(self, pts, now, in_range=False):
++        """pts = [(tid, x, y, area)]. Devuelve (puntos permitidos, hay_que_cancelar_los_activos)."""
++        blocked = self.blocked(now, in_range)
++        alive = {p[0] for p in pts}
++        self.ban &= alive
++        if blocked:
++            self.ban |= alive
++        if self.area:
++            self.ban |= {p[0] for p in pts if p[3] >= self.area}
++        return [p for p in pts if p[0] not in self.ban], blocked
++
++
+ def log(*a):
+     print("uke-touchd:", *a, flush=True)
+ 
+@@ -227,6 +264,9 @@
+     # --hold-ms tras levantarlo, todas. En reposo duerme entre frames y vacia los flancos acumulados de una vez.
+     ap.add_argument("--idle-div", type=int, default=3, help="en reposo, en reposo, frames procesados = 180/N por segundo (N=3: 60 Hz)")
+     ap.add_argument("--hold-ms", type=int, default=500, help="ritmo completo durante este tiempo tras el ultimo toque")
++    ap.add_argument("--palm-hold", type=float, default=0.0, help="con --pen: s de rechazo de dedos tras el ultimo frame de lapiz (0 = sin rechazo, POR DEFECTO: con 0.5 el pellizco fallaba tras apoyar la palma, 20-oct 21:50, sin diagnosticar)")
++    ap.add_argument("--palm-mode", choices=("palm", "lift"), default="lift", help="como se cancela el dedo apoyado al llegar el lapiz")
++    ap.add_argument("--palm-area", type=int, default=0, help="area (ABS_MT_TOUCH_MAJOR, max 64) desde la que un toque es palma aunque no haya lapiz; 0 = desactivado")
+     ap.add_argument("--pen", action="store_true", help="modo lapiz (uke_pen): activa el chip si el lapiz esta conectado y despegado")
+     a = ap.parse_args()
+ 
+@@ -262,6 +302,7 @@
+         except Exception as e:                         # noqa: BLE001
+             log("modo lapiz NO disponible (%r): el tactil sigue sin lapiz" % (e,))
+             rt = None
++    palm = PalmGuard(a.palm_hold, a.palm_area) if (rt is not None and a.palm_hold > 0) else None
+     tr = thp_algo.Tracker()
+     gfd = None
+     if not a.no_irq:
+@@ -373,8 +414,14 @@
+         fid, mag, nid, nmag = struct.unpack_from("<H2xH2xH2xH", F, 4)
+         if rt is not None and rt.handles(F):
+             good += 1
+-            if was_down:                                        # un dedo apoyado al empezar la rafaga de lapiz se suelta (revision I1)
+-                ui.frame([]); was_down = False
++            if palm is not None:
++                palm.pen_seen(now)
++            if was_down:                                        # un dedo apoyado al empezar la rafaga de lapiz se cancela (palma)
++                if palm is not None:
++                    ui.cancel_all(a.palm_mode)
++                else:
++                    ui.frame([])
++                was_down = False
+             tr.reset()                                          # SIEMPRE olvidar base y toques en una rafaga de lapiz: la rejilla 4bf posterior puede traer otra linea base y la vieja nunca se readapta (si no, toque fantasma y pellizco muerto)
+             rt.on_frame(F, now)
+             last_touch = now                                    # con lapiz: ritmo completo (240 Hz)
+@@ -388,8 +435,15 @@
+                 idle += 1
+                 if was_down:
+                     ui.frame([]); was_down = False
++                if palm is not None:
++                    palm.ban.clear()
+             else:
+                 pts = [(tid, *to_screen(x, y), n) for tid, x, y, n in tr.feed(mut)]
++                if palm is not None:
++                    pts, cancel = palm.filter(pts, now, rt is not None and rt.sess.in_range)
++                    if cancel and was_down:
++                        ui.cancel_all(a.palm_mode)
++                        was_down = False
+                 if pts or was_down:
+                     ui.frame(pts)
+                     if a.verbose and pts:

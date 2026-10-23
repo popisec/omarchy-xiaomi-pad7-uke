@@ -1,0 +1,22 @@
+=== G0 pins ===
+  OK  pins y herramientas
+=== G1: extraer payload s283 ===
+  OK  payload s283 (155 frags, max=2301), sin gpi-dma tocado
+=== G2: aislar SOLO los 2 fragmentos del GPI-DMA ===
+  OK  2 fragmentos gpi-dma aislados y renumerados a 2400/2401
+  OK  compila con 2 fragmentos anadidos
+=== G3: fdtoverlay (gate 1) ===
+  OK  fdtoverlay verde (s285 y s283)
+=== G4: el GPI cambia, y SOLO el GPI ===
+  OK    /soc/qcom,gpi-dma@a00000 -> qcom,palawan-gpi-dma qcom,sm6350-gpi-dma | #dma-cells=3 channels=12 mask=1e
+  OK    /soc/qcom,gpi-dma@800000 -> qcom,palawan-gpi-dma qcom,sm6350-gpi-dma | #dma-cells=3 channels=12 mask=1e
+  OK    los 5 nodos GENI siguen intactos (compatible='qcom,geni-spi')
+=== G5: paridad s283 ===
+  OK  gpr disabled + backlight resuelto + OPP 148648750: paridad s283
+=== G6: dt_table + roundtrip ===
+  OK  dt_table (1 entrada) + roundtrip; 608322 B
+=== G7: uke-dtbo-check.py (GATE, no aviso) ===
+  OK  uke-dtbo-check.py limpio
+
+PUBLICADO: ~/proyectos/omarchy-uke/build/bootimg/s285-boot-dtbo-gpu-display-gpi-only.img
+sha256 = 0b0b16b569e7212bd5f6dfa8a17d43c512a812f9950ca7bcd2084914d181bf06

@@ -1,0 +1,127 @@
+--- a/include/linux/uke-poke.h
++++ b/include/linux/uke-poke.h
+@@ -18,9 +18,12 @@
+ #if IS_ENABLED(CONFIG_ARCH_QCOM)
+ void uke_poke(const char *tag);
+ void uke_lastpoke_set(const char *tag);
++/* L22: herencia cont_splash del panel (param msm.uke_panel_inherit=1). */
++bool uke_panel_inherit(void);
+ #else
+ static inline void uke_poke(const char *tag) { }
+ static inline void uke_lastpoke_set(const char *tag) { }
++static inline bool uke_panel_inherit(void) { return false; }
+ #endif
+ 
+ #endif /* _UKE_POKE_H */
+--- a/drivers/gpu/drm/msm/msm_drv.c
++++ b/drivers/gpu/drm/msm/msm_drv.c
+@@ -59,6 +59,23 @@
+ MODULE_PARM_DESC(separate_gpu_drm, "Use separate DRM device for the GPU (0=single DRM device for both GPU and display (default), 1=two DRM devices)");
+ module_param(separate_gpu_kms, bool, 0600);
+ 
++/*
++ * UKE-P82-INHERIT (L22): herencia cont_splash estilo vendor. Con =1 el panel
++ * LLEGA ENCENDIDO del ABL (el dueno VE el splash y el log en el LCD y muere
++ * despues): el driver del panel no pone rieles, no aserta reset, no envia
++ * init-DCS, y el DPU no reescribe el vbif sobre el scanout andando. Ver
++ * docs/historia/revision/PANEL-INHERIT-20261012.md.
++ */
++static bool uke_panel_inherit_val;
++module_param_named(uke_panel_inherit, uke_panel_inherit_val, bool, 0644);
++MODULE_PARM_DESC(uke_panel_inherit,
++		 "panel heredado encendido del ABL: no tocar rieles/reset/init-DCS del panel ni vbif del DPU");
++bool uke_panel_inherit(void)
++{
++	return uke_panel_inherit_val;
++}
++EXPORT_SYMBOL_GPL(uke_panel_inherit);
++
+ DECLARE_FAULT_ATTR(fail_gem_alloc);
+ DECLARE_FAULT_ATTR(fail_gem_iova);
+ 
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -332,6 +332,16 @@
+ 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi[0] };
+ 	int ret;
+ 
++	/* UKE-P82-INHERIT: el panel VINO ENCENDIDO del ABL (splash heredada).
++	 * Sin rieles (ya puestos), sin reset, sin init-DCS (105 cmds), sin
++	 * freq_sel/sleep-out/display-on y sin backlight_enable: cualquier
++	 * escritura sobre un panel vivo en video-mode mata el link.
++	 */
++	if (uke_panel_inherit()) {
++		pr_info("UKE-P82-INHERIT: prepare SALTADO (riel/reset/init del ABL intactos)\n");
++		uke_poke("P82-inh-prep");
++		return 0;
++	}
+ 	pr_info("UKE-P82: prepare: INICIO\n");
+ 	ret = o82_power_on(ctx);
+ 	if (ret < 0) {
+@@ -405,6 +415,14 @@
+ 	struct o82_panel *ctx = to_o82_panel(panel);
+ 	int ret, i;
+ 
++	/* UKE-P82-INHERIT: tampoco APAGAMOS en herencia: un disable/dpms-off
++	 * del conector no puede cortar rieles ni asertar el reset del panel
++	 * heredado (se quedaria negro sin modo de recuperacion).
++	 */
++	if (uke_panel_inherit()) {
++		pr_info("UKE-P82-INHERIT: unprepare SALTADO (panel heredado sigue vivo)\n");
++		return 0;
++	}
+ 	backlight_disable(ctx->backlight);
+ 
+ 	/* Vendor off command, en BROADCAST a los dos links (como el init):
+@@ -662,10 +680,21 @@
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "failed to get regulators\n");
+ 
+-	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
++	/* UKE-P82-INHERIT: con herencia el reset NO se aserta en el probe
++	 * (GPIOD_OUT_HIGH = fisico LOW con el DT ACTIVE_LOW = reset asertado
++	 * desde el probe); pedimos OUT_LOW (fisico HIGH = liberado), la linea
++	 * queda tal y como la dejo el ABL.
++	 */
++	ctx->reset_gpio = devm_gpiod_get(dev, "reset",
++					 uke_panel_inherit() ? GPIOD_OUT_LOW
++							     : GPIOD_OUT_HIGH);
+ 	if (IS_ERR(ctx->reset_gpio))
+ 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
+ 				     "failed to get reset gpio\n");
++	if (uke_panel_inherit()) {
++		pr_info("UKE-P82-INHERIT: probe: reset pedido liberado (no asertado), rieles sin tocar\n");
++		uke_poke("P82-inh-probe");
++	}
+ 
+ 	/* K49 (#509): registrar las lineas ESD del TDDI como el vendor y
+ 	 * absorber sus aseveraciones con una irq con dueno. El mux/pull lo
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -13,6 +13,7 @@
+ #include <linux/dma-buf.h>
+ #include <linux/of_irq.h>
+ #include <linux/pm_opp.h>
++#include <linux/uke-poke.h>
+ 
+ #include <drm/drm_crtc.h>
+ #include <drm/drm_file.h>
+@@ -1463,6 +1464,18 @@
+ 		return rc;
+ 	}
+ 
++	/* UKE-P82-INHERIT: el scanout del ABL sigue vivo (splash heredada).
++	 * Reescribir VBIF_*_AMEMTYPE (y reanudar encoders) sobre el pipeline
++	 * andando rompe el fetch del framebuffer heredado: pantalla negra a
++	 * los ~4.1 s, en el bind del DPU. Con herencia dejamos el vbif y los
++	 * encoders EXACTAMENTE como los configuro el ABL (los clocks SI se
++	 * habilitan: irq_preinstall escribe regs MDP despues).
++	 */
++	if (uke_panel_inherit()) {
++		pr_info("UKE-P82-INHERIT: dpu_runtime_resume: vbif-memtype/encoders SALTADOS (scanout ABL vivo)\n");
++		uke_poke("P82-inh-dpu");
++		return 0;
++	}
+ 	dpu_vbif_init_memtypes(dpu_kms);
+ 
+ 	drm_for_each_encoder(encoder, ddev)

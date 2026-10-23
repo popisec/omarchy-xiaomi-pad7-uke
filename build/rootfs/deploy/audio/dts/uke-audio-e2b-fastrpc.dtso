@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e2b-fastrpc.dtso — ETAPA E2b (AUDIO-E2b-INVESTIGACION-20261018.md). BORRADOR del PC, NO probado en la tablet.
+ *
+ * Objetivo: que el driver mainline `fastrpc` (rpmsg) ligue al canal `fastrpcglink-apps-dsp` del ADSP y pueda crear el PD
+ * estatico "audiopd" (INIT_CREATE_STATIC, lo que hace `adsprpcd audiopd`; en Android: createstaticpd:audiopd).
+ *
+ * Reutiliza el nodo vendor que YA existe y ya tiene el rpmsg device creado (sin driver):
+ *   /soc/remoteproc-adsp@03000000/glink-edge/qcom,msm_fastrpc_rpmsg   (compat qcom,msm-fastrpc-rpmsg, qcom,glink-channels, qcom,intents)
+ * y solo le CAMBIA el compatible a `qcom,fastrpc` (el que casa fastrpc_rpmsg_of_match, fastrpc.c:2574) y anade lo que lee fastrpc_rpmsg_probe:
+ * `label = "adsp"`, `qcom,non-secure-domain` y los hijos `compute-cb@3..7` de sm8650.dtsi:4517-4561 (SMMU: `iommus`).
+ *
+ * A PROPOSITO NO lleva (primera prueba, reglas del dueño): ni `qcom,vmids` (=> vmcount 0 => fastrpc.c:1385 salta qcom_scm_assign_mem: sin
+ * reasignar memoria a VMIDs seguros) ni `memory-region` (el heap remoto se pide por dma_alloc al compute-cb, fastrpc.c:1370; el reserved-mem solo
+ * da un pool DMA al rpmsg device y el probe lo trata como opcional: "no reserved DMA memory"). Android usa vmids <22 37> y adsp_heap_region
+ * (12 MiB): si el ADSP exige el heap protegido, un segundo ciclo los anadiria (techo de 3 ciclos por hipotesis).
+ *
+ * REQUIERE el kernel con el parche kernel/0004 (+0002): sin el, los SIDs de los compute-cb caen en "outside Uke boot SMMU scope" y fastrpc no abre sesion.
+ * Aplicar con el modulo cargador (uke_audio_e2b) DESPUES de que el SMMU admita los SIDs; luego `modprobe fastrpc`.
+ * Efectos esperados al aplicar: avisos "OF: overlay: WARNING: memory leak will occur if overlay removed, property: …" (propiedades nuevas en un
+ * nodo existente) — benignos. Retirar el overlay: descargar fastrpc antes; `compatible` vuelve al vendor.
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,msm_fastrpc_rpmsg";
+
+		__overlay__ {
+			compatible = "qcom,fastrpc";
+			label = "adsp";
+			qcom,non-secure-domain;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			compute-cb@3 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <3>;
+				iommus = <&apps_smmu 0x1003 0x80>,
+					 <&apps_smmu 0x1043 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@4 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <4>;
+				iommus = <&apps_smmu 0x1004 0x80>,
+					 <&apps_smmu 0x1044 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@5 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <5>;
+				iommus = <&apps_smmu 0x1005 0x80>,
+					 <&apps_smmu 0x1045 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@6 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <6>;
+				iommus = <&apps_smmu 0x1006 0x80>,
+					 <&apps_smmu 0x1046 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@7 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <7>;
+				iommus = <&apps_smmu 0x1007 0x40>,
+					 <&apps_smmu 0x1067 0x0>,
+					 <&apps_smmu 0x1087 0x0>;
+				dma-coherent;
+			};
+		};
+	};
+};

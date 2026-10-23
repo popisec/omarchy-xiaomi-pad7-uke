@@ -1,0 +1,152 @@
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-pm_v8_s6_level
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-proxy/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-proxy/max_uV: 384 
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-proxy/min_uV: 384 
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-proxy/uA_load: 0 
+af00000.clock-controller-vdd_mm/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+af00000.clock-controller-vdd_mm/max_uV: 384 
+af00000.clock-controller-vdd_mm/min_uV: 384 
+af00000.clock-controller-vdd_mm/uA_load: 0 
+bypass_count: 0 
+open_count: 3 
+regulator.6-SUPPLY/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+regulator.6-SUPPLY/max_uV: 0 
+regulator.6-SUPPLY/min_uV: 0 
+regulator.6-SUPPLY/uA_load: 0 
+use_count: 2 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-cxlvl-pm_v6c_s1_mmcx_sup_level
+bypass_count: 0 
+open_count: 1 
+regulator.8-SUPPLY/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+regulator.8-SUPPLY/max_uV: 0 
+regulator.8-SUPPLY/min_uV: 0 
+regulator.8-SUPPLY/uA_load: 0 
+use_count: 1 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-cxlvl-pm_v6c_s1_level
+100000.clock-controller-vdd_cx/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+100000.clock-controller-vdd_cx/max_uV: 416 
+100000.clock-controller-vdd_cx/min_uV: 384 
+100000.clock-controller-vdd_cx/uA_load: 0 
+139004.qcom,gdsc-parent/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+139004.qcom,gdsc-parent/max_uV: 0 
+139004.qcom,gdsc-parent/min_uV: 0 
+139004.qcom,gdsc-parent/uA_load: 0 
+177004.qcom,gdsc-parent/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+177004.qcom,gdsc-parent/max_uV: 0 
+177004.qcom,gdsc-parent/min_uV: 0 
+177004.qcom,gdsc-parent/uA_load: 0 
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl-proxy/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl-proxy/max_uV: 416 
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl-proxy/min_uV: 384 
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl-proxy/uA_load: 0 
+bypass_count: 0 
+open_count: 4 
+use_count: 4 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-mxlvl-pm_v8_s8_level
+100000.clock-controller-vdd_mx/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+100000.clock-controller-vdd_mx/max_uV: 416 
+100000.clock-controller-vdd_mx/min_uV: 384 
+100000.clock-controller-vdd_mx/uA_load: 0 
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl-proxy/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl-proxy/max_uV: 416 
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl-proxy/min_uV: 384 
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl-proxy/uA_load: 0 
+19e000.qcom,gdsc-parent/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+19e000.qcom,gdsc-parent/max_uV: 0 
+19e000.qcom,gdsc-parent/min_uV: 0 
+19e000.qcom,gdsc-parent/uA_load: 0 
+af00000.clock-controller-vdd_mxa/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+af00000.clock-controller-vdd_mxa/max_uV: 416 
+af00000.clock-controller-vdd_mxa/min_uV: 384 
+af00000.clock-controller-vdd_mxa/uA_load: 0 
+bypass_count: 0 
+open_count: 4 
+use_count: 4 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-mxclvl-pm_v6c_s6_level
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-proxy/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-proxy/max_uV: 416 
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-proxy/min_uV: 384 
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-proxy/uA_load: 0 
+bypass_count: 0 
+open_count: 1 
+use_count: 1 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-mxclvl-pm_v6c_s6_mmcx_voter_level
+bypass_count: 0 
+open_count: 0 
+use_count: 0 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-ldob8-pmxr2230_l8
+17a00000.rsc:drv@2:rpmh-regulator-ldob8-proxy/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob8-proxy/max_uV: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob8-proxy/min_uV: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob8-proxy/uA_load: 220000 
+ae94000.dsi.0-vddio/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+ae94000.dsi.0-vddio/max_uV: 1900000 
+ae94000.dsi.0-vddio/min_uV: 1900000 
+ae94000.dsi.0-vddio/uA_load: 300000 
+bypass_count: 0 
+open_count: 2 
+use_count: 2 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-ldob4-pmxr2230_l4
+17a00000.rsc:drv@2:rpmh-regulator-ldob4-proxy/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob4-proxy/max_uV: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob4-proxy/min_uV: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob4-proxy/uA_load: 0 
+1d80000.ufsphy_mem-vdda-pll/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+1d80000.ufsphy_mem-vdda-pll/max_uV: 0 
+1d80000.ufsphy_mem-vdda-pll/min_uV: 0 
+1d80000.ufsphy_mem-vdda-pll/uA_load: 18340 
+88e3000.hsphy-vdda12/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+88e3000.hsphy-vdda12/max_uV: 1200000 
+88e3000.hsphy-vdda12/min_uV: 1200000 
+88e3000.hsphy-vdda12/uA_load: 5905 
+ae94000.dsi-vdda/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+ae94000.dsi-vdda/max_uV: 0 
+ae94000.dsi-vdda/min_uV: 0 
+ae94000.dsi-vdda/uA_load: 16600 
+ae96000.dsi-vdda/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+ae96000.dsi-vdda/max_uV: 0 
+ae96000.dsi-vdda/min_uV: 0 
+ae96000.dsi-vdda/uA_load: 16600 
+bypass_count: 0 
+open_count: 5 
+use_count: 4 
+##### /sys/kernel/debug/regulator/17a00000.rsc:drv@2:rpmh-regulator-ldob2-pmxr2230_l2
+17a00000.rsc:drv@2:rpmh-regulator-ldob2-proxy/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob2-proxy/max_uV: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob2-proxy/min_uV: 0 
+17a00000.rsc:drv@2:rpmh-regulator-ldob2-proxy/uA_load: 0 
+1d80000.ufsphy_mem-vdda-qref/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+1d80000.ufsphy_mem-vdda-qref/max_uV: 0 
+1d80000.ufsphy_mem-vdda-qref/min_uV: 0 
+1d80000.ufsphy_mem-vdda-qref/uA_load: 64500 
+88e3000.hsphy-vdd/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+88e3000.hsphy-vdd/max_uV: 950000 
+88e3000.hsphy-vdd/min_uV: 880000 
+88e3000.hsphy-vdd/uA_load: 7757 
+ae95000.phy-vdds/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+ae95000.phy-vdds/max_uV: 0 
+ae95000.phy-vdds/min_uV: 0 
+ae95000.phy-vdds/uA_load: 98000 
+ae97000.phy-vdds/constraint_flags: always_on: 0 boot_on: 0 apply_uV: 1 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+ae97000.phy-vdds/max_uV: 0 
+ae97000.phy-vdds/min_uV: 0 
+ae97000.phy-vdds/uA_load: 98000 
+bypass_count: 0 
+open_count: 5 
+use_count: 4 
+##### /sys/kernel/debug/regulator/display_panel_vsp
+ae94000.dsi.0-vsp/constraint_flags: always_on: 0 boot_on: 1 apply_uV: 0 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+ae94000.dsi.0-vsp/max_uV: 5800000 
+ae94000.dsi.0-vsp/min_uV: 5800000 
+ae94000.dsi.0-vsp/uA_load: 300000 
+bypass_count: 0 
+open_count: 1 
+use_count: 1 
+##### /sys/kernel/debug/regulator/display_panel_vsn
+ae94000.dsi.0-vsn/constraint_flags: always_on: 0 boot_on: 1 apply_uV: 0 ramp_disable: 0 soft_start: 0 pull_down: 0 over_current_protection: 0 
+ae94000.dsi.0-vsn/max_uV: 5800000 
+ae94000.dsi.0-vsn/min_uV: 5800000 
+ae94000.dsi.0-vsn/uA_load: 300000 
+bypass_count: 0 
+open_count: 1 
+use_count: 1 

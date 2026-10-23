@@ -1,0 +1,13 @@
+[Unit]
+Description=uke: hypridle (atenuar 60 s, DPMS 2 min, suspender 10 min, sin lock)
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/hypridle -c %h/.config/hypr/hypridle.conf
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

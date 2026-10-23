@@ -1,0 +1,95 @@
+#!/bin/bash
+# uke-perfil — perfiles de energia Ahorro / Equilibrado / Rendimiento. 19-oct-2026.
+#   uke-perfil get|list|status|set <p>|cycle|apply|apply-user|medir [seg]
+# <p> = ahorro|equilibrado|rendimiento o los ids de Omarchy power-saver|balanced|performance.
+# Parte root (governor, freq max por cluster, GPU): se invoca con sudo (/etc/sudoers.d/uke-perfil).
+# Parte usuario (refresco del panel, tope de brillo): hyprctl/brightnessctl como omarchy (setpriv, no runuser: sin sesion PAM, 22-oct).
+CONF=${UKE_PERFILES:-/etc/uke/perfiles.conf}; STATE=/var/lib/uke-bateria/perfil
+GPU=/sys/class/devfreq/3d00000.qcom,kgsl-3d0; BL=uke-backlight; HOME_OMARCHY=/home/omarchy
+# shellcheck disable=SC1090
+. "$CONF"
+norm() { case "$1" in ahorro|power-saver) echo ahorro;; equilibrado|balanced) echo equilibrado;; rendimiento|performance) echo rendimiento;; *) return 1;; esac; }
+v() { local n="P_$1_$2"; echo "${!n}"; }
+cur_id() { cat "$STATE" 2>/dev/null || echo balanced; }
+cur_name() { norm "$(cur_id)" || echo equilibrado; }
+as_user() {   # ejecuta como omarchy con el entorno de Hyprland
+	if [ "$(id -u)" = 1001 ]; then "$@"; else
+		local sig; sig=$(ls /run/user/1001/hypr 2>/dev/null | head -1)
+		setpriv --reuid=1001 --regid=1001 --init-groups env HOME=/home/omarchy USER=omarchy XDG_RUNTIME_DIR=/run/user/1001 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1001/bus HYPRLAND_INSTANCE_SIGNATURE="$sig" "$@"; fi
+}
+root_part() {   # $1 = nombre normalizado
+	local n=$1 p
+	[ "$(id -u)" = 0 ] || { echo "uke-perfil: root_part requiere root" >&2; return 1; }
+	local gov max0 max3 max7 gpu; gov=$(v "$n" GOV); max0=$(v "$n" MAX0); max3=$(v "$n" MAX3); max7=$(v "$n" MAX7); gpu=$(v "$n" GPU)
+	local C=/sys/devices/system/cpu/cpufreq
+	# primero subir max (si baja el governor), luego fijar: evita min>max
+	for pair in "policy0 $max0" "policy3 $max3" "policy7 $max7"; do set -- $pair
+		echo "$gov" > $C/$1/scaling_governor
+		echo "$2" > $C/$1/scaling_max_freq
+	done
+	echo "$gpu" > $GPU/max_freq 2>/dev/null
+	iw dev wlan0 set power_save "$(v "$n" WIFI_PS)" 2>/dev/null   # ahorro de energia del WiFi segun perfil
+	mkdir -p /var/lib/uke-bateria; v "$n" ID > "$STATE.tmp"; mv "$STATE.tmp" "$STATE"; chmod 644 "$STATE"
+}
+user_part() {
+	local n=$1 bmax
+	bmax=$(v "$n" BRILLO_MAX)
+	/usr/local/bin/uke-refresco auto   # 120 Hz con cargador, 60 Hz en bateria (independiente del perfil)
+	# reposo (hypridle): perfil Ahorro = atenuar 1 min, pantalla off 2 min, suspender 10 min; resto = 5/10/30 min
+	local idle src cur; idle=$(v "$n" IDLE); src=/etc/uke/hypridle-$idle.conf; cur=$HOME_OMARCHY/.config/hypr/hypridle.conf
+	if [ -r "$src" ] && ! cmp -s "$src" "$cur"; then
+		as_user cp "$src" "$cur" && as_user systemctl --user restart uke-hypridle.service 2>/dev/null
+	fi
+	if [ "${bmax:-0}" -gt 0 ]; then
+		local max now; max=$(cat /sys/class/backlight/$BL/max_brightness); now=$(cat /sys/class/backlight/$BL/brightness)
+		[ "$now" -gt $((max * bmax / 100)) ] && as_user brightnessctl -q -d $BL set "${bmax}%"
+	fi
+	return 0
+}
+status() {
+	local n; n=$(cur_name)
+	echo "perfil: $n ($(cur_id))"
+	for p in /sys/devices/system/cpu/cpufreq/policy*; do echo "  $(basename $p) gov=$(cat $p/scaling_governor) max=$(cat $p/scaling_max_freq) cur=$(cat $p/scaling_cur_freq)"; done
+	echo "  gpu max=$(cat $GPU/max_freq) cur=$(cat $GPU/cur_freq)"
+	echo "  panel: $(as_user hyprctl monitors -j 2>/dev/null | jq -r '.[0]|"\(.width)x\(.height)@\(.refreshRate)"')  brillo: $(cat /sys/class/backlight/$BL/brightness)/$(cat /sys/class/backlight/$BL/max_brightness)"
+}
+case "${1:-status}" in
+get) cur_id ;;
+list) for n in ahorro equilibrado rendimiento; do echo "$n	$(v $n ID)"; done ;;
+status) status ;;
+root-set) n=$(norm "$2") || exit 2; root_part "$n" ;;
+set) n=$(norm "${2:-}") || { echo "uso: uke-perfil set ahorro|equilibrado|rendimiento" >&2; exit 2; }
+	if [ "$(id -u)" = 0 ]; then root_part "$n"; else sudo -n /usr/local/bin/uke-perfil root-set "$n" || exit 1; fi
+	user_part "$n"; echo "perfil: $n" ;;
+cycle) case "$(cur_name)" in ahorro) nx=equilibrado;; equilibrado) nx=rendimiento;; *) nx=ahorro;; esac; exec "$0" set "$nx" ;;
+apply) root_part "$(cur_name)" ;;                 # arranque (uke-perfil.service)
+apply-user) user_part "$(cur_name)" ;;            # inicio de sesion (autostart de Hyprland)
+medir) # uke-perfil medir [seg_por_perfil=90]: recorre los 3 perfiles. sistema_w = descarga neta de bateria (+) + potencia de entrada USB: sirve CONECTADO al PC (SDP) o desconectado.
+	T=${2:-90}; OUT=/var/log/uke-bateria/medidas-perfiles.csv; orig=$(cur_name)
+	mkdir -p /var/log/uke-bateria; [ -s $OUT ] || echo "fecha,perfil,estado,seg,v_medio,i_a_medio,w_bat_neto,usb_w,sistema_w,cpu_pct,temp_c" > $OUT
+	for n in equilibrado ahorro rendimiento; do
+		"$0" set "$n" >/dev/null; sleep 15
+		python3 - "$n" "$T" "$OUT" <<'PY'
+import sys, time
+sys.path.insert(0, "/usr/local/bin")
+import importlib.machinery, importlib.util
+l = importlib.machinery.SourceFileLoader("lect", "/usr/local/bin/uke-bateria-lectura"); s = importlib.util.spec_from_loader("lect", l); m = importlib.util.module_from_spec(s); l.exec_module(m)
+n, T, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+def cpu():
+    a = list(map(int, open("/proc/stat").readline().split()[1:])); return sum(a), a[3] + a[4]
+t0, i0 = cpu(); vs, iis, ws, tt, us, st = [], [], [], [], [], ""
+end = time.time() + T
+while time.time() < end:
+    r = m.lee(); st = r["estado"]
+    try: us.append(int(open("/sys/class/power_supply/qcom-battmgr-usb/voltage_now").read()) * int(open("/sys/class/power_supply/qcom-battmgr-usb/current_now").read()) / 1e12)
+    except (OSError, ValueError): pass
+    if r["w"] is not None: vs.append(r["v"]); iis.append(r["i_a"]); ws.append(r["w"]); tt.append(r["temp_c"] or 0)
+    time.sleep(2)
+t1, i1 = cpu(); avg = lambda x: round(sum(x) / len(x), 3) if x else ""
+open(out, "a").write(f"{time.strftime('%F %T')},{n},{st},{T},{avg(vs)},{avg(iis)},{avg(ws)},{avg(us)},{round((avg(ws) or 0)+(avg(us) or 0),3)},{round(100*(1-(i1-i0)/max(1,t1-t0)),1)},{avg(tt)}\n")
+print(f"{n}: {st} bateria_neto={avg(ws)} W + usb={avg(us)} W => sistema={round((avg(ws) or 0)+(avg(us) or 0),3)} W cpu={round(100*(1-(i1-i0)/max(1,t1-t0)),1)}%")
+PY
+	done
+	"$0" set "$orig" >/dev/null ;;
+*) echo "uso: uke-perfil get|list|status|set <p>|cycle|apply|apply-user|medir [seg]"; exit 2 ;;
+esac

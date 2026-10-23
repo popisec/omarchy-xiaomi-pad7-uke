@@ -1,0 +1,16 @@
+--- a/src/boot/sm7675-uke-usb2.dtso	2026-10-17 20:16:08.760851568 +0200
++++ b/src/boot/sm7675-uke-usb2.dtso	2026-10-17 21:38:21.171180792 +0200
+@@ -58,7 +58,12 @@
+ 
+ &usb0 {
+ 	compatible = "qcom,sm7675-dwc3";
+-	usb-psy-name = "qcom-battmgr-usb";
++	/* omarchy-uke ouke2 (17-oct-2026): SIN usb-psy-name. dwc3_core_probe() devuelve
++	 * -EPROBE_DEFER mientras no exista el power_supply "qcom-battmgr-usb" (drivers/usb/dwc3/core.c,
++	 * dwc3_get_usb_power_supply), y ese supply solo lo registra qcom_battmgr (=m) tras pmic_glink
++	 * y el ADSP: en el initramfs no hay ninguno => no habia UDC. Sin la propiedad el UDC nace en
++	 * el arranque; usb_psy queda NULL y dwc3_gadget_vbus_draw() devuelve -EOPNOTSUPP (inocuo).
++	 */
+ 	gdsc-supply = <&gcc_usb30_prim_gdsc>;
+ 	usb-phy = <&eusb2_phy0>;
+ 	iommus = <&apps_smmu 0x40 0>;

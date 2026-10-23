@@ -1,0 +1,140 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * FRAGMENTO-PHY.dts — traduccion del DSI PHY vendor "qcom,dsi-phy-v5.2" al
+ * compatible mainline que SI existe en dsi_phy_dt_match (palawan 7.2-rc2).
+ *
+ * QUE ES ESTE FICHERO
+ *   NO es un .dts autonomo con /plugin/. Son los BLOQUES `fragment@N` que el
+ *   constructor de dtbo (patron mkdtbo-s252.py) inserta antes del ultimo "};"
+ *   del payload ya descompilado del dtbo anterior (s253). Compila con:
+ *       dtc -I dts -O dtb -o <payload>.dtb <payload-con-fragmentos>.dts
+ *
+ * EVIDENCIA (dato, no memoria)
+ *   - dsi_phy_dt_match (drivers/gpu/drm/msm/dsi/phy/dsi_phy.c:516-586) NO tiene
+ *     "qcom,dsi-phy-v5.2"; SI tiene "qcom,sm8650-dsi-phy-4nm" -> dsi_phy_4nm_8650_cfgs
+ *     (dsi_phy.c:578-579 -> dsi_phy_7nm.c:1485-1506, quirks = DSI_PHY_7NM_QUIRK_V5_2).
+ *   - El nodo vendor crudo (stock-fdt2, msm-id 0x283; y base-dtb.img:15853/15886) es:
+ *       compatible = "qcom,dsi-phy-v5.2";
+ *       reg = <0xae95000 0xa00 0xae95500 0x400 0xae94200 0xa0>;
+ *       reg-names = "dsi_phy", "pll_base", "dyn_refresh_base";
+ *       (sin clocks/clock-names; vdda-0p9-supply = <0x14d>; phandle 0x48c)
+ *   - OJO: renombrar SOLO el compatible NO basta. dsi_phy_driver_probe() exige:
+ *       * dsi_phy_get_id(): recurso "dsi_phy" con start == cfg->io_start[i]
+ *         (dsi_phy.c:594-611; io_start 8650 = {0xae95000, 0xae97000}, dsi_phy_7nm.c:1503)
+ *       * msm_ioremap_size(..., "dsi_pll", ...)  (dsi_phy.c:653) -> el vendor lo
+ *         llama "pll_base"
+ *       * msm_ioremap_size(..., "dsi_phy_lane", ...) porque has_phy_lane = true
+ *         (dsi_phy.c:658-660) -> el vendor NO tiene esa region
+ *       * pm_clk_add(dev, "iface") (dsi_phy.c:694) -> el vendor no tiene clocks
+ *       * regulator "vdds" (dsi_phy.c:678-680 + dsi_phy_7nm.c:1259-1261) -> el
+ *         vendor lo llama "vdda-0p9"
+ *     Por eso la traduccion IN-PLACE del nodo vendor (VARIANTE B) tiene que
+ *     reescribir tambien reg, reg-names, clocks y el nombre del supply.
+ *     (Ya lo dijo el subagente de VERIFICACION-ORQUESTADOR.md:1088-1096.)
+ *
+ * ESTADO REAL MEDIDO (por que la variante A es la recomendada)
+ *   El dtbo YA FLASHEADO (s238, bdb361df...) contiene fragment@1105 con el arbol
+ *   mainline COMPLETO: /soc/display-subsystem@ae00000/phy@ae95000 y phy@ae97000
+ *   con compatible "qcom,palawan-dsi-phy-4nm", "qcom,sm8650-dsi-phy-4nm", tres
+ *   reg con reg-names correctos, clocks iface/ref y vdds-supply = <0x14d>.
+ *   Medido (hermano, ledger #410, docs/ESTADO-ACTUAL.md:202-208): los dos PHY
+ *   LIGAN ("ae95000.phy -> msm_dsi_phy", "ae97000.phy -> msm_dsi_phy") y el
+ *   panel PROBEA. => La VARIANTE A aplicada sobre s238/s253 produce DELTA CERO:
+ *   es una asercion idempotente, no un cambio. Si el orquestador mide delta != 0
+ *   al fusionar, es que su payload NO tenia el mapeo y el fragmento lo arregla.
+ *
+ * PHANDLES LITERALES: 0x154 = dispcc (DISP_CC_MDSS_AHB_CLK), 0x16c = rpmhcc
+ *   (RPMH_CXO_CLK), 0x14d = pmxr2230_l2 (rail 0.9 V del PHY, base-dtb lineas
+ *   7685-7703 del fusionado s238). Son del MISMO arbol base que se fusiona
+ *   (fdtoverlay copia el valor tal cual), por eso van literales y no por etiqueta
+ *   (regla G1 de mkdtbo-s252.py: nada de "&" ni __fixups__ en el fragmento).
+ *
+ * ---------------------------------------------------------------------------
+ * VARIANTE A (RECOMENDADA) — asercion sobre los nodos MAINLINE que ya usa el
+ * host DSI (phys = <&mdss_dsi0_phy_ml>). Idempotente sobre s238/s253.
+ * ---------------------------------------------------------------------------
+ */
+
+	fragment@uke-phy0 {
+		target-path = "/soc/display-subsystem@ae00000/phy@ae95000";
+		__overlay__ {
+			compatible = "qcom,palawan-dsi-phy-4nm", "qcom,sm8650-dsi-phy-4nm";
+			reg = <0x0ae95000 0x200>, <0x0ae95200 0x280>, <0x0ae95500 0x400>;
+			reg-names = "dsi_phy", "dsi_phy_lane", "dsi_pll";
+			clocks = <0x154 0x02>, <0x16c 0x00>;
+			clock-names = "iface", "ref";
+			#clock-cells = <0x01>;
+			#phy-cells = <0x00>;
+			vdds-supply = <0x14d>;
+			status = "okay";
+		};
+	};
+
+	fragment@uke-phy1 {
+		target-path = "/soc/display-subsystem@ae00000/phy@ae97000";
+		__overlay__ {
+			compatible = "qcom,palawan-dsi-phy-4nm", "qcom,sm8650-dsi-phy-4nm";
+			reg = <0x0ae97000 0x200>, <0x0ae97200 0x280>, <0x0ae97500 0x400>;
+			reg-names = "dsi_phy", "dsi_phy_lane", "dsi_pll";
+			clocks = <0x154 0x02>, <0x16c 0x00>;
+			clock-names = "iface", "ref";
+			#clock-cells = <0x01>;
+			#phy-cells = <0x00>;
+			vdds-supply = <0x14d>;
+			status = "okay";
+		};
+	};
+
+/*
+ * ---------------------------------------------------------------------------
+ * VARIANTE B — traduccion IN-PLACE del nodo vendor (lo que literalmente pedia
+ * el enunciado). SOLO sirve si el DT base NO tiene el arbol mainline (es decir,
+ * si el payload no trae fragment@1105). NO LA USES JUNTO CON LA VARIANTE A:
+ * crearia un SEGUNDO platform_device para el mismo MMIO, con el mismo driver
+ * -> la segunda instancia falla en devm_of_clk_add_hw_provider()
+ * (dsi_phy.c:705, proveedor de clocks duplicado) y ensucia dmesg. Verificado
+ * que en el arbol fusionado s238 los nodos vendor NO tienen driver y nada los
+ * referencia (el host mainline apunta a phy@ae95000, no a estos).
+ *
+ *	fragment@uke-phy0-vendor {
+ *		target-path = "/soc/qcom,mdss_dsi_phy0@ae95500";
+ *		__overlay__ {
+ *			compatible = "qcom,sm8650-dsi-phy-4nm";
+ *			reg = <0x0ae95000 0x200>, <0x0ae95200 0x280>, <0x0ae95500 0x400>;
+ *			reg-names = "dsi_phy", "dsi_phy_lane", "dsi_pll";
+ *			clocks = <0x154 0x02>, <0x16c 0x00>;
+ *			clock-names = "iface", "ref";
+ *			#clock-cells = <0x01>;
+ *			#phy-cells = <0x00>;
+ *			vdds-supply = <0x14d>;
+ *			status = "okay";
+ *		};
+ *	};
+ *
+ *	fragment@uke-phy1-vendor {
+ *		target-path = "/soc/qcom,mdss_dsi_phy1@ae97500";
+ *		__overlay__ {
+ *			compatible = "qcom,sm8650-dsi-phy-4nm";
+ *			reg = <0x0ae97000 0x200>, <0x0ae97200 0x280>, <0x0ae97500 0x400>;
+ *			reg-names = "dsi_phy", "dsi_phy_lane", "dsi_pll";
+ *			clocks = <0x154 0x02>, <0x16c 0x00>;
+ *			clock-names = "iface", "ref";
+ *			#clock-cells = <0x01>;
+ *			#phy-cells = <0x00>;
+ *			vdds-supply = <0x14d>;
+ *			status = "okay";
+ *		};
+ *	};
+ * ---------------------------------------------------------------------------
+ *
+ * RANKING DE CANDIDATOS (por que sm8650 y no otro) — detalle en
+ * build/gates/INFORME-PHY-PANEL.md, seccion T1. Resumen:
+ *   1. qcom,sm8650-dsi-phy-4nm  (ELEGIDO)  io_start {0xae95000,0xae97000} EXACTO
+ *      (dsi_phy_7nm.c:1503), quirks V5_2 (:1505), 98000 uA (:1504), y el DT del
+ *      propio fork ya lo usa como fallback (palawan.dtsi:3549).
+ *   2. qcom,sm8550-dsi-phy-4nm  (equivalente; solo cambia la carga del regulador
+ *      a 98400 uA, dsi_phy_7nm.c:1487). Si 8650 fallara por el rail, es el plan B.
+ *   3. qcom,sar2130p-dsi-phy-5nm (mismo io_start :1434, V5_2 :1436) pero 5nm;
+ *      descartado porque el vendor se identifica como "dsi_pll_4nm".
+ *   4. qcom,sm8750-dsi-phy-3nm   (mismo io_start :1526) pero quirks V7_2 (:1528).
+ */

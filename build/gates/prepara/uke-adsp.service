@@ -1,0 +1,22 @@
+[Unit]
+Description=uke: cadena de energia (ADSP charger_pd + pmic_glink + qcom_battmgr)
+Documentation=file:///usr/local/share/uke/P5-energia.md
+# Necesita /lib/firmware y /lib/modules montados; no depende de red.
+After=systemd-modules-load.service local-fs.target systemd-udev-settle.service
+Wants=systemd-modules-load.service
+# El guardia de bateria baja espera a esta unidad (sin cadena no hay bateria que leer).
+Before=uke-bateria-baja.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/uke-adsp-load.sh
+# No bloquear el arranque si el ADSP no sube: el servicio falla y el boot continua.
+TimeoutStartSec=120
+SuccessExitStatus=0 1
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=uke-adsp
+
+[Install]
+WantedBy=multi-user.target

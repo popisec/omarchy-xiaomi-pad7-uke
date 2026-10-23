@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0
+# Modulos cargadores de overlays del Bluetooth de la uke. Los construye ../build.sh (make -C <senemos-build> M=<stage>).
+# UKE_OVL_DIR (ruta absoluta de los .dtbo) lo pasa build.sh por entorno.
+obj-m += uke_bt_uart.o uke_bt_b.o uke_bt_a.o
+
+CFLAGS_uke_bt_uart.o := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-bt-uart-only.dtbo\"
+CFLAGS_uke_bt_b.o    := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-bt-B.dtbo\"
+CFLAGS_uke_bt_a.o    := -DUKE_OVL_BLOB=\"$(UKE_OVL_DIR)/uke-bt-A.dtbo\"
+ccflags-y += -I$(src)

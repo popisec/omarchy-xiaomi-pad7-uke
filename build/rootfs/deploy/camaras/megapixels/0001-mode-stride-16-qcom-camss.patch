@@ -1,0 +1,23 @@
+# Parche para Megapixels 1.8.3 (https://gitlab.com/megapixels-org/Megapixels).
+# Derivado de Megapixels, que es GPL-3.0-or-later; este parche hereda esa licencia.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+diff --git a/src/mode.c b/src/mode.c
+index d4f9f7e..c97e412 100644
+--- a/src/mode.c
++++ b/src/mode.c
+@@ -214,11 +214,12 @@ mp_pixel_format_width_to_padding(MPPixelFormat pixel_format, uint32_t width)
+         uint64_t bytes_per_width =
+                 mp_pixel_format_width_to_bytes(pixel_format, width);
+ 
+-        uint64_t remainder = bytes_per_width % 8;
++        /* uke (Xiaomi Pad 7): qcom-camss alinea bytesperline a 16 bytes (2104 -> 2640, 1632 -> 2048), no a 8 */
++        uint64_t remainder = bytes_per_width % 16;
+         if (remainder == 0)
+                 return remainder;
+ 
+-        return 8 - remainder;
++        return 16 - remainder;
+ }
+ 
+ uint32_t

@@ -1,0 +1,105 @@
+--- a/uke_lapiz_ble.py
++++ b/uke_lapiz_ble.py
+@@ -106,7 +106,7 @@
+         if m.get("member") != "PropertiesChanged" or len(d) < 2 or "Value" not in d[1]:
+             return None
+         return m["path"].split("dev_70_61_EE_XX_XX_XX/")[-1], bytes(d[1]["Value"]["data"])
+-    except (ValueError, KeyError, TypeError, IndexError, AttributeError):
++    except (ValueError, KeyError, TypeError, IndexError, AttributeError, RecursionError, MemoryError):   # RecursionError: JSON anidado hostil (F5)
+         return None
+ 
+ 
+@@ -134,8 +134,9 @@
+     if char.endswith("service001c/char0029"):
+         k, name = lapiz_ble.parse_keyboard_report(data)
+         if k == "down":
++            out = [{"btn": state["btn"], "down": False}] if state.get("btn") and state["btn"] != name else []   # otro boton sin soltar: cerrarlo (F5)
+             state["btn"] = name
+-            return [{"btn": name, "down": True}]
++            return out + [{"btn": name, "down": True}]
+         if k == "up" and state.get("btn"):
+             name, state["btn"] = state["btn"], None
+             return [{"btn": name, "down": False}]
+@@ -149,6 +150,12 @@
+     return []
+ 
+ 
++def release_held(state):
++    """Mensajes «soltar» para el boton que sigue pulsado (conexion perdida, monitor reiniciado, SIGTERM): si no, touchd deja la tecla pegada."""
++    name, state["btn"] = state.get("btn"), None
++    return [{"btn": name, "down": False}] if name else []
++
++
+ DEBUG = bool(os.environ.get("LAPIZ_DEBUG"))
+ STATE_KEYS = ("pressure", "connected", "attached")       # mensajes idempotentes: de cada clase solo importa el ultimo
+ MAXQ = 512                                                # tope de la cola si el receptor no lee (solo botones se acumulan mas alla de esto)
+@@ -241,7 +248,7 @@
+             return None
+         v = d[1]["Connected"]["data"]
+         return bool(v) if isinstance(v, bool) else None
+-    except (ValueError, KeyError, TypeError, IndexError):
++    except (ValueError, KeyError, TypeError, IndexError, RecursionError):
+         return None
+ 
+ 
+@@ -410,6 +417,7 @@
+         now = time.monotonic()
+         self.t_send, self.t_state, self.announced, self.t_dbg = now, 0.0, bool(announce_now), now
+         self.stats_prev, self.n_lines_prev = (0, 0), 0
++        self.mon_restarts = mon.restarts
+         if wproc is not None:
+             os.set_blocking(wproc.stdin.fileno(), False)
+ 
+@@ -469,18 +477,27 @@
+             for ln in self.mon.read_lines(now2):
+                 self.handle_line(ln, now2)
+         self.mon.watchdog(now2, self.announced and bool(self.connected.v))
++        if self.mon.restarts != self.mon_restarts:                         # el monitor se reinicio: puede haberse perdido el «soltar» de un boton
++            self.mon_restarts = self.mon.restarts
++            for m in release_held(self.state):
++                self.pub.send(m)
+         if DEBUG and now - self.t_dbg > 10:
+             self.debug(now)
+ 
+     def handle_line(self, ln, now):
+-        if b'"Connected"' in ln:
+-            cv = parse_busctl_connected(ln)
+-            if cv is not None:
+-                self.connected.set(cv)
+-        it = parse_busctl_bytes(ln)
+-        if it:
+-            for msg in to_messages(it[0], it[1], self.state, now):
+-                self.pub.send(msg)
++        try:
++            if b'"Connected"' in ln:
++                cv = parse_busctl_connected(ln)
++                if cv is not None:
++                    self.connected.set(cv)
++            it = parse_busctl_bytes(ln)
++            if it:
++                for msg in to_messages(it[0], it[1], self.state, now):
++                    self.pub.send(msg)
++        except Exception as e:                                             # noqa: BLE001  una linea rara NUNCA debe tumbar al cliente (se perderia el estado)
++            self.state["bad_lines"] = self.state.get("bad_lines", 0) + 1
++            if DEBUG:
++                print("linea ignorada (%r)" % (e,), flush=True)
+ 
+     def debug(self, now):
+         dt = now - self.t_dbg
+@@ -533,8 +550,15 @@
+                     sess.step()
+             finally:
+                 reap(p)
+-            pub.send({"connected": False})
++            for m in release_held(state) + [{"connected": False}]:
++                pub.send(m)
+     finally:
++        try:                                                               # SIGTERM/excepcion: touchd no debe quedarse con botones pegados ni «conectado» eterno (F1/F3)
++            for m in release_held(state) + [{"connected": False}]:
++                pub.send(m)
++            pub.flush()
++        except Exception:                                                  # noqa: BLE001
++            pass
+         mon.close()
+         reap(connected.proc, 0.3)
+         pub.close()

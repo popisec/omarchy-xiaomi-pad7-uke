@@ -1,0 +1,234 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -146,6 +146,42 @@
+ 	       base == 0x15000000;
+ }
+ 
++/*
++ * UKE-SMMU-CLK (K3): palanca "sin stream matching" para el apps-smmu.
++ *
++ * ATENCIÓN: mainline NO tiene un campo smmu->stream_matching. El modo stream
++ * matching ES, en este driver, el par (ARM_SMMU_FEAT_STREAM_MATCH en
++ * smmu->features && smmu->smrs != NULL), y se decide en arm_smmu_device_cfg_probe
++ * a partir del bit SMS de IDR0 (arm-smmu.c:1907-1924). "Forzar que no haya stream
++ * matching" = no leer ese bit/limpiarlo, no alojar smmu->smrs y dejar que el
++ * índice de S2CR sea el stream ID crudo (arm_smmu_find_sme: "Stream indexing is
++ * blissfully easy", arm-smmu.c:1113-1115).
++ *
++ * Con uke_stream_match=0, para el apps-smmu (reg=0x15000000) y solo para él:
++ *   - no se aloja smmu->smrs  => arm_smmu_write_sme() NO escribe un solo SMR
++ *     (arm-smmu.c:1061-1066: "if (smmu->smrs) arm_smmu_write_smr(...)");
++ *   - el barrido de SMR de qcom_smmu_cfg_probe se salta (no hay smrs que poblar);
++ *   - arm_smmu_device_reset() fase2 sigue escribiendo S2CR(0..num_mapping_groups-1)
++ *     (arm-smmu.c:1753-1754) pero NINGÚN SMR.
++ *
++ * Qué queda a cambio (importante): el hardware de este aparato declara SMS=1
++ * (ID0=0x4c017e6e), NUMSMRG=110 y NUMSIDB=15. El modo fiel de mainline sería
++ * num_mapping_groups = 1<<NUMSIDB = 32768 => el reset escribiría 32768 S2CR
++ * (0xc00..0x20bfc) y el attach del mdss (SID 0x1c00) S2CR(7168) en 0x7c00:
++ * registros FUERA del banco de S2CR comprobado (0xc00..0xdb8 = S2CR(0..109),
++ * el último lo releyó K2 con éxito). Para que esta palanca no cambie un cuelgue
++ * por otro, K3 deja num_mapping_groups = NUMSMRG (110) — todo acceso del reset y
++ * del quirk queda dentro del banco ya probado — y aloja s2crs con 1<<NUMSIDB
++ * entradas para que un maestro con SID >= 110 no desborde el array al attacharse.
++ * Es una configuración deliberadamente NO fiel a mainline (documentada en
++ * INFORME-K3-BUILD.md): sirve para responder "¿el probe llega al final (bind)
++ * sin tocar ni un SMR?", no para dejar el SMMU traduciendo de verdad.
++ */
++static bool uke_stream_match = true;
++module_param(uke_stream_match, bool, 0644);
++MODULE_PARM_DESC(uke_stream_match,
++	"UKE (K3): 1 (defecto) = stream matching normal; 0 = para el apps-smmu (0x15000000) fuerza el camino stream-indexing sin SMR (ni barrido ni escrituras SMR en el reset).");
++
+ static inline int arm_smmu_rpm_get(struct arm_smmu_device *smmu)
+ {
+ 	if (pm_runtime_enabled(smmu->dev))
+@@ -1826,6 +1862,8 @@
+ static int arm_smmu_device_cfg_probe(struct arm_smmu_device *smmu)
+ {
+ 	unsigned int size;
++	/* UKE-SMMU-CLK (K3): != 0 solo si uke_stream_match=0 forzó stream-indexing. */
++	unsigned int uke_stream_indexing_groups = 0;
+ 	u32 id;
+ 	bool cttw_reg, cttw_fw = smmu->features & ARM_SMMU_FEAT_COHERENT_WALK;
+ 	int i, ret;
+@@ -1904,6 +1942,40 @@
+ 		size = 1 << FIELD_GET(ARM_SMMU_ID0_NUMSIDB, id);
+ 	}
+ 	smmu->streamid_mask = size - 1;
++
++	/*
++	 * UKE-SMMU-CLK (K3): palanca uke_stream_match=0 (ver el bloque del param).
++	 * Se hace AQUÍ, en la lectura de ID0 y antes de alojar smmu->smrs, porque es
++	 * el único punto en el que se decide el modo y porque el barrido de SMR del
++	 * qcom_smmu_cfg_probe (que es lo que cuelga) corre unas líneas más abajo:
++	 * forzarlo "justo antes del reset" no serviría, el barrido ya habría leído
++	 * los SMR. Con el bit SMS limpio, el driver sigue el camino stream-indexing
++	 * normal de mainline (sin smrs, s2crs de 1<<NUMSIDB entradas).
++	 *
++	 * num_mapping_groups se capa después a NUMSMRG (110) en vez de dejarlo en
++	 * 1<<NUMSIDB (32768): así el reset (que recorre num_mapping_groups
++	 * escribiendo S2CR) y el test del quirk (S2CR(127) o S2CR(109)) no salen del
++	 * banco de S2CR comprobado. NO es la config fiel de mainline; es la palanca
++	 * de diagnóstico (INFORME-K3-BUILD.md).
++	 */
++	if (!uke_stream_match && uke_smmu_es_apps(smmu)) {
++		if (id & ARM_SMMU_ID0_SMS) {
++			unsigned int uke_numsmrg = FIELD_GET(ARM_SMMU_ID0_NUMSMRG, id);
++
++			uke_stream_indexing_groups = uke_numsmrg ? uke_numsmrg : 1;
++			pr_info("UKE-POKE: cfg_probe: uke_stream_match=0 -> apps-smmu forzado a STREAM-INDEXING "
++				"sin SMR: smrs=NULL, s2crs[%u] (1<<NUMSIDB=%u), num_mapping_groups=%u (capeado a NUMSMRG, "
++				"no a 1<<NUMSIDB, para no tocar S2CR fuera de 0..%u); ni el barrido ni el reset tocaran SMR\n",
++				(unsigned int)(1u << FIELD_GET(ARM_SMMU_ID0_NUMSIDB, id)),
++				(unsigned int)(1u << FIELD_GET(ARM_SMMU_ID0_NUMSIDB, id)),
++				uke_stream_indexing_groups,
++				uke_numsmrg ? uke_numsmrg - 1 : 0);
++			id &= ~ARM_SMMU_ID0_SMS;	/* mainline ya no ve el bit SMS */
++		} else {
++			pr_warn("UKE-POKE: cfg_probe: uke_stream_match=0 pero el hw no reporta SMS; nada que forzar\n");
++		}
++	}
++
+ 	if (id & ARM_SMMU_ID0_SMS) {
+ 		smmu->features |= ARM_SMMU_FEAT_STREAM_MATCH;
+ 		size = FIELD_GET(ARM_SMMU_ID0_NUMSMRG, id);
+@@ -1930,7 +2002,13 @@
+ 	for (i = 0; i < size; i++)
+ 		smmu->s2crs[i] = s2cr_init_val;
+ 
+-	smmu->num_mapping_groups = size;
++	/*
++	 * UKE-SMMU-CLK (K3): con el modo stream-indexing forzado, la s2crs se aloja
++	 * con 1<<NUMSIDB entradas (size, arriba) pero num_mapping_groups se queda en
++	 * NUMSMRG: así ningún bucle del driver sale del banco de S2CR probado y un
++	 * SID alto (mdss = 0x1c00) no desborda s2crs al attacharse.
++	 */
++	smmu->num_mapping_groups = uke_stream_indexing_groups ? uke_stream_indexing_groups : size;
+ 	mutex_init(&smmu->stream_map_mutex);
+ 	spin_lock_init(&smmu->global_sync_lock);
+ 
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+@@ -6,6 +6,7 @@
+ #include <linux/acpi.h>
+ #include <linux/adreno-smmu-priv.h>
+ #include <linux/delay.h>
++#include <linux/module.h>
+ #include <linux/of_device.h>
+ #include <linux/firmware/qcom/qcom_scm.h>
+ #include <linux/platform_device.h>
+@@ -447,6 +448,41 @@
+ 	return 0;
+ }
+ 
++/*
++ * UKE-SMMU-CLK (K3): palanca de salto del barrido de SMR de qcom_smmu_cfg_probe.
++ *
++ * QUÉ ES ESTE BARRIDO (diagnóstico del encargo K3). El bucle de abajo es código
++ * FUNCIONAL de mainline, no una miga del proyecto: está en el árbol prístino
++ * (palawan-linux/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c:516-530) y lo único
++ * que añadieron K1/K2 fueron los pr_info. Lo que hace con cada valor leído:
++ * poblar smmu->smrs[] y smmu->s2crs[] con el estado que el firmware dejó grabado
++ * (SMR VALID -> id/mask/valid y S2CR a BYPASS/cbndx 0xff). Su efecto es que el
++ * arm_smmu_device_reset posterior REESCRIBE esas mismas entradas en vez de
++ * invalidarlas todas: es el equivalente mainline del qcom,handoff-smrs del driver
++ * vendor (el DT del aparato trae qcom,handoff-smrs = <0x1c00 0x02>, que es
++ * justamente el SID del mdss). Si el barrido no se hace, el driver arranca con
++ * smrs[] todo a cero (invalid) y el reset invalida los SMR del bootloader.
++ *
++ * En la tablet, K2 midió que el probe del apps-smmu muere dentro de este bucle
++ * (última línea: "leyendo SMR(0..109)"). Esta palanca sirve para (a) localizar el
++ * índice exacto que mata y (b) saltar el barrido entero si resulta que sin él el
++ * probe llega al final (bind).
++ *
++ * Semántica (leída en cada barrido; escribible en caliente, 0644):
++ *   uke_smr_max = -1 (defecto) o >= 109 : bucle completo (comportamiento actual)
++ *   uke_smr_max =  0 .. 108             : solo se leen SMR(0..uke_smr_max)
++ *   uke_smr_max = -2                    : NO se lee ningún SMR (bucle saltado)
++ *
++ * Ojo: -2 salta SOLO este barrido. El reset (arm_smmu_write_sme -> SMR) sigue
++ * escribiendo los SMR; si el cuelgue fuese la región (no el índice), moriría en
++ * "reset fase2". Para ese caso está la otra palanca, uke_stream_match=0
++ * (arm-smmu.c), que quita TODO acceso a SMR (barrido y reset).
++ */
++static int uke_smr_max = -1;
++module_param(uke_smr_max, int, 0644);
++MODULE_PARM_DESC(uke_smr_max,
++	"UKE (K3): limite del barrido SMR de qcom_smmu_cfg_probe: -1/>=109 = todos, 0..108 = solo hasta ese indice, -2 = saltar el barrido entero sin leer ningun SMR.");
++
+ static int qcom_smmu_cfg_probe(struct arm_smmu_device *smmu)
+ {
+ 	struct qcom_smmu *qsmmu = to_qcom_smmu(smmu);
+@@ -455,6 +491,7 @@
+ 	u32 smr;
+ 	int i;
+ 	unsigned int n_validos = 0;
++	unsigned int uke_smr_limite;
+ 
+ 	/*
+ 	 * MSM8998 LPASS SMMU reports 13 context banks, but accessing
+@@ -519,10 +556,50 @@
+ 		}
+ 	}
+ 
+-	pr_info("UKE-POKE: qcom_cfg_probe: leyendo SMR(0..%u)\n",
+-		smmu->num_mapping_groups - 1);
+-	for (i = 0; i < smmu->num_mapping_groups; i++) {
++	/*
++	 * UKE-SMMU-CLK (K3): sin smmu->smrs (uke_stream_match=0, o hw sin SMS) este
++	 * barrido no tiene sentido: los SMR son los registros del modo stream-matching
++	 * y no hay arrays que poblar. Mainline no leería SMR en ese modo; aquí se dice
++	 * y se sale, para no tocar la región que cuelga.
++	 */
++	if (!smmu->smrs) {
++		pr_info("UKE-POKE: qcom_cfg_probe: smrs==NULL (sin stream matching): barrido SMR no aplica, SALTADO sin leer ni un SMR\n");
++		return 0;
++	}
++
++	/*
++	 * UKE-SMMU-CLK (K3): -2 = no leer ninguno (palanca de salto del barrido).
++	 */
++	if (uke_smr_max == -2) {
++		pr_info("UKE-POKE: qcom_cfg_probe: barrido SMR SALTADO ENTERO (uke_smr_max=-2): no se lee ni un SMR; grupos=%u\n",
++			smmu->num_mapping_groups);
++		return 0;
++	}
++
++	/*
++	 * UKE-SMMU-CLK (K3): límite del barrido (uke_smr_max=0 -> solo SMR(0)).
++	 * -1 o cualquier valor >= num_mapping_groups-1 = bucle completo de siempre.
++	 */
++	uke_smr_limite = smmu->num_mapping_groups;
++	if (uke_smr_max >= 0 && (unsigned int)uke_smr_max < uke_smr_limite)
++		uke_smr_limite = (unsigned int)uke_smr_max + 1;
++
++	pr_info("UKE-POKE: qcom_cfg_probe: leyendo SMR(0..%u) [uke_smr_max=%d grupos=%u]\n",
++		uke_smr_limite - 1, uke_smr_max, smmu->num_mapping_groups);
++	for (i = 0; i < uke_smr_limite; i++) {
++		/*
++		 * UKE-SMMU-CLK (K3): miga por índice ANTES de la lectura (sin
++		 * rate-limit: 1 línea por SMR, 110 en el barrido completo). Si la
++		 * consola enmudece, la última línea "SMR[i] -> readl" es el índice
++		 * que mata; la línea "SMR[i] = 0x..." de después es el noop-check
++		 * (confirma que la lectura devolvió un valor).
++		 */
++		pr_info("UKE-POKE: SMR[%d] -> readl(0x%x)\n", i, ARM_SMMU_GR0_SMR(i));
+ 		smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
++		pr_info("UKE-POKE: SMR[%d] = 0x%08x (valid=%u id=0x%x mask=0x%x)\n", i, smr,
++			(unsigned int)FIELD_GET(ARM_SMMU_SMR_VALID, smr),
++			(unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, smr),
++			(unsigned int)FIELD_GET(ARM_SMMU_SMR_MASK, smr));
+ 
+ 		if (FIELD_GET(ARM_SMMU_SMR_VALID, smr)) {
+ 			n_validos++;
+@@ -537,7 +614,8 @@
+ 			smmu->s2crs[i].cbndx = 0xff;
+ 		}
+ 	}
+-	pr_info("UKE-POKE: qcom_cfg_probe: SMR loop OK (validos=%u)\n", n_validos);
++	pr_info("UKE-POKE: qcom_cfg_probe: SMR loop OK (leidos=%u validos=%u)\n",
++		uke_smr_limite, n_validos);
+ 
+ 	return 0;
+ }

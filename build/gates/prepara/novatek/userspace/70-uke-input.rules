@@ -1,0 +1,13 @@
+# 70-uke-input.rules — acceso de usuario a /dev/input para las herramientas
+# Instalar en: /etc/udev/rules.d/70-uke-input.rules
+#   (OJO: /etc/udev/rules.d/, NO /etc/udev/ — las reglas del proyecto en
+#    /etc/udev/99-uke-*.rules no las lee udev; lección de B §7 Fase 9.)
+#
+# Por qué: el compositor (Hyprland) accede a los evdev vía logind sin ACLs,
+# pero evtest/libinput/wev/python-evdev (texp-touch) corren como usuario y
+# necesitan el ACL. systemd (70-uaccess.rules) solo da uaccess a joysticks;
+# los event* se quedan root:input. Alternativa/complemento: usermod -aG input.
+#
+# Recargar: udevadm control --reload && udevadm trigger --subsystem-match=input
+
+SUBSYSTEM=="input", KERNEL=="event*", TAG+="uaccess"

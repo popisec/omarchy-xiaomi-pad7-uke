@@ -1,0 +1,15 @@
+# T1 (18-oct-2026): tamaños para el dedo. Las claves de usuario ganan al tema.
+[font]
+base-size = 16
+
+[bar]
+# 40 px lógicos efectivos (~7,6 mm). Sin scale-with-font para que no se
+# multiplique por 16/12 y salga una barra de 53 px.
+scale-with-font = false
+size-horizontal = 40
+
+# >>> uke-t5 (18-oct-2026): controles tactiles moderados (por defecto 28). Revertir: borrar este bloque.
+[spacing]
+control-height = 36
+popup-row-height = 36
+# <<< uke-t5

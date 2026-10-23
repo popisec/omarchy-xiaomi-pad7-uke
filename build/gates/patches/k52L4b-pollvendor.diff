@@ -1,0 +1,24 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -639,13 +639,14 @@
+ 	uke_poke("S0-dtcmR");
+ 	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
+ 	pr_info("UKE-K17: dtcmR val=%#x\n", val);
+-	if (val <= 0x20010004) {
+-		mask = 0xffffffff;
+-		reset_val = 0xbabeface;
+-	} else {
+-		mask = 0x1ff;
+-		reset_val = 0x100;
+-	}
++	/* UKE-K66 (W2-RE 4; L4b sobre L0-stock): poll VENDOR fijo
++	 * (val&0x1ff)==0x100. El fw JAMAS escribe 0xbabeface (exito=0x100
++	 * via ACK-HFI, error=0x101, progreso=0x200/0x400/0x600/0x800).
++	 * Variable idéntica a k66-hunk2; contexto adaptado (L0 trae la
++	 * heurística cold/warm if/else, no el K58-cold-fijo). */
++	pr_err("UKE-K66: poll vendor (val&0x1ff)==0x100\n");
++	mask = 0x1ff;
++	reset_val = 0x100;
+ 
+ 	/* UKE-CM3DBG: magic que el fw debe dejar al final del DTCM. Si es 0 o
+ 	 * basura, la imagen no llego a la RAM vista por el CM3 (fetch icache via

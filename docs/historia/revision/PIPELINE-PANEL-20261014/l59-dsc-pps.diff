@@ -1,0 +1,69 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -29,6 +29,7 @@
+ #include <linux/regulator/consumer.h>
+ 
+ #include <drm/display/drm_dsc.h>
++#include <drm/display/drm_dsc_helper.h>
+ #include <drm/drm_mipi_dsi.h>
+ #include <drm/drm_modes.h>
+ #include <drm/drm_panel.h>
+@@ -360,6 +361,58 @@
+ 	if (ret < 0)
+ 		goto err;
+ 
++	/*
++	 * L37 (13-oct): enviar las Picture Parameter Set (PPS) de DSC.
++	 *
++	 * El panel o82 declara drm_dsc_config (DSC 1.1, 10bpc->8bpp, slice
++	 * 800x24, 2 slices) pero hasta ahora NUNCA recibia sus PPS: los 104
++	 * comandos de o82_init_cmds[] no contienen ninguna cabecera 0x0A 0x00
++	 * (Set-PPS), y en drivers/gpu/drm/msm/dsi/ no hay ninguna ruta que las
++	 * envie (grep 'pps' = 0). Un panel DSC al que no le mandas las PPS no
++	 * puede decodificar la trama.
++	 *
++	 * El vendor CAF las genera en runtime (sde_dsc_create_pps_buf_cmd) y las
++	 * envia como DCS Set-PPS desde dsi_display_enable -> dsi_panel_update_pps.
++	 * En mainline el camino equivalente es exactamente el que usa el panel
++	 * nt36532e que SI funciona en sm8550-mainline (sheng):
++	 *   drm_dsc_pps_payload_pack() + mipi_dsi_picture_parameter_set_multi()
++	 * (panel-novatek-nt36532e.c:201-202). Mismo packer, misma via DCS.
++	 *
++	 * La config DSC de mainline coincide campo a campo con la del vendor o82
++	 * (verificado sobre el .ko), asi que la UNICA diferencia era el envio.
++	 */
++	{
++		struct drm_dsc_picture_parameter_set pps;
++
++		uke_poke("L37-pps-pack");
++		drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
++		uke_poke("L37-pps-send");
++		/* L40 (14-oct, rev DSI): la PPS debe llegar a LOS DOS links. El
++		 * vendor la emite en broadcast (dsi_panel_tx_cmd_set() con
++		 * qcom,mdss-dsi-panel-broadcast-mode); mipi_dsi_picture_parameter_set_multi()
++		 * solo transmite por ctx->dsi (drm_mipi_dsi.c:1556), asi que hay que
++		 * llamarla una vez por link. NOTA: pic_width/pic_height del PPS salen
++		 * del template (0 a prepare-time; el host los rellena en modeset) —
++		 * el vendor los lleva del modo; pendiente verificar byte a byte.
++		 */
++		dsi_ctx.dsi = ctx->dsi[0];
++		mipi_dsi_picture_parameter_set_multi(&dsi_ctx, &pps);
++		dsi_ctx.dsi = ctx->dsi[1];
++		mipi_dsi_picture_parameter_set_multi(&dsi_ctx, &pps);
++		dsi_ctx.dsi = ctx->dsi[0];
++		pr_info("UKE-L37: PPS enviada: ver=%u%u bpc=%u bpp=%u slices=%u slice=%ux%u pred=%u rgb=%u\n",
++			(ctx->dsc.dsc_version_major), (ctx->dsc.dsc_version_minor),
++			ctx->dsc.bits_per_component, ctx->dsc.bits_per_pixel >> 4,
++			ctx->dsc.slice_count, ctx->dsc.slice_width, ctx->dsc.slice_height,
++			ctx->dsc.block_pred_enable, ctx->dsc.convert_rgb);
++		uke_poke("L37-pps-done");
++		if (dsi_ctx.accum_err) {
++			pr_info("UKE-L37: PPS envio fallo rc=%d\n", dsi_ctx.accum_err);
++			goto err;
++		}
++	}
++
++
+ 	u8 freq_sel[2];
+ 
+ 	/* Timing-select tail (vendor commands 105/106 of the init sequence).

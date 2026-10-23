@@ -1,0 +1,56 @@
+#!/bin/bash
+# uke-rotate — rotacion manual de la pantalla DSI-1 + tactil de la uke. 18-oct-2026 (fase T2).
+#   uke-rotate 0|90|180|270   fija la orientacion (90 = transform 1 de Hyprland, 180 = 2, 270 = 3)
+#   uke-rotate next           0 -> 90 -> 180 -> 270 -> 0
+#   uke-rotate restore        reaplica la orientacion guardada (al iniciar sesion / tras recargar la config)
+#   uke-rotate status         muestra orientacion guardada, monitor y tactil
+#   uke-rotate touchmap "a b c d"   mapa transform-de-monitor -> transform-de-tactil (por defecto "0 1 2 3")
+# Estado: ~omarchy/.local/state/uke-rotate/{deg,touchmap}. El tactil (uinput 3200x2136) lo rota Hyprland con
+# input:touchdevice:transform; el demonio uke-touchd.py no se toca.
+set -u
+USR=omarchy
+MON=DSI-1
+if [ "$(id -u)" = 0 ]; then exec sudo -u "$USR" -H env "$0" "$@"; fi   # lo llamas por ssh como root
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+	HYPRLAND_INSTANCE_SIGNATURE=$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1); export HYPRLAND_INSTANCE_SIGNATURE
+fi
+ST=${XDG_STATE_HOME:-$HOME/.local/state}/uke-rotate
+mkdir -p "$ST"
+exec 9>"$ST/lock"; flock -w 5 9 || exit 1
+
+cur=$(cat "$ST/deg" 2>/dev/null); case $cur in 0|90|180|270) ;; *) cur=0 ;; esac
+tmap=$(cat "$ST/touchmap" 2>/dev/null); [ -n "$tmap" ] || tmap="0 1 2 3"
+
+tf_of() { case $1 in 0) echo 0;; 90) echo 1;; 180) echo 2;; 270) echo 3;; esac; }
+
+apply() {   # $1 = grados
+	local deg=$1 tf ttf i=0 w got
+	tf=$(tf_of "$deg")
+	for w in $tmap; do [ $i = "$tf" ] && ttf=$w; i=$((i + 1)); done
+	ttf=${ttf:-$tf}
+	for _ in 1 2 3; do   # una orden identica a la anterior a veces no se aplica: se verifica y reintenta
+		hyprctl eval "hl.monitor({output=\"$MON\",mode=\"preferred\",position=\"0x0\",scale=2,transform=$tf})" >/dev/null
+		sleep 0.7
+		got=$(hyprctl monitors -j | jq -r ".[]|select(.name==\"$MON\").transform")
+		[ "$got" = "$tf" ] && break
+	done
+	hyprctl eval "hl.config({input={touchdevice={transform=$ttf}}})" >/dev/null
+	[ "$got" = "$tf" ] || { echo "uke-rotate: el monitor sigue en transform $got (pedido $tf)" >&2; return 1; }
+	echo "$deg" >"$ST/deg"
+	echo "uke-rotate: $MON $deg grados (monitor transform $tf, tactil transform $ttf)"
+}
+
+case ${1:-} in
+0|90|180|270) apply "$1" ;;
+next) apply $(( (cur + 90) % 360 )) ;;
+restore) apply "$cur" ;;
+status)
+	echo "guardado: $cur grados; touchmap: $tmap"
+	hyprctl monitors -j | jq -r ".[]|select(.name==\"$MON\")|\"monitor transform=\(.transform) \(.width)x\(.height)\""
+	hyprctl getoption input:touchdevice:transform | head -1 ;;
+touchmap)
+	[ -n "${2:-}" ] || { echo "actual: $tmap"; exit 0; }
+	echo "$2" >"$ST/touchmap"; tmap=$2; apply "$cur" ;;
+*) echo "uso: uke-rotate 0|90|180|270|next|restore|status|touchmap \"a b c d\""; exit 2 ;;
+esac

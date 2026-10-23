@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "uke.launcher",
+  "name": "Lanzador tactil (uke)",
+  "version": "1.0.0",
+  "author": "uke",
+  "description": "Lanzador de aplicaciones a pantalla completa, tactil, con rejilla y buscador. Sustituye a nwg-drawer",
+  "kinds": ["service", "bar-widget"],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Lanzador",
+    "description": "Abre y cierra el lanzador tactil de aplicaciones",
+    "category": "Compositor",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}

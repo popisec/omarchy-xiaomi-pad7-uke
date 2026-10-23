@@ -1,0 +1,1745 @@
+[    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd801]
+[    0.000000] Linux version 7.2.9-senemos.1.4054.3-ouke2 (omarchy-uke@pc) (clang version 23.1.1, LLD 23.1.1) #2 SMP PREEMPT 2026-10-17 22:00:00 UTC
+[    0.000000] KASLR enabled
+[    0.000000] Uke ABL DT: selected RAM preserved; isolated native display graph prepared
+[    0.000000] random: crng init done
+[    0.000000] Machine model: Xiaomi Pad 7
+[    0.000000] WARNING: 'bootconfig' found on the kernel command line but CONFIG_BOOT_CONFIG is not set.
+[    0.000000] efi: UEFI not found.
+[    0.000000] [Firmware Bug]: Kernel image misaligned at boot, please fix your bootloader!
+[    0.000000] OF: reserved mem: Reserved memory: failed to reserve memory for node 'demura_region_0': base 0x0000000000000000, size 0 MiB
+[    0.000000] OF: reserved mem: Reserved memory: failed to reserve memory for node 'demura_region_1': base 0x0000000000000000, size 0 MiB
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000009fe800000, size 24 MiB
+[    0.000000] OF: reserved mem: initialized node mem_dump_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000009fe800000..0x00000009ffffffff (24576 KiB) map reusable mem_dump_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000ff400000, size 4 MiB
+[    0.000000] OF: reserved mem: initialized node cdsp_eva_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000ff400000..0x00000000ff7fffff (4096 KiB) map reusable cdsp_eva_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000fd400000, size 32 MiB
+[    0.000000] OF: reserved mem: initialized node linux,cma, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000fd400000..0x00000000ff3fffff (32768 KiB) map reusable linux,cma
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000fc800000, size 12 MiB
+[    0.000000] OF: reserved mem: initialized node adsp_heap_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000fc800000..0x00000000fd3fffff (12288 KiB) map reusable adsp_heap_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000f1000000, size 40 MiB
+[    0.000000] OF: reserved mem: initialized node secure_cdsp_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000f1000000..0x00000000f37fffff (40960 KiB) map reusable secure_cdsp_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000ef800000, size 24 MiB
+[    0.000000] OF: reserved mem: initialized node qseecom_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000ef800000..0x00000000f0ffffff (24576 KiB) map reusable qseecom_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000ec400000, size 52 MiB
+[    0.000000] OF: reserved mem: initialized node qseecom_ta_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000ec400000..0x00000000ef7fffff (53248 KiB) map reusable qseecom_ta_region
+[    0.000000] OF: reserved mem: 0x00000009fe7ff000..0x00000009fe7fffff (4 KiB) nomap non-reusable debug_kinfo_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000cdc00000, size 164 MiB
+[    0.000000] OF: reserved mem: initialized node non_secure_display_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000cdc00000..0x00000000d7ffffff (167936 KiB) map reusable non_secure_display_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000eb400000, size 16 MiB
+[    0.000000] OF: reserved mem: initialized node va_md_mem_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000eb400000..0x00000000ec3fffff (16384 KiB) map reusable va_md_mem_region
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000eb000000, size 4 MiB
+[    0.000000] OF: reserved mem: initialized node vm_comm_mem_region, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000eb000000..0x00000000eb3fffff (4096 KiB) map reusable vm_comm_mem_region
+[    0.000000] OF: reserved mem: 0x00000000a7000000..0x00000000a73fffff (4096 KiB) map non-reusable ramoops_region
+[    0.000000] OF: reserved mem: 0x0000000080000000..0x0000000080dfffff (14336 KiB) nomap non-reusable gunyah_hyp_region@80000000
+[    0.000000] OF: reserved mem: 0x0000000080e00000..0x00000000811fffff (4096 KiB) nomap non-reusable cpusys_vm_region@80e00000
+[    0.000000] OF: reserved mem: 0x0000000081200000..0x00000000816dffff (4992 KiB) nomap non-reusable tags_region@81200000
+[    0.000000] OF: reserved mem: 0x00000000816e0000..0x00000000816e07ff (2 KiB) nomap non-reusable dump_display_region@816e0000
+[    0.000000] OF: reserved mem: 0x0000000081a00000..0x0000000081a3ffff (256 KiB) nomap non-reusable xbl_dtlog_region@81a00000
+[    0.000000] OF: reserved mem: 0x0000000084a00000..0x0000000084bfffff (2048 KiB) nomap non-reusable xbl_ramdump_region@84a00000
+[    0.000000] OF: reserved mem: 0x0000000081c00000..0x0000000081c5ffff (384 KiB) nomap non-reusable aop_image_region@81c00000
+[    0.000000] OF: reserved mem: 0x0000000081c60000..0x0000000081c7ffff (128 KiB) nomap non-reusable aop_cmd_db_region@81c60000
+[    0.000000] OF: reserved mem: 0x0000000081c80000..0x0000000081c9ffff (128 KiB) nomap non-reusable aop_config_region@81c80000
+[    0.000000] OF: reserved mem: 0x0000000081ca0000..0x0000000081cdffff (256 KiB) nomap non-reusable tme_crash_dump_region@81ca0000
+[    0.000000] OF: reserved mem: 0x0000000081ce0000..0x0000000081ce3fff (16 KiB) nomap non-reusable tme_log_region@81ce0000
+[    0.000000] OF: reserved mem: 0x0000000081ce4000..0x0000000081cf3fff (64 KiB) nomap non-reusable uefi_log_region@81ce4000
+[    0.000000] OF: reserved mem: 0x0000000081cf4000..0x0000000081cf4fff (4 KiB) nomap non-reusable chipinfo_region@81cf4000
+[    0.000000] OF: reserved mem: 0x0000000081cff000..0x0000000081cfffff (4 KiB) nomap non-reusable secdata_apss_region@81cff000
+[    0.000000] OF: reserved mem: 0x0000000081d00000..0x0000000081efffff (2048 KiB) nomap non-reusable smem_region@81d00000
+[    0.000000] OF: reserved mem: 0x0000000081f00000..0x0000000081f1ffff (128 KiB) nomap non-reusable adsp_mhi_region@81f00000
+[    0.000000] OF: reserved mem: 0x00000000824a0000..0x000000008259ffff (1024 KiB) nomap non-reusable pvm_fw_region@824a0000
+[    0.000000] OF: reserved mem: 0x00000000825a0000..0x00000000825fffff (384 KiB) nomap non-reusable hyp_mem_database_region@825a0000
+[    0.000000] OF: reserved mem: 0x0000000082600000..0x00000000826fffff (1024 KiB) nomap non-reusable global_sync_region@82600000
+[    0.000000] OF: reserved mem: 0x0000000082700000..0x00000000827fffff (1024 KiB) nomap non-reusable tz_stat_region@82700000
+[    0.000000] Reserved memory: created CMA memory pool at 0x0000000082800000, size 32 MiB
+[    0.000000] OF: reserved mem: initialized node qdss_apps_region@82800000, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x0000000082800000..0x00000000847fffff (32768 KiB) map reusable qdss_apps_region@82800000
+[    0.000000] OF: reserved mem: 0x0000000086b00000..0x000000008a1fffff (56320 KiB) nomap non-reusable dsm_partition_1_region@86b00000
+[    0.000000] OF: reserved mem: 0x0000000098900000..0x000000009897ffff (512 KiB) nomap non-reusable q6_mpss_dtb_region@98900000
+[    0.000000] OF: reserved mem: 0x0000000098980000..0x000000009898ffff (64 KiB) nomap non-reusable ipa_fw_region@98980000
+[    0.000000] OF: reserved mem: 0x0000000098990000..0x0000000098999fff (40 KiB) nomap non-reusable ipa_gsi_region@98990000
+[    0.000000] OF: reserved mem: 0x000000009899a000..0x000000009899bfff (8 KiB) nomap non-reusable gpu_microcode_region@9899a000
+[    0.000000] OF: reserved mem: 0x000000009899c000..0x000000009919bfff (8192 KiB) nomap non-reusable video_region@9899c000
+[    0.000000] OF: reserved mem: 0x000000009919c000..0x000000009989bfff (7168 KiB) nomap non-reusable cvp_region@9919c000
+[    0.000000] OF: reserved mem: 0x0000000099900000..0x000000009acfffff (20480 KiB) nomap non-reusable cdsp_region@99900000
+[    0.000000] OF: reserved mem: 0x000000009ad00000..0x000000009ad7ffff (512 KiB) nomap non-reusable q6_cdsp_dtb_region@9ad00000
+[    0.000000] OF: reserved mem: 0x000000009b300000..0x000000009bafffff (8192 KiB) nomap non-reusable camera_region@9b300000
+[    0.000000] OF: reserved mem: 0x000000009bb00000..0x000000009d3fffff (25600 KiB) nomap non-reusable wpss_region@9bb00000
+[    0.000000] OF: reserved mem: 0x000000009d400000..0x00000000a18fffff (70656 KiB) nomap non-reusable adspslpi_region@9d400000
+[    0.000000] OF: reserved mem: 0x00000000a1900000..0x00000000a197ffff (512 KiB) nomap non-reusable q6_adsp_dtb_region@a1900000
+[    0.000000] OF: reserved mem: 0x00000000a6400000..0x00000000a6ffffff (12288 KiB) nomap non-reusable wlan_msa_region@a6400000
+[    0.000000] OF: reserved mem: 0x00000000d8000000..0x00000000d803ffff (256 KiB) nomap non-reusable xbl_sc_region@d8000000
+[    0.000000] OF: reserved mem: 0x00000000d8040000..0x00000000d81fffff (1792 KiB) nomap non-reusable cpucp_fw_region@d8040000
+[    0.000000] OF: reserved mem: 0x00000000d8200000..0x00000000d82dffff (896 KiB) nomap non-reusable reserved_region@d8200000
+[    0.000000] OF: reserved mem: 0x00000000d82e0000..0x00000000d87fffff (5248 KiB) nomap non-reusable qtee_region@d82e0000
+[    0.000000] OF: reserved mem: 0x00000000d8800000..0x00000000e1baffff (151232 KiB) nomap non-reusable tatags_region@d8800000
+[    0.000000] OF: reserved mem: 0x00000000e1bb0000..0x00000000e1d3ffff (1600 KiB) nomap non-reusable reserved_region@e1bb0000
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000f3800000, size 68 MiB
+[    0.000000] OF: reserved mem: initialized node trust_ui_vm_region@f3800000, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000f3800000..0x00000000f7bfffff (69632 KiB) map reusable trust_ui_vm_region@f3800000
+[    0.000000] Reserved memory: created CMA memory pool at 0x00000000f7c00000, size 76 MiB
+[    0.000000] OF: reserved mem: initialized node oem_vm_region@f7c00000, compatible id shared-dma-pool
+[    0.000000] OF: reserved mem: 0x00000000f7c00000..0x00000000fc7fffff (77824 KiB) map reusable oem_vm_region@f7c00000
+[    0.000000] OF: reserved mem: 0x00000000ff800000..0x00000000ffb7ffff (3584 KiB) nomap non-reusable llcc_lpi_region@ff800000
+[    0.000000] OF: reserved mem: 0x00000000e3940000..0x00000000e643ffff (44032 KiB) nomap non-reusable splash_region
+[    0.000000] NUMA: Faking a node at [mem 0x0000000080000000-0x00000009ffffffff]
+[    0.000000] NODE_DATA(0) allocated [mem 0x9fd5517c0-0x9fd553e7f]
+[    0.000000] psci: probing for conduit method from DT.
+[    0.000000] psci: PSCIv1.1 detected in firmware.
+[    0.000000] psci: Using standard PSCI v0.2 function IDs
+[    0.000000] psci: MIGRATE_INFO_TYPE not supported.
+[    0.000000] psci: SMC Calling Convention v1.3
+[    0.000000] psci: OSI mode supported.
+[    0.000000] Zone ranges:
+[    0.000000]   DMA      [mem 0x0000000080000000-0x00000000ffffffff]
+[    0.000000]   DMA32    empty
+[    0.000000]   Normal   [mem 0x0000000100000000-0x00000009ffffffff]
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000080000000-0x00000000811fffff]
+[    0.000000]   node   0: [mem 0x00000000816e1000-0x00000000819fffff]
+[    0.000000]   node   0: [mem 0x0000000081a00000-0x0000000081a3ffff]
+[    0.000000]   node   0: [mem 0x0000000081a40000-0x0000000081bfffff]
+[    0.000000]   node   0: [mem 0x0000000081c00000-0x0000000081cf4fff]
+[    0.000000]   node   0: [mem 0x0000000081cf5000-0x0000000081cfefff]
+[    0.000000]   node   0: [mem 0x0000000081cff000-0x0000000081f1ffff]
+[    0.000000]   node   0: [mem 0x0000000081f20000-0x000000008249ffff]
+[    0.000000]   node   0: [mem 0x00000000824a0000-0x000000008259ffff]
+[    0.000000]   node   0: [mem 0x0000000082600000-0x00000000827fffff]
+[    0.000000]   node   0: [mem 0x0000000082800000-0x00000000849fffff]
+[    0.000000]   node   0: [mem 0x0000000084a00000-0x0000000084bfffff]
+[    0.000000]   node   0: [mem 0x0000000084c00000-0x0000000086afffff]
+[    0.000000]   node   0: [mem 0x0000000086b00000-0x000000008a1fffff]
+[    0.000000]   node   0: [mem 0x000000008a200000-0x00000000988fffff]
+[    0.000000]   node   0: [mem 0x0000000098900000-0x000000009989bfff]
+[    0.000000]   node   0: [mem 0x000000009989c000-0x00000000998fffff]
+[    0.000000]   node   0: [mem 0x0000000099900000-0x000000009ad7ffff]
+[    0.000000]   node   0: [mem 0x000000009ad80000-0x000000009b2fffff]
+[    0.000000]   node   0: [mem 0x000000009b300000-0x00000000a197ffff]
+[    0.000000]   node   0: [mem 0x00000000a1980000-0x00000000a63fffff]
+[    0.000000]   node   0: [mem 0x00000000a6400000-0x00000000a6ffffff]
+[    0.000000]   node   0: [mem 0x00000000a7000000-0x00000000d7ffffff]
+[    0.000000]   node   0: [mem 0x00000000d8040000-0x00000000d805ffff]
+[    0.000000]   node   0: [mem 0x00000000e34b0000-0x00000000e393ffff]
+[    0.000000]   node   0: [mem 0x00000000e3940000-0x00000000e643ffff]
+[    0.000000]   node   0: [mem 0x00000000e6440000-0x00000000ff7fffff]
+[    0.000000]   node   0: [mem 0x00000000ff800000-0x00000000ffb7ffff]
+[    0.000000]   node   0: [mem 0x00000000ffb80000-0x00000000ffffffff]
+[    0.000000]   node   0: [mem 0x0000000880000000-0x00000008afafffff]
+[    0.000000]   node   0: [mem 0x00000008b0000000-0x00000008b9efffff]
+[    0.000000]   node   0: [mem 0x00000008ba100000-0x00000008bbefffff]
+[    0.000000]   node   0: [mem 0x00000008c0000000-0x00000009fe7fefff]
+[    0.000000]   node   0: [mem 0x00000009fe7ff000-0x00000009fe7fffff]
+[    0.000000]   node   0: [mem 0x00000009fe800000-0x00000009ffffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000080000000-0x00000009ffffffff]
+[    0.000000] On node 0, zone DMA: 1249 pages in unavailable ranges
+[    0.000000] On node 0, zone DMA: 96 pages in unavailable ranges
+[    0.000000] On node 0, zone DMA: 64 pages in unavailable ranges
+[    0.000000] On node 0, zone DMA: 46160 pages in unavailable ranges
+[    0.000000] On node 0, zone Normal: 1280 pages in unavailable ranges
+[    0.000000] On node 0, zone Normal: 512 pages in unavailable ranges
+[    0.000000] On node 0, zone Normal: 16640 pages in unavailable ranges
+[    0.000000] percpu: Embedded 35 pages/cpu s105240 r8192 d29928 u143360
+[    0.000000] pcpu-alloc: s105240 r8192 d29928 u143360 alloc=35*4096
+[    0.000000] pcpu-alloc: [0] 0 [0] 1 [0] 2 [0] 3 [0] 4 [0] 5 [0] 6 [0] 7 
+[    0.000000] Detected PIPT I-cache on CPU0
+[    0.000000] CPU features: detected: Address authentication (architected QARMA3 algorithm)
+[    0.000000] CPU features: detected: GICv3 CPU interface
+[    0.000000] CPU features: detected: HCRX_EL2 register
+[    0.000000] CPU features: detected: Spectre-v4
+[    0.000000] CPU features: kernel page table isolation forced OFF by kpti command line option
+[    0.000000] CPU features: detected: ARM errata 2966298, 3117295
+[    0.000000] alternatives: applying boot alternatives
+[    0.000000] Kernel command line: loglevel=6 kpti=0 log_buf_len=256K swiotlb=noforce loop.max_part=7 pcie_ports=compat irqaffinity=0-2 cpufreq.default_governor=performance sysctl.kernel.sched_pelt_multiplier=4 kasan=off cgroup.memory=nokmem,nosocket disable_dma32=on kernel.panic_on_rcu_stall=1 fw_devlink.strict=1 service_locator.enable=1 rcupdate.rcu_expedited=1 rcu_nocbs=0-7 no-steal-acc printk.console_no_auto_verbose=0 can.stats_timer=0 ftrace_dump_on_oops firmware_class.path=/vendor/firmware_mnt/image,/vendor/firmware_mnt/image/kiwi,/vendor/vm-system/oemvm/boot,/vendor/vm-system/trustedvm/boot,/vendor/firmware,/vendor/firmware/wlan/qca_cld/kiwi_v2 pci-msm-drv.pcie_sm_regs=0x1D07000,0x1040,0x1048,0x3000,0x1 video=vfb:640x400,bpp=32,memsize=3072000 swinfo.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user mtdoops.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user bootconfig rdinit=/ukeinit panic=10 console=tty0 fbcon=map:0 fbcon=font:TER16x32 consoleblank=0 console=ttyGS0,115200 hung_task_timeout_secs=20 hung_task_panic=0 \
+[    0.000000] Kernel command line: watchdog_thresh=10 clk_ignore_unused pd_ignore_unused regulator_ignore_unused fw_devlink.strict=0 msm.separate_gpu_kms=1 systemd.unit=multi-user.target printk.always_kmsg_dump=0 plymouth.enable=0 iomem=relaxed bootinfo.pureason=0x800001 bootinfo.pdreason=0x2 msm_sharedmem.cma_already_panic=0 debug_ext.initrd_size=62921 spidev.bufsiz=16384 hwid.hwid_value=1638400 hwid.project=11 hwid.build_adc=51237 hwid.project_adc=81 msm_drm.dsi_display0=qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid: msm_drm.oled_wp=99807e msm_drm.debugpolicy=0x20 msm_drm.build_id=c3 rootwait ro init=/init silent_boot.mode=nonsilent log_buf_len=2M loglevel=6 console=ttynull block2mtd.block2mtd=/dev/block/by-name/oops,2097152 mtdoops.mtddev=0 mtdoops.record_size=2097152 mtdoops.dump_oops=1 printk.always_kmsg_dump=1 mtdoops.boot_mode=1 mtdoops.boot_index=1576
+[    0.000000] Unknown kernel command line parameters "kasan=off disable_dma32=on rcu_nocbs=0-7 hung_task_timeout_secs=20 watchdog_thresh=10", will be passed to user space.
+[    0.000000] printk: log buffer data + meta data: 2097152 + 7340032 = 9437184 bytes
+[    0.000000] Dentry cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 524288 (order: 10, 4194304 bytes, linear)
+[    0.000000] Fallback order for Node 0: 0 
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 2031151
+[    0.000000] Policy zone: Normal
+[    0.000000] mem auto-init: stack:all(zero), heap alloc:off, heap free:off
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=8, Nodes=1
+[    0.000000] ftrace: allocating 61471 entries in 242 pages
+[    0.000000] ftrace: allocated 242 pages with 5 groups
+[    0.000000] rcu: Preemptible hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU event tracing is enabled.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=512 to nr_cpu_ids=8.
+[    0.000000] 	All grace periods are expedited (rcu_expedited).
+[    0.000000] 	Trampoline variant of Tasks RCU enabled.
+[    0.000000] 	Rude variant of Tasks RCU enabled.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=8
+[    0.000000] RCU Tasks: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    0.000000] RCU Tasks Rude: Setting shift to 3 and lim to 1 rcu_task_cb_adjust=1 rcu_task_cpu_ids=8.
+[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[    0.000000] GICv3: 988 SPIs implemented
+[    0.000000] GICv3: 0 Extended SPIs implemented
+[    0.000000] Root IRQ handler: gic_handle_irq
+[    0.000000] GICv3: GICv3 features: 16 PPIs, DirectLPI
+[    0.000000] GICv3: GICD_CTLR.DS=1, SCR_EL3.FIQ=0
+[    0.000000] GICv3: Enabling SGIs without active state
+[    0.000000] GICv3: CPU0: found redistributor 0 region 0:0x0000000017180000
+[    0.000000] ITS [mem 0x17140000-0x1715ffff]
+[    0.000000] ITS@0x0000000017140000: Devices Table too large, reduce ids 32->19
+[    0.000000] ITS@0x0000000017140000: Devices too large, reduce ITS pages 1024->256
+[    0.000000] ITS@0x0000000017140000: allocated 131072 Devices @880200000 (indirect, esz 8, psz 4K, shr 1)
+[    0.000000] ITS@0x0000000017140000: allocated 4096 Interrupt Collections @880164000 (flat, esz 1, psz 4K, shr 1)
+[    0.000000] GICv3: using LPI property table @0x0000000880180000
+[    0.000000] GICv3: CPU0: using allocated LPI pending table @0x0000000880190000
+[    0.000000] rcu: srcu_init: Setting srcu_struct sizes based on contention.
+[    0.000000] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.000000] arch_timer: cp15 timer running at 19.20MHz (virt).
+[    0.000000] clocksource: arch_sys_counter: mask: 0xffffffffffffff max_cycles: 0x46d987e47, max_idle_ns: 440795202767 ns
+[    0.000000] sched_clock: 56 bits at 19MHz, resolution 52ns, wraps every 4398046511078ns
+[    0.001792] arm-pv: using stolen time PV
+[    0.001977] Console: colour dummy device 80x25
+[    0.001987] printk: legacy console [tty0] enabled
+[    0.002234] Calibrating delay loop (skipped), value calculated using timer frequency.. 38.40 BogoMIPS (lpj=76800)
+[    0.002244] pid_max: default: 32768 minimum: 301
+[    0.002352] SELinux:  Initializing.
+[    0.002679] Mount-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.002692] Mountpoint-cache hash table entries: 16384 (order: 5, 131072 bytes, linear)
+[    0.002866] VFS: Finished mounting rootfs on nullfs
+[    0.004162] rcu: Hierarchical SRCU implementation.
+[    0.004166] rcu: 	Max phase no-delay instances is 1000.
+[    0.004265] Timer migration: 1 hierarchy levels; 8 children per group; 1 crossnode level
+[    0.006360] EFI services will not be available.
+[    0.006599] smp: Bringing up secondary CPUs ...
+[    0.007124] Detected PIPT I-cache on CPU1
+[    0.007262] GICv3: CPU1: found redistributor 100 region 0:0x00000000171c0000
+[    0.007370] GICv3: CPU1: using allocated LPI pending table @0x00000008801a0000
+[    0.007461] CPU1: Booted secondary processor 0x0000000100 [0x410fd801]
+[    0.008271] Detected PIPT I-cache on CPU2
+[    0.008391] GICv3: CPU2: found redistributor 200 region 0:0x0000000017200000
+[    0.008472] GICv3: CPU2: using allocated LPI pending table @0x00000008801b0000
+[    0.008542] CPU2: Booted secondary processor 0x0000000200 [0x410fd801]
+[    0.009439] CPU features: detected: Spectre-BHB
+[    0.009455] CPU features: detected: SSBS not fully self-synchronizing
+[    0.009472] Detected PIPT I-cache on CPU3
+[    0.009479] CPU features: SANITY CHECK: Unexpected variation in SYS_ID_AA64MMFR1_EL1. Boot CPU: 0x1001111011312122, CPU3: 0x1001111010312122
+[    0.009568] CPU features: Unsupported CPU feature variation detected.
+[    0.009708] GICv3: CPU3: found redistributor 300 region 0:0x0000000017240000
+[    0.009787] GICv3: CPU3: using allocated LPI pending table @0x00000008801c0000
+[    0.009915] CPU3: Booted secondary processor 0x0000000300 [0x410fd811]
+[    0.010689] Detected PIPT I-cache on CPU4
+[    0.010701] CPU features: SANITY CHECK: Unexpected variation in SYS_ID_AA64MMFR1_EL1. Boot CPU: 0x1001111011312122, CPU4: 0x1001111010312122
+[    0.010816] GICv3: CPU4: found redistributor 400 region 0:0x0000000017280000
+[    0.010896] GICv3: CPU4: using allocated LPI pending table @0x00000008801d0000
+[    0.011051] CPU4: Booted secondary processor 0x0000000400 [0x410fd811]
+[    0.011872] Detected PIPT I-cache on CPU5
+[    0.011885] CPU features: SANITY CHECK: Unexpected variation in SYS_ID_AA64MMFR1_EL1. Boot CPU: 0x1001111011312122, CPU5: 0x1001111010312122
+[    0.012001] GICv3: CPU5: found redistributor 500 region 0:0x00000000172c0000
+[    0.012079] GICv3: CPU5: using allocated LPI pending table @0x00000008801e0000
+[    0.012239] CPU5: Booted secondary processor 0x0000000500 [0x410fd811]
+[    0.012959] Detected PIPT I-cache on CPU6
+[    0.012964] CPU features: SANITY CHECK: Unexpected variation in SYS_ID_AA64MMFR1_EL1. Boot CPU: 0x1001111011312122, CPU6: 0x1001111010312122
+[    0.013003] GICv3: CPU6: found redistributor 600 region 0:0x0000000017300000
+[    0.013037] GICv3: CPU6: using allocated LPI pending table @0x00000008801f0000
+[    0.013089] CPU6: Booted secondary processor 0x0000000600 [0x410fd811]
+[    0.013972] CPU features: detected: Broken broadcast TLBI completion
+[    0.013990] Detected PIPT I-cache on CPU7
+[    0.013997] CPU features: SANITY CHECK: Unexpected variation in SYS_ID_AA64MMFR1_EL1. Boot CPU: 0x1001111011312122, CPU7: 0x1001111010312122
+[    0.014232] GICv3: CPU7: found redistributor 700 region 0:0x0000000017340000
+[    0.014324] GICv3: CPU7: using allocated LPI pending table @0x0000000880300000
+[    0.014423] CPU7: Booted secondary processor 0x0000000700 [0x410fd821]
+[    0.014560] smp: Brought up 1 node, 8 CPUs
+[    0.014634] SMP: Total of 8 processors activated.
+[    0.014637] CPU: All CPU(s) started at EL1
+[    0.014649] CPU features: detected: Branch Target Identification
+[    0.014653] CPU features: detected: ARMv8.4 Translation Table Level
+[    0.014657] CPU features: detected: Data cache clean to the PoU not required for I/D coherence
+[    0.014660] CPU features: detected: Common not Private translations
+[    0.014664] CPU features: detected: CRC32 instructions
+[    0.014667] CPU features: detected: Data independent timing control (DIT)
+[    0.014670] CPU features: detected: E0PD
+[    0.014673] CPU features: detected: Enhanced Counter Virtualization
+[    0.014676] CPU features: detected: Enhanced Counter Virtualization (CNTPOFF)
+[    0.014679] CPU features: detected: Enhanced Privileged Access Never
+[    0.014682] CPU features: detected: Enhanced Virtualization Traps
+[    0.014686] CPU features: detected: Fine Grained Traps
+[    0.014690] CPU features: detected: Generic authentication (architected QARMA3 algorithm)
+[    0.014695] CPU features: detected: RCpc load-acquire (LDAPR)
+[    0.014698] CPU features: detected: LSE atomic instructions
+[    0.014702] CPU features: detected: Privileged Access Never
+[    0.014705] CPU features: detected: PMUv3
+[    0.014708] CPU features: detected: Speculation barrier (SB)
+[    0.014711] CPU features: detected: Stage-2 Force Write-Back
+[    0.014715] CPU features: detected: TLB range maintenance instructions
+[    0.014718] CPU features: detected: XNX
+[    0.014722] CPU features: detected: Memory Partitioning And Monitoring
+[    0.014725] CPU features: detected: Memory Partitioning And Monitoring Virtualisation
+[    0.014729] CPU features: detected: Speculative Store Bypassing Safe (SSBS)
+[    0.014787] alternatives: applying system-wide alternatives
+[    0.017537] CPU features: detected: Activity Monitors Unit (AMU) on CPU0-7
+[    0.017555] CPU features: detected: Hardware dirty bit management on CPU0-7
+[    0.018081] Memory: 6982212K/8124604K available (19648K kernel code, 12446K rwdata, 13516K rodata, 3328K init, 2588K bss, 568784K reserved, 561152K cma-reserved)
+[    0.018424] devtmpfs: initialized
+[    0.032452] posixtimers hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.032474] futex hash table entries: 2048 (131072 bytes on 1 NUMA nodes, total 128 KiB, linear).
+[    0.033421] 2G module region forced by RANDOMIZE_MODULE_REGION_FULL
+[    0.033425] 0 pages in range for non-PLT usage
+[    0.033426] 511328 pages in range for PLT usage
+[    0.033809] DMI: not present or invalid.
+[    0.034584] NET: Registered PF_NETLINK/PF_ROUTE protocol family
+[    0.034912] DMA: preallocated 1024 KiB GFP_KERNEL pool for atomic allocations
+[    0.034973] DMA: preallocated 1024 KiB GFP_KERNEL|GFP_DMA pool for atomic allocations
+[    0.034985] audit: initializing netlink subsys (disabled)
+[    0.035063] audit: type=2000 audit(0.032:1): state=initialized audit_enabled=0 res=1
+[    0.036027] OF: /soc/spf_core_platform/lpass-cdc/va-macro@6D44000: could not get #gpio-cells for /soc/interrupt-controller@17100000
+[    0.036869] thermal_sys: Registered thermal governor 'step_wise'
+[    0.036872] thermal_sys: Registered thermal governor 'power_allocator'
+[    0.036905] cpuidle: using governor menu
+[    0.037038] hw-breakpoint: found 6 breakpoint and 4 watchpoint registers.
+[    0.037134] ASID allocator initialised with 65536 entries
+[    0.037511] Serial: AMBA PL011 UART driver
+[    0.037703] printk: legacy console [ramoops-1] enabled
+[    0.037754] pstore: Registered ramoops as persistent store backend
+[    0.037755] ramoops: using 0x400000@0xa7000000, ecc: 0
+[    0.046085] OF: /soc/spf_core_platform/lpass-cdc/va-macro@6D44000: could not get #gpio-cells for /soc/interrupt-controller@17100000
+[    0.050511] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.050613] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.050759] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.050852] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.051042] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.051183] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.051288] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.051388] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.051500] /soc/stm@10002000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.051564] /soc/audio_etm0: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.051719] /soc/tpdm@109a0000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.051875] /soc/tpdm@109a1000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.052031] /soc/wpss_etm0: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.052094] /soc/tpdm@10b30000: Fixed dependency cycle(s) with /soc/funnel@10b33000
+[    0.052156] /soc/tpdm@10b46000: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.052218] /soc/lpass_stm: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.052280] /soc/funnel@10b50000: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.052282] /soc/funnel@10b50000: Fixed dependency cycle(s) with /soc/tpdm@10b46000
+[    0.052284] /soc/funnel@10b50000: Fixed dependency cycle(s) with /soc/lpass_stm
+[    0.052347] /soc/funnel@10b44000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.052349] /soc/funnel@10b44000: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.052351] /soc/funnel@10b44000: Fixed dependency cycle(s) with /soc/audio_etm0
+[    0.052414] /soc/tpdm@10b09000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.052477] /soc/tpdm@10b0a000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.052540] /soc/tpdm@10b0b000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.052602] /soc/tpdm@10b0c000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.052664] /soc/tpdm@10b0d000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.052784] /soc/tpdm@10844000: Fixed dependency cycle(s) with /soc/funnel@10846000
+[    0.052908] /soc/tpdm@10d20000: Fixed dependency cycle(s) with /soc/funnel@10d22000
+[    0.053033] /soc/tpdm@10d30000: Fixed dependency cycle(s) with /soc/funnel@10d32000
+[    0.053096] /soc/tpdm@10c60000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.053158] /soc/tpdm@10c08000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.053221] /soc/tpdm@10c09000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.053341] /soc/tpdm@10c38000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.053461] /soc/tpdm@10c39000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.053597] /soc/tpdm@10c3a000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.053732] /soc/tpdm@10900000: Fixed dependency cycle(s) with /soc/funnel@10902000
+[    0.053853] /soc/tpdm@10841000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.053973] /soc/tpdm@109d0000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.054092] /soc/tpdm@1082c000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.054213] /soc/tpdm@10c28000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.054333] /soc/tpdm@10c29000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.054395] /soc/tpdm@10003000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.054457] /soc/tpdm@1000f000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.054520] /soc/tpdm@10cc1000: Fixed dependency cycle(s) with /soc/tpda@10cc4000
+[    0.054675] /soc/tpdm@10980000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.054831] /soc/tpdm@10981000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.054893] /soc/tpdm@109c0000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.054955] /soc/tpdm@109c1000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.055018] /soc/tpdm@138a0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.055081] /soc/tpdm@138b0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.055143] /soc/tpdm@138c0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.055206] /soc/tpdm@13860000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.055268] /soc/tpdm@13862000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.055330] /soc/tpdm@10800000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.055393] /soc/tpdm@10801000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.055456] /soc/tpdm@1080d000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.055518] /soc/funnel@10b33000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.055521] /soc/funnel@10b33000: Fixed dependency cycle(s) with /soc/tpdm@10b30000
+[    0.055574] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.055654] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.055657] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/tpdm@10900000
+[    0.055721] /soc/funnel@10832000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.055783] /soc/tpda@10cc4000: Fixed dependency cycle(s) with /soc/funnel@10cc5000
+[    0.055786] /soc/tpda@10cc4000: Fixed dependency cycle(s) with /soc/tpdm@10cc1000
+[    0.055848] /soc/funnel@10cc5000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.055852] /soc/funnel@10cc5000: Fixed dependency cycle(s) with /soc/tpda@10cc4000
+[    0.055913] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/funnel@10c0c000
+[    0.055916] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/tpdm@10c09000
+[    0.055919] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/tpdm@10c08000
+[    0.055922] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/funnel@10832000
+[    0.055924] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/tpdm@10c60000
+[    0.055986] /soc/funnel@10c0c000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.055990] /soc/funnel@10c0c000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.056047] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.056148] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.056151] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/wpss_etm0
+[    0.056154] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/tpdm@109a1000
+[    0.056156] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/tpdm@109a0000
+[    0.056277] /soc/funnel@10846000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.056280] /soc/funnel@10846000: Fixed dependency cycle(s) with /soc/tpdm@10844000
+[    0.056404] /soc/funnel@10d22000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.056407] /soc/funnel@10d22000: Fixed dependency cycle(s) with /soc/tpdm@10d20000
+[    0.056533] /soc/funnel@10d32000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.056536] /soc/funnel@10d32000: Fixed dependency cycle(s) with /soc/tpdm@10d30000
+[    0.056662] /soc/tpda@10d09000: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.056788] /soc/gladiator: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.056912] /soc/funnel@10d0a000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.056915] /soc/funnel@10d0a000: Fixed dependency cycle(s) with /soc/gladiator
+[    0.056918] /soc/funnel@10d0a000: Fixed dependency cycle(s) with /soc/tpda@10d09000
+[    0.056968] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.057044] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.057048] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.057052] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10d32000
+[    0.057055] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10d22000
+[    0.057215] /soc/turing_etm0: Fixed dependency cycle(s) with /soc/funnel@10984000
+[    0.057370] /soc/tpdm@109b0000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.057524] /soc/tpdm@109b1000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.057693] /soc/funnel@10984000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.057697] /soc/funnel@10984000: Fixed dependency cycle(s) with /soc/turing_etm0
+[    0.057754] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.057855] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.057858] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/funnel@10984000
+[    0.057860] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/tpdm@10981000
+[    0.057862] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/tpdm@10980000
+[    0.057918] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.057921] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/tpdm@109b1000
+[    0.057923] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/tpdm@109b0000
+[    0.057975] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.058028] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.058051] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.058082] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.058088] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.058094] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.058099] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.058221] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.058223] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpdm@10c3a000
+[    0.058225] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpdm@10c39000
+[    0.058228] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpdm@10c38000
+[    0.058290] /soc/tpda@109c3000: Fixed dependency cycle(s) with /soc/funnel@109c4000
+[    0.058293] /soc/tpda@109c3000: Fixed dependency cycle(s) with /soc/tpdm@109c1000
+[    0.058295] /soc/tpda@109c3000: Fixed dependency cycle(s) with /soc/tpdm@109c0000
+[    0.058357] /soc/funnel@109c4000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.058360] /soc/funnel@109c4000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.058423] /soc/modem_etm0: Fixed dependency cycle(s) with /soc/funnel@1080f000
+[    0.058484] /soc/modem2_etm0: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.058547] /soc/modem_diag: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.058608] /soc/tpda@10803000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.058610] /soc/tpda@10803000: Fixed dependency cycle(s) with /soc/tpdm@10801000
+[    0.058612] /soc/tpda@10803000: Fixed dependency cycle(s) with /soc/tpdm@10800000
+[    0.058675] /soc/funnel@1080f000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.058677] /soc/funnel@1080f000: Fixed dependency cycle(s) with /soc/modem_etm0
+[    0.058738] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.058740] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/tpdm@1080d000
+[    0.058742] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/modem_diag
+[    0.058745] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/funnel@1080f000
+[    0.058805] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.058808] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.058810] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/modem2_etm0
+[    0.058813] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.058874] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/funnel@13810000
+[    0.058876] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@13862000
+[    0.058879] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@13860000
+[    0.058881] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@138c0000
+[    0.058883] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@138b0000
+[    0.058886] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@138a0000
+[    0.058946] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.058949] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.058953] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.058994] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.058997] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@10c29000
+[    0.058999] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@10c28000
+[    0.059002] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@1082c000
+[    0.059004] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@109d0000
+[    0.059006] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@10841000
+[    0.059046] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10902000
+[    0.059050] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.059089] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.059092] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10846000
+[    0.059131] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.059135] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@10c0c000
+[    0.059146] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@10902000
+[    0.059157] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.059167] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.059229] /soc/tpda@10004000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.059232] /soc/tpda@10004000: Fixed dependency cycle(s) with /soc/tpdm@1000f000
+[    0.059234] /soc/tpda@10004000: Fixed dependency cycle(s) with /soc/tpdm@10003000
+[    0.059295] /soc/funnel@10041000: Fixed dependency cycle(s) with /soc/funnel@10045000
+[    0.059297] /soc/funnel@10041000: Fixed dependency cycle(s) with /soc/stm@10002000
+[    0.059300] /soc/funnel@10041000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.059310] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.059363] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.059367] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.059428] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.059430] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0d000
+[    0.059432] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0c000
+[    0.059435] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0b000
+[    0.059437] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0a000
+[    0.059439] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b09000
+[    0.059446] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/tmc@10b05000
+[    0.059501] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/funnel@10045000
+[    0.059506] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.059508] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.059511] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/funnel@10b33000
+[    0.059517] /soc/tmc@10b05000: Fixed dependency cycle(s) with /soc/replicator@10b06000
+[    0.059576] /soc/tmc@10b05000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.059579] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/dummy_sink
+[    0.059583] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/replicator@10046000
+[    0.059642] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/tmc@10b05000
+[    0.059647] /soc/replicator@10046000: Fixed dependency cycle(s) with /soc/replicator@1004e000
+[    0.059707] /soc/replicator@10046000: Fixed dependency cycle(s) with /soc/replicator@10b06000
+[    0.059711] /soc/replicator@1004e000: Fixed dependency cycle(s) with /soc/dummy_replicator
+[    0.059772] /soc/replicator@1004e000: Fixed dependency cycle(s) with /soc/replicator@10046000
+[    0.059777] /soc/dummy_replicator: Fixed dependency cycle(s) with /soc/tmc_modem
+[    0.059837] /soc/dummy_replicator: Fixed dependency cycle(s) with /soc/replicator@1004e000
+[    0.059900] /soc/tmc_modem: Fixed dependency cycle(s) with /soc/dummy_replicator
+[    0.059963] /soc/ete0: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060026] /soc/ete1: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060088] /soc/ete2: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060149] /soc/ete3: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060211] /soc/ete4: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060273] /soc/ete5: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060335] /soc/ete6: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060397] /soc/ete7: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.060399] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete7
+[    0.060402] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete6
+[    0.060404] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete5
+[    0.060406] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete4
+[    0.060407] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete3
+[    0.060409] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete2
+[    0.060411] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete1
+[    0.060413] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete0
+[    0.060474] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/funnel@13810000
+[    0.060487] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@10045000
+[    0.060492] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.060498] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@13810000
+[    0.060501] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@10cc5000
+[    0.060504] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@109c4000
+[    0.060548] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.060612] /soc/dummy_sink: Fixed dependency cycle(s) with /soc/replicator@10b06000
+[    0.060642] /soc/interrupt-controller@17100000: Fixed dependency cycle(s) with /soc/interrupt-controller@17100000
+[    0.060921] /soc/clock-controller@100000: Fixed dependency cycle(s) with /soc/ufsphy_mem@1d80000
+[    0.061044] /soc/ufsphy_mem@1d80000: Fixed dependency cycle(s) with /soc/ufshc@1d84000
+[    0.061048] /soc/ufsphy_mem@1d80000: Fixed dependency cycle(s) with /soc/clock-controller@100000
+[    0.061059] /soc/ufshc@1d84000: Fixed dependency cycle(s) with /soc/interconnect@16E0000
+[    0.061064] /soc/ufshc@1d84000: Fixed dependency cycle(s) with /soc/clock-controller@100000
+[    0.061069] /soc/ufshc@1d84000: Fixed dependency cycle(s) with /soc/ufsphy_mem@1d80000
+[    0.061077] /soc/interconnect@16E0000: Fixed dependency cycle(s) with /soc/clock-controller@100000
+[    0.061211] /soc/qcom,gdsc@af09000: Fixed dependency cycle(s) with /soc/qcom,gdsc@af09000
+[    0.061224] /soc/qcom,gdsc@19e000: Fixed dependency cycle(s) with /soc/qcom,gdsc@19e000
+[    0.061227] /soc/qcom,gdsc@177004: Fixed dependency cycle(s) with /soc/qcom,gdsc@177004
+[    0.061230] /soc/qcom,gdsc@139004: Fixed dependency cycle(s) with /soc/qcom,gdsc@139004
+[    0.061233] /soc/qcom,gdsc@150018: Fixed dependency cycle(s) with /soc/qcom,gdsc@150018
+[    0.062178] /soc/display_gpio_regulator@0: Fixed dependency cycle(s) with /soc/display_gpio_regulator@0
+[    0.062370] /soc/display-subsystem@ae00000: Fixed dependency cycle(s) with /soc/clock-controller@af00000
+[    0.062578] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.062769] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.063036] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.063229] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.063569] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.063834] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.064052] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.064267] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.064487] /soc/stm@10002000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.064588] /soc/audio_etm0: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.064843] /soc/tpdm@109a0000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.065059] /soc/tpdm@109a1000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.065271] /soc/wpss_etm0: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.065401] /soc/tpdm@10b30000: Fixed dependency cycle(s) with /soc/funnel@10b33000
+[    0.065526] /soc/tpdm@10b46000: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.065663] /soc/lpass_stm: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.065791] /soc/lpass_stm: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.065885] /soc/tpdm@10b46000: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.065974] /soc/funnel@10b50000: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.065977] /soc/funnel@10b50000: Fixed dependency cycle(s) with /soc/tpdm@10b46000
+[    0.065991] /soc/funnel@10b50000: Fixed dependency cycle(s) with /soc/lpass_stm
+[    0.066122] /soc/funnel@10b50000: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.066211] /soc/audio_etm0: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.066303] /soc/funnel@10b44000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.066306] /soc/funnel@10b44000: Fixed dependency cycle(s) with /soc/funnel@10b50000
+[    0.066316] /soc/funnel@10b44000: Fixed dependency cycle(s) with /soc/audio_etm0
+[    0.066453] /soc/tpdm@10b09000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.066550] /soc/tpdm@10b0a000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.066644] /soc/tpdm@10b0b000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.066739] /soc/tpdm@10b0c000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.066832] /soc/tpdm@10b0d000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.066999] /soc/tpdm@10844000: Fixed dependency cycle(s) with /soc/funnel@10846000
+[    0.067171] /soc/tpdm@10d20000: Fixed dependency cycle(s) with /soc/funnel@10d22000
+[    0.067342] /soc/tpdm@10d30000: Fixed dependency cycle(s) with /soc/funnel@10d32000
+[    0.067439] /soc/tpdm@10c60000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.067532] /soc/tpdm@10c08000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.067625] /soc/tpdm@10c09000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.067789] /soc/tpdm@10c38000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.067955] /soc/tpdm@10c39000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.068120] /soc/tpdm@10c3a000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.068298] /soc/tpdm@10900000: Fixed dependency cycle(s) with /soc/funnel@10902000
+[    0.068464] /soc/tpdm@10841000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.068633] /soc/tpdm@109d0000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.068798] /soc/tpdm@1082c000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.068965] /soc/tpdm@10c28000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.069130] /soc/tpdm@10c29000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.069220] /soc/tpdm@10003000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.069314] /soc/tpdm@1000f000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.069411] /soc/tpdm@10cc1000: Fixed dependency cycle(s) with /soc/tpda@10cc4000
+[    0.069633] /soc/tpdm@10980000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.069846] /soc/tpdm@10981000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.069984] /soc/tpdm@109c0000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.070079] /soc/tpdm@109c1000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.070175] /soc/tpdm@138a0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.070268] /soc/tpdm@138b0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.070363] /soc/tpdm@138c0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.070456] /soc/tpdm@13860000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.070550] /soc/tpdm@13862000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.070642] /soc/tpdm@10800000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.070734] /soc/tpdm@10801000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.070859] /soc/tpdm@1080d000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.070984] /soc/tpdm@10b30000: Fixed dependency cycle(s) with /soc/funnel@10b33000
+[    0.071079] /soc/funnel@10b33000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.071082] /soc/funnel@10b33000: Fixed dependency cycle(s) with /soc/tpdm@10b30000
+[    0.071303] /soc/tpdm@10900000: Fixed dependency cycle(s) with /soc/funnel@10902000
+[    0.071378] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.071478] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.071481] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/tpdm@10900000
+[    0.071584] /soc/funnel@10832000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.071681] /soc/tpdm@10cc1000: Fixed dependency cycle(s) with /soc/tpda@10cc4000
+[    0.071767] /soc/tpda@10cc4000: Fixed dependency cycle(s) with /soc/funnel@10cc5000
+[    0.071770] /soc/tpda@10cc4000: Fixed dependency cycle(s) with /soc/tpdm@10cc1000
+[    0.071872] /soc/tpda@10cc4000: Fixed dependency cycle(s) with /soc/funnel@10cc5000
+[    0.071956] /soc/funnel@10cc5000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.071960] /soc/funnel@10cc5000: Fixed dependency cycle(s) with /soc/tpda@10cc4000
+[    0.072063] /soc/funnel@10832000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.072152] /soc/tpdm@10c09000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.072237] /soc/tpdm@10c08000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.072324] /soc/tpdm@10c60000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.072409] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/funnel@10c0c000
+[    0.072413] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/tpdm@10c09000
+[    0.072423] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/tpdm@10c08000
+[    0.072434] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/funnel@10832000
+[    0.072442] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/tpdm@10c60000
+[    0.072544] /soc/tpda@10c0b000: Fixed dependency cycle(s) with /soc/funnel@10c0c000
+[    0.072627] /soc/funnel@10c0c000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.072633] /soc/funnel@10c0c000: Fixed dependency cycle(s) with /soc/tpda@10c0b000
+[    0.072854] /soc/wpss_etm0: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.073057] /soc/tpdm@109a1000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.073258] /soc/tpdm@109a0000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.073339] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.073466] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.073469] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/wpss_etm0
+[    0.073482] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/tpdm@109a1000
+[    0.073493] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/tpdm@109a0000
+[    0.073680] /soc/tpdm@10844000: Fixed dependency cycle(s) with /soc/funnel@10846000
+[    0.073840] /soc/funnel@10846000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.073844] /soc/funnel@10846000: Fixed dependency cycle(s) with /soc/tpdm@10844000
+[    0.074023] /soc/tpdm@10d20000: Fixed dependency cycle(s) with /soc/funnel@10d22000
+[    0.074185] /soc/funnel@10d22000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.074189] /soc/funnel@10d22000: Fixed dependency cycle(s) with /soc/tpdm@10d20000
+[    0.074366] /soc/tpdm@10d30000: Fixed dependency cycle(s) with /soc/funnel@10d32000
+[    0.074661] /soc/funnel@10d32000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.074669] /soc/funnel@10d32000: Fixed dependency cycle(s) with /soc/tpdm@10d30000
+[    0.075022] /soc/tpda@10d09000: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.075314] /soc/gladiator: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.075627] /soc/gladiator: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.075914] /soc/tpda@10d09000: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.076186] /soc/funnel@10d0a000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.076188] /soc/funnel@10d0a000: Fixed dependency cycle(s) with /soc/gladiator
+[    0.076198] /soc/funnel@10d0a000: Fixed dependency cycle(s) with /soc/tpda@10d09000
+[    0.076486] /soc/funnel@10d0a000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.076760] /soc/funnel@10d32000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.077036] /soc/funnel@10d22000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.077143] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.077308] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.077312] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10d0a000
+[    0.077322] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10d32000
+[    0.077332] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10d22000
+[    0.077705] /soc/turing_etm0: Fixed dependency cycle(s) with /soc/funnel@10984000
+[    0.078081] /soc/tpdm@109b0000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.078452] /soc/tpdm@109b1000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.078823] /soc/turing_etm0: Fixed dependency cycle(s) with /soc/funnel@10984000
+[    0.079172] /soc/funnel@10984000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.079175] /soc/funnel@10984000: Fixed dependency cycle(s) with /soc/turing_etm0
+[    0.079528] /soc/funnel@10984000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.079871] /soc/tpdm@10981000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.080226] /soc/tpdm@10980000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.080353] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.080570] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.080574] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/funnel@10984000
+[    0.080582] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/tpdm@10981000
+[    0.080591] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/tpdm@10980000
+[    0.080834] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.081178] /soc/tpdm@109b1000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.081520] /soc/tpdm@109b0000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.081745] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.081864] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.081868] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/tpdm@109b1000
+[    0.081877] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/tpdm@109b0000
+[    0.081995] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.082114] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.082250] /soc/tpda@109b3000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.082376] /soc/funnel@10983000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.082504] /soc/funnel@109a3000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.082552] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.082617] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.082628] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10983000
+[    0.082645] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@109a3000
+[    0.082662] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/tpda@109b3000
+[    0.082954] /soc/tpdm@10c3a000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.083218] /soc/tpdm@10c39000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.083482] /soc/tpdm@10c38000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.083741] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.083745] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpdm@10c3a000
+[    0.083756] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpdm@10c39000
+[    0.083765] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpdm@10c38000
+[    0.083916] /soc/tpdm@109c1000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.084054] /soc/tpdm@109c0000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.084189] /soc/tpda@109c3000: Fixed dependency cycle(s) with /soc/funnel@109c4000
+[    0.084193] /soc/tpda@109c3000: Fixed dependency cycle(s) with /soc/tpdm@109c1000
+[    0.084202] /soc/tpda@109c3000: Fixed dependency cycle(s) with /soc/tpdm@109c0000
+[    0.084352] /soc/tpda@109c3000: Fixed dependency cycle(s) with /soc/funnel@109c4000
+[    0.084488] /soc/funnel@109c4000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.084493] /soc/funnel@109c4000: Fixed dependency cycle(s) with /soc/tpda@109c3000
+[    0.084642] /soc/modem_etm0: Fixed dependency cycle(s) with /soc/funnel@1080f000
+[    0.084806] /soc/modem2_etm0: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.084968] /soc/modem_diag: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.085131] /soc/tpdm@10801000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.085275] /soc/tpdm@10800000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.085413] /soc/tpda@10803000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.085415] /soc/tpda@10803000: Fixed dependency cycle(s) with /soc/tpdm@10801000
+[    0.085425] /soc/tpda@10803000: Fixed dependency cycle(s) with /soc/tpdm@10800000
+[    0.085577] /soc/modem_etm0: Fixed dependency cycle(s) with /soc/funnel@1080f000
+[    0.085716] /soc/funnel@1080f000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.085719] /soc/funnel@1080f000: Fixed dependency cycle(s) with /soc/modem_etm0
+[    0.085873] /soc/funnel@1080f000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.086014] /soc/modem_diag: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.086153] /soc/tpdm@1080d000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.086289] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.086291] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/tpdm@1080d000
+[    0.086299] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/modem_diag
+[    0.086309] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/funnel@1080f000
+[    0.086463] /soc/funnel@1080c000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.086601] /soc/tpda@10803000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.086748] /soc/modem2_etm0: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.086882] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.086887] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/funnel@1080c000
+[    0.086896] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/modem2_etm0
+[    0.086906] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/tpda@10803000
+[    0.087066] /soc/tpdm@13862000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.087211] /soc/tpdm@13860000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.087356] /soc/tpdm@138c0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.087498] /soc/tpdm@138b0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.087637] /soc/tpdm@138a0000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.087773] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/funnel@13810000
+[    0.087776] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@13862000
+[    0.087786] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@13860000
+[    0.087795] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@138c0000
+[    0.087803] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@138b0000
+[    0.087811] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/tpdm@138a0000
+[    0.087964] /soc/tpda@13864000: Fixed dependency cycle(s) with /soc/funnel@13810000
+[    0.088100] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.088105] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.088113] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/tpda@13864000
+[    0.088395] /soc/funnel@10c3b000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.088574] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.088838] /soc/funnel@10846000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.089016] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.089278] /soc/tpdm@10c29000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.089543] /soc/tpdm@10c28000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.089814] /soc/tpdm@1082c000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.090087] /soc/tpdm@109d0000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.090363] /soc/tpdm@10841000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.090457] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.090461] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@10c29000
+[    0.090471] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@10c28000
+[    0.090481] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@1082c000
+[    0.090491] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@109d0000
+[    0.090501] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/tpdm@10841000
+[    0.090591] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10902000
+[    0.090603] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10c3b000
+[    0.090694] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.090705] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10846000
+[    0.090814] /soc/tpda@10c2c000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.090886] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.090995] /soc/funnel@10d03000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.091134] /soc/funnel@10c0c000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.091255] /soc/funnel@10902000: Fixed dependency cycle(s) with /soc/funnel@10c2d000
+[    0.091330] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.091342] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@10c0c000
+[    0.091373] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@10902000
+[    0.091402] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/funnel@10d03000
+[    0.091430] /soc/funnel@10c2d000: Fixed dependency cycle(s) with /soc/tpda@10c2c000
+[    0.091592] /soc/tpdm@1000f000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.091740] /soc/tpdm@10003000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.091877] /soc/tpda@10004000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.091880] /soc/tpda@10004000: Fixed dependency cycle(s) with /soc/tpdm@1000f000
+[    0.091890] /soc/tpda@10004000: Fixed dependency cycle(s) with /soc/tpdm@10003000
+[    0.092040] /soc/tpda@10004000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.092181] /soc/stm@10002000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.092322] /soc/funnel@10041000: Fixed dependency cycle(s) with /soc/funnel@10045000
+[    0.092326] /soc/funnel@10041000: Fixed dependency cycle(s) with /soc/stm@10002000
+[    0.092336] /soc/funnel@10041000: Fixed dependency cycle(s) with /soc/tpda@10004000
+[    0.092484] /soc/funnel@10041000: Fixed dependency cycle(s) with /soc/funnel@10045000
+[    0.092506] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.092619] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.092626] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10041000
+[    0.092778] /soc/tpdm@10b0d000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.092916] /soc/tpdm@10b0c000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.093054] /soc/tpdm@10b0b000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.093193] /soc/tpdm@10b0a000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.093331] /soc/tpdm@10b09000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.093472] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.093475] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0d000
+[    0.093484] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0c000
+[    0.093493] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0b000
+[    0.093501] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b0a000
+[    0.093509] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/tpdm@10b09000
+[    0.093661] /soc/tpda@10b08000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.093682] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.093820] /soc/funnel@10b33000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.093959] /soc/funnel@10b44000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.093973] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/tmc@10b05000
+[    0.094097] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/funnel@10045000
+[    0.094111] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/tpda@10b08000
+[    0.094120] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/funnel@10b44000
+[    0.094129] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/funnel@10b33000
+[    0.094154] /soc/funnel@10b04000: Fixed dependency cycle(s) with /soc/tmc@10b05000
+[    0.094167] /soc/tmc@10b05000: Fixed dependency cycle(s) with /soc/replicator@10b06000
+[    0.094300] /soc/tmc@10b05000: Fixed dependency cycle(s) with /soc/funnel@10b04000
+[    0.094327] /soc/tmc@10b05000: Fixed dependency cycle(s) with /soc/replicator@10b06000
+[    0.094336] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/dummy_sink
+[    0.094341] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/replicator@10046000
+[    0.094476] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/tmc@10b05000
+[    0.094503] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/replicator@10046000
+[    0.094514] /soc/replicator@10046000: Fixed dependency cycle(s) with /soc/replicator@1004e000
+[    0.094647] /soc/replicator@10046000: Fixed dependency cycle(s) with /soc/replicator@10b06000
+[    0.094670] /soc/replicator@10046000: Fixed dependency cycle(s) with /soc/replicator@1004e000
+[    0.094680] /soc/replicator@1004e000: Fixed dependency cycle(s) with /soc/dummy_replicator
+[    0.094818] /soc/replicator@1004e000: Fixed dependency cycle(s) with /soc/replicator@10046000
+[    0.094840] /soc/replicator@1004e000: Fixed dependency cycle(s) with /soc/dummy_replicator
+[    0.094850] /soc/dummy_replicator: Fixed dependency cycle(s) with /soc/tmc_modem
+[    0.094983] /soc/dummy_replicator: Fixed dependency cycle(s) with /soc/replicator@1004e000
+[    0.095023] /soc/dummy_replicator: Fixed dependency cycle(s) with /soc/tmc_modem
+[    0.095169] /soc/tmc_modem: Fixed dependency cycle(s) with /soc/dummy_replicator
+[    0.095424] /soc/ete0: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.095584] /soc/ete1: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.095742] /soc/ete2: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.095900] /soc/ete3: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.096060] /soc/ete4: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.096227] /soc/ete5: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.096385] /soc/ete6: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.096542] /soc/ete7: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.096712] /soc/ete7: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.096854] /soc/ete6: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.096994] /soc/ete5: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.097132] /soc/ete4: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.097269] /soc/ete3: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.097407] /soc/ete2: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.097545] /soc/ete1: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.097684] /soc/ete0: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.097694] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/funnel_ete
+[    0.097702] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete7
+[    0.097711] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete6
+[    0.097720] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete5
+[    0.097727] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete4
+[    0.097736] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete3
+[    0.097744] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete2
+[    0.097753] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete1
+[    0.097762] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/ete0
+[    0.097898] /soc/funnel_ete: Fixed dependency cycle(s) with /soc/funnel@13810000
+[    0.098051] /soc/funnel@10045000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.098180] /soc/funnel@13810000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.098313] /soc/funnel@10804000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.098450] /soc/funnel@109c4000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.098504] /soc/funnel@109b4000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.098640] /soc/funnel@10cc5000: Fixed dependency cycle(s) with /soc/funnel@10042000
+[    0.098668] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@10045000
+[    0.098684] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@10804000
+[    0.098702] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@13810000
+[    0.098714] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@10cc5000
+[    0.098726] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@109c4000
+[    0.098826] /soc/funnel@10042000: Fixed dependency cycle(s) with /soc/funnel@109b4000
+[    0.098849] /soc/replicator@10b06000: Fixed dependency cycle(s) with /soc/dummy_sink
+[    0.098995] /soc/dummy_sink: Fixed dependency cycle(s) with /soc/replicator@10b06000
+[    0.101640] /soc/display-subsystem@ae00000: Fixed dependency cycle(s) with /soc/clock-controller@af00000
+[    0.101890] /soc/clock-controller@100000: Fixed dependency cycle(s) with /soc/ufsphy_mem@1d80000
+[    0.102733] CPUidle PSCI: Initialized CPU PM domain topology using OSI mode
+[    0.105293] /soc/clock-controller@100000: Fixed dependency cycle(s) with /soc/ufsphy_mem@1d80000
+[    0.105320] /soc/ufsphy_mem@1d80000: Fixed dependency cycle(s) with /soc/ufshc@1d84000
+[    0.105332] /soc/ufsphy_mem@1d80000: Fixed dependency cycle(s) with /soc/clock-controller@100000
+[    0.105392] /soc/ufsphy_mem@1d80000: Fixed dependency cycle(s) with /soc/ufshc@1d84000
+[    0.105421] /soc/ufshc@1d84000: Fixed dependency cycle(s) with /soc/interconnect@16E0000
+[    0.105430] /soc/ufshc@1d84000: Fixed dependency cycle(s) with /soc/clock-controller@100000
+[    0.105446] /soc/ufshc@1d84000: Fixed dependency cycle(s) with /soc/ufsphy_mem@1d80000
+[    0.105644] /soc/ufshc@1d84000: Fixed dependency cycle(s) with /soc/interconnect@16E0000
+[    0.105664] /soc/interconnect@16E0000: Fixed dependency cycle(s) with /soc/clock-controller@100000
+[    0.107448] /soc/qcom,gdsc@af09000: Fixed dependency cycle(s) with /soc/qcom,gdsc@af09000
+[    0.107657] /soc/qcom,gdsc@19e000: Fixed dependency cycle(s) with /soc/qcom,gdsc@19e000
+[    0.107701] /soc/qcom,gdsc@177004: Fixed dependency cycle(s) with /soc/qcom,gdsc@177004
+[    0.107747] /soc/qcom,gdsc@139004: Fixed dependency cycle(s) with /soc/qcom,gdsc@139004
+[    0.107783] /soc/qcom,gdsc@150018: Fixed dependency cycle(s) with /soc/qcom,gdsc@150018
+[    0.115196] /soc/display_gpio_regulator@0: Fixed dependency cycle(s) with /soc/display_gpio_regulator@0
+[    0.117045] HugeTLB: registered 1.00 GiB page size, pre-allocated 0 pages
+[    0.117048] HugeTLB: 0 KiB vmemmap can be freed for a 1.00 GiB page
+[    0.117049] HugeTLB: registered 32.0 MiB page size, pre-allocated 0 pages
+[    0.117050] HugeTLB: 0 KiB vmemmap can be freed for a 32.0 MiB page
+[    0.117051] HugeTLB: registered 2.00 MiB page size, pre-allocated 0 pages
+[    0.117052] HugeTLB: 0 KiB vmemmap can be freed for a 2.00 MiB page
+[    0.117053] HugeTLB: registered 64.0 KiB page size, pre-allocated 0 pages
+[    0.117053] HugeTLB: 0 KiB vmemmap can be freed for a 64.0 KiB page
+[    0.117753] ACPI: Interpreter disabled.
+[    0.119059] tcsr_cc-pineapple 1f40000.clock-controller: Registered TCSR CC clocks
+[    0.119890] iommu: Default domain type: Translated
+[    0.119892] iommu: DMA domain TLB invalidation policy: strict mode
+[    0.120137] SCSI subsystem initialized
+[    0.120196] libata version 3.00 loaded.
+[    0.120263] usbcore: registered new interface driver usbfs
+[    0.120270] usbcore: registered new interface driver hub
+[    0.120276] usbcore: registered new device driver usb
+[    0.120323] usb_phy_generic soc:usb_nop_phy: dummy supplies not allowed for exclusive requests (id=vbus)
+[    0.120450] pps_core: LinuxPPS API ver. 1 registered
+[    0.120451] pps_core: Software ver. 5.3.6 - Copyright 2005-2007 Rodolfo Giometti <giometti@linux.it>
+[    0.120454] PTP clock support registered
+[    0.120464] EDAC MC: Ver: 3.0.0
+[    0.120537] scmi_core: SCMI protocol bus registered
+[    0.120601] qcom_scm: convention: smc arm 64
+[    0.121182] qcom_scm firmware:qcom_scm: qseecom: found qseecom with version 0x1402000
+[    0.121188] qcom_scm firmware:qcom_scm: qseecom: untested machine, skipping
+[    0.122071] FPGA manager framework
+[    0.122300] vgaarb: loaded
+[    0.122438] clocksource: Switched to clocksource arch_sys_counter
+[    0.122585] VFS: Disk quotas dquot_6.6.0
+[    0.122593] VFS: Dquot-cache hash table entries: 512 (4096 bytes)
+[    0.122682] pnp: PnP ACPI: disabled
+[    0.124876] NET: Registered PF_INET protocol family
+[    0.124922] IP idents hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.125880] tcp_listen_portaddr_hash hash table entries: 4096 (order: 4, 65536 bytes, linear)
+[    0.125901] Table-perturb hash table entries: 65536 (order: 6, 262144 bytes, linear)
+[    0.125904] TCP established hash table entries: 65536 (order: 7, 524288 bytes, linear)
+[    0.125954] TCP bind hash table entries: 65536 (order: 9, 2097152 bytes, linear)
+[    0.126127] TCP: Hash tables configured (established 65536 bind 65536)
+[    0.126154] UDP hash table entries: 4096 (order: 6, 262144 bytes, linear)
+[    0.126241] NET: Registered PF_UNIX/PF_LOCAL protocol family
+[    0.126418] RPC: Registered named UNIX socket transport module.
+[    0.126420] RPC: Registered udp transport module.
+[    0.126421] RPC: Registered tcp transport module.
+[    0.126421] RPC: Registered tcp-with-tls transport module.
+[    0.126422] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.126425] PCI: CLS 0 bytes, default 64
+[    0.134648] kvm [1]: HYP mode not available
+[    0.135030] Initialise system trusted keyrings
+[    0.135082] workingset: timestamp_bits=42 (anon: 37) max_order=21 bucket_order=0 (anon: 0)
+[    0.135166] squashfs: version 4.0 (2009/01/31) Phillip Lougher
+[    0.135220] NFS: Registering the id_resolver key type
+[    0.135227] Key type id_resolver registered
+[    0.135229] Key type id_legacy registered
+[    0.135234] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.135236] nfs4flexfilelayout_init: NFSv4 Flexfile Layout Driver Registering...
+[    0.135464] Key type asymmetric registered
+[    0.135467] Asymmetric key parser 'x509' registered
+[    0.135480] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 243)
+[    0.135481] io scheduler mq-deadline registered
+[    0.135483] io scheduler kyber registered
+[    0.135491] io scheduler bfq registered
+[    0.138719] ledtrig-cpu: registered to indicate activity on CPUs
+[    0.144950] Serial: 8250/16550 driver, 4 ports, IRQ sharing enabled
+[    0.145954] msm_serial: driver initialized
+[    0.146931] arm-smmu 15000000.apps-smmu: probing hardware configuration...
+[    0.146936] arm-smmu 15000000.apps-smmu: SMMUv2 with:
+[    0.146968] arm-smmu 15000000.apps-smmu: 	stage 1 translation
+[    0.146970] arm-smmu 15000000.apps-smmu: 	coherent table walk
+[    0.146973] arm-smmu 15000000.apps-smmu: 	stream matching with 110 register groups
+[    0.146994] arm-smmu 15000000.apps-smmu: 	71 context banks (0 stage-2 only)
+[    0.149081] Unpacking initramfs...
+[    0.149230] arm-smmu 15000000.apps-smmu: 	Supported page sizes: 0x61311000
+[    0.149233] arm-smmu 15000000.apps-smmu: 	Stage-1: 36-bit VA -> 36-bit IPA
+[    0.154144] platform 1d84000.ufshc: Adding to iommu group 0
+[    0.154260] platform a600000.ssusb: Adding to iommu group 1
+[    0.154329] platform a00000.qcom,gpi-dma: Adding to iommu group 2
+[    0.154393] platform ac0000.qcom,qupv3_0_geni_se: Adding to iommu group 3
+[    0.154461] platform 800000.qcom,gpi-dma: Adding to iommu group 4
+[    0.154523] platform 8c0000.qcom,qupv3_1_geni_se: Adding to iommu group 5
+[    0.154694] platform 17110040.qcom,wcn6750: Adding to iommu group 6
+[    0.159663] loop: module loaded
+[    0.160021] megasas: 07.734.00.00-rc1
+[    0.161160] spmi_pmic_arb c42d000.qcom,spmi: PMIC arbiter version v7 (0x70010000)
+[    0.165333] /soc/qcom,spmi@c42d000/qcom,pmk8550@0/pinctrl@b800: Fixed dependency cycle(s) with /soc/qcom,spmi@c42d000/qcom,pmk8550@0/pinctrl@b800/alt_sleep_clk/alt_sleep_clk_default
+[    0.171593] spmi spmi-0: pmic_arb_check_chnl_status_v1: 0xd 0x104: transaction failed (0x3) reg: 0x3208
+[    0.171622] ------------[ cut here ]------------
+[    0.171625] WARNING: drivers/spmi/spmi-pmic-arb.c:316 at pmic_arb_check_chnl_status_v1+0x6c/0xd8, CPU#6: swapper/0/1
+[    0.171637] Modules linked in:
+[    0.171643] CPU: 6 UID: 0 PID: 1 Comm: swapper/0 Tainted: G S                  7.2.9-senemos.1.4054.3-ouke2 #2 PREEMPT 
+[    0.171648] Tainted: [S]=CPU_OUT_OF_SPEC
+[    0.171651] Hardware name: Xiaomi Pad 7 (DT)
+[    0.171653] pstate: 614000c5 (nZCv daIF +PAN -UAO -TCO +DIT -SSBS BTYPE=--)
+[    0.171657] pc : pmic_arb_check_chnl_status_v1+0x6c/0xd8
+[    0.171660] lr : pmic_arb_check_chnl_status_v1+0x6c/0xd8
+[    0.171663] sp : ffff80008005b230
+[    0.171666] x29: ffff80008005b230 x28: ffff000803508280 x27: 0000000000003208
+[    0.171670] x26: 0000000000000003 x25: ffff0008035f2740 x24: 000000000000000d
+[    0.171675] x23: 0000000000000104 x22: ffff0008035f2400 x21: 00000000fffffc1a
+[    0.171678] x20: ffff800081a83208 x19: ffff000803508280 x18: 0000000000000200
+[    0.171682] x17: 69746361736e6172 x16: 74203a3430317830 x15: 0000000000000003
+[    0.171685] x14: ffffbe3bf22067f8 x13: 000000000000ffff x12: 0000000000000003
+[    0.171689] x11: 0000000000000003 x10: 0000000000000002 x9 : 0d99ac90e1bdfe00
+[    0.171692] x8 : 0d99ac90e1bdfe00 x7 : 205d333935313731 x6 : 312e30202020205b
+[    0.171696] x5 : ffffbe3bf2e8d5d0 x4 : ffff80008005ad67 x3 : 0000000000000000
+[    0.171699] x2 : 0000000000000000 x1 : ffff80008005af60 x0 : 000000000000005b
+[    0.171704] Call trace:
+[    0.171706]  pmic_arb_check_chnl_status_v1+0x6c/0xd8 (P)
+[    0.171710]  pmic_arb_read_cmd_unlocked+0xc8/0x1d0
+[    0.171714]  pmic_arb_read_cmd+0x100/0x168
+[    0.171717]  spmi_read_cmd+0x84/0x2b8
+[    0.171720]  spmi_ext_register_readl+0x48/0x60
+[    0.171723]  regmap_spmi_ext_read+0xac/0xe8
+[    0.171728]  _regmap_raw_read+0x1e4/0x438
+[    0.171731]  _regmap_bus_read+0x48/0x88
+[    0.171734]  _regmap_read+0x178/0x298
+[    0.171737]  regmap_read+0x60/0x90
+[    0.171739]  pmic_spmi_probe+0x128/0x330
+[    0.171743]  spmi_drv_probe+0x50/0x100
+[    0.171746]  really_probe+0x158/0x448
+[    0.171750]  __driver_probe_device+0xbc/0x188
+[    0.171753]  driver_probe_device+0x44/0x238
+[    0.171756]  __device_attach_driver+0x13c/0x230
+[    0.171759]  bus_for_each_drv+0xfc/0x160
+[    0.171762]  __device_attach+0x104/0x1d0
+[    0.171765]  device_initial_probe+0x40/0x68
+[    0.171768]  bus_probe_device+0x94/0x108
+[    0.171771]  device_add+0x234/0x450
+[    0.171774]  spmi_device_add+0x40/0xd8
+[    0.171777]  spmi_controller_add+0x148/0x278
+[    0.171780]  devm_spmi_controller_add+0x54/0xa8
+[    0.171783]  spmi_pmic_arb_bus_init+0x234/0x2c0
+[    0.171787]  spmi_pmic_arb_register_buses+0x50/0xe0
+[    0.171790]  spmi_pmic_arb_probe+0x1f0/0x250
+[    0.171793]  platform_probe+0x64/0xb0
+[    0.171796]  really_probe+0x158/0x448
+[    0.171799]  __driver_probe_device+0xbc/0x188
+[    0.171802]  driver_probe_device+0x44/0x238
+[    0.171805]  __driver_attach+0x100/0x2b0
+[    0.171808]  bus_for_each_dev+0xf4/0x158
+[    0.171811]  driver_attach+0x2c/0x40
+[    0.171813]  bus_add_driver+0x154/0x2b0
+[    0.171816]  driver_register+0x70/0x110
+[    0.171819]  __platform_driver_register+0x2c/0x40
+[    0.171822]  spmi_pmic_arb_driver_init+0x2c/0x40
+[    0.171827]  do_one_initcall+0xe8/0x3c8
+[    0.171832]  do_initcall_level+0xa0/0xc8
+[    0.171836]  do_initcalls+0x5c/0xa8
+[    0.171839]  do_basic_setup+0x28/0x40
+[    0.171841]  kernel_init_freeable+0xd4/0x160
+[    0.171844]  kernel_init+0x28/0x140
+[    0.171848]  ret_from_fork+0x10/0x20
+[    0.171853] ---[ end trace 0000000000000000 ]---
+[    0.171858] pmic-spmi 0-0d: probe with driver pmic-spmi failed with error -5
+[    0.174314] spmi_pmic_arb c432000.qcom,spmi: error -EBUSY: can't request region for resource [mem 0x0c440000-0x0c4bffff]
+[    0.174329] spmi_pmic_arb c432000.qcom,spmi: probe with driver spmi_pmic_arb failed with error -16
+[    0.175431] tun: Universal TUN/TAP device driver, 1.6
+[    0.175654] VFIO - User Level meta-driver version: 0.3
+[    0.177450] usbcore: registered new interface driver usb-storage
+[    0.179851] i2c_dev: i2c /dev entries driver
+[    0.181319] input: pmic_pwrkey as /devices/platform/soc/c42d000.qcom,spmi/spmi-0/0-00/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300:pwrkey/input/input0
+[    0.181808] input: pmic_resin as /devices/platform/soc/c42d000.qcom,spmi/spmi-0/0-00/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300/c42d000.qcom,spmi:qcom,pmk8550@0:pon_hlos@1300:resin/input/input1
+[    0.197416] SMCCC: SOC_ID: ARCH_SOC_ID not implemented, skipping ....
+[    0.197567] clocksource: arch_mmio_counter: mask: 0xffffffffffffff max_cycles: 0x46d987e47, max_idle_ns: 440795202767 ns
+[    0.197573] arch-timer-mmio 17420000.timer: mmio timer running at 19.20MHz (virt)
+[    0.197838] usbcore: registered new interface driver usbhid
+[    0.197840] usbhid: USB HID core driver
+[    0.206531] hw perfevents: enabled with armv8_pmuv3 PMU driver, 21 (0,800fffff) counters available
+[    0.213164] NET: Registered PF_INET6 protocol family
+[    0.214241] Segment Routing with IPv6
+[    0.214252] In-situ OAM (IOAM) with IPv6
+[    0.214273] NET: Registered PF_PACKET protocol family
+[    0.214300] Key type dns_resolver registered
+[    0.218576] registered taskstats version 1
+[    0.218657] Loading compiled-in X.509 certificates
+[    0.220286] Demotion targets for Node 0: null
+[    0.222414] /soc/rsc@17a00000/drv@2/rpmh-regulator-cxlvl: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-cxlvl/regulator-pm_v6c-s1-level
+[    0.223246] /soc/rsc@17a00000/drv@2/rpmh-regulator-mxclvl: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-mxclvl/regulator-pm_v6c-s6-level
+[    0.224235] /soc/rsc@17a00000/drv@2/rpmh-regulator-mmcxlvl: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-mmcxlvl/regulator-pm_v8-s6-level
+[    0.224706] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: Failed to create device link (0x180) with supplier 17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl for /soc/rsc@17a00000/drv@2/rpmh-regulator-mxclvl/regulator-pm_v6c-s6-mmcx-voter-level
+[    0.224882] /soc/rsc@17a00000/drv@2/rpmh-regulator-mxlvl: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-mxlvl/regulator-pm_v8-s8-level
+[    0.227177] /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob2: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob2/regulator-pmxr2230-l2
+[    0.227896] /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob4: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob4/regulator-pmxr2230-l4
+[    0.228850] /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob8: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob8/regulator-pmxr2230-l8
+[    0.230883] /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob19: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-ldob19/regulator-pmxr2230-l19
+[    0.231827] /soc/rsc@17a00000/drv@2/rpmh-regulator-ldoc3: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-ldoc3/regulator-pm_v6c-l3
+[    0.232126] /soc/rsc@17a00000/drv@2/rpmh-regulator-ldod3: Fixed dependency cycle(s) with /soc/rsc@17a00000/drv@2/rpmh-regulator-ldod3/regulator-pm_v8-l3
+[    0.242502] Freeing initrd memory: 62920K
+[    0.250081] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/mdp_hf_qtb@14d0000
+[    0.250099] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/sf_qtb@1451000
+[    0.250107] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/pcie_qtb@16cd000
+[    0.250114] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/lpass_qtb@7b3000
+[    0.250120] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/nsp_qtb@7d3000
+[    0.250125] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/cam_hf_qtb@14d2000
+[    0.250131] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/anoc_2_qtb@171a000
+[    0.250137] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier soc:interconnect@1 for /soc/apps-smmu@15000000/anoc_1_qtb@16f1000
+[    0.252415] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier 7430000.interconnect for /soc/apps-smmu@15000000/lpass_qtb@7b3000
+[    0.252667] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier 1400000.interconnect for /soc/apps-smmu@15000000/mdp_hf_qtb@14d0000
+[    0.252679] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier 1400000.interconnect for /soc/apps-smmu@15000000/sf_qtb@1451000
+[    0.252685] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier 1400000.interconnect for /soc/apps-smmu@15000000/cam_hf_qtb@14d2000
+[    0.252982] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier 1680000.interconnect for /soc/apps-smmu@15000000/anoc_2_qtb@171a000
+[    0.252992] arm-smmu 15000000.apps-smmu: Failed to create device link (0x180) with supplier 1680000.interconnect for /soc/apps-smmu@15000000/anoc_1_qtb@16f1000
+[    0.254175] cpu cpu0: EM: created perf domain
+[    0.270674] cpu cpu3: EM: OPP:1708800 is inefficient
+[    0.270764] cpu cpu3: EM: created perf domain
+[    0.286431] cpu cpu7: EM: created perf domain
+[    0.286458] energy_model: updating cpu0 cpu_cap=385 old capacity=568
+[    0.286462] cpu cpu0: EM: OPP:1593600 is inefficient
+[    0.286463] cpu cpu0: EM: OPP:364800 is inefficient
+[    0.286465] energy_model: updating cpu3 cpu_cap=874 old capacity=938
+[    0.286467] cpu cpu3: EM: OPP:1708800 is inefficient
+[    0.300729] geni_i2c a80000.i2c: Bus frequency not specified, default to 100kHz.
+[    0.472495] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.472502] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.474037] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.474043] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.474097] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.474109] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.474341] platform ae01000.display-controller: Adding to iommu group 7
+[    0.474516] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.474534] /soc/display-subsystem@ae00000/dsi@ae96000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/display-controller@ae01000
+[    0.474546] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.474557] /soc/display-subsystem@ae00000/display-controller@ae01000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.478410] msm-eusb2-phy-uke 88e3000.hsphy: phy_flags:0
+[    0.504325] ufshcd-qcom 1d84000.ufshc: ufshcd_populate_vreg: Unable to find vccq2-supply regulator, assuming enabled
+[    0.506193] ufshcd-qcom 1d84000.ufshc: Disabling inline encryption support
+[    0.514838] ufshcd-qcom 1d84000.ufshc: MCQ resource not found in device tree
+[    0.514858] ufshcd-qcom 1d84000.ufshc: MCQ mode is disabled, err=-19
+[    0.514872] scsi host0: ufshcd
+[    0.584987] scsi 0:0:0:49488: Well-known LUN    SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.589861] scsi 0:0:0:49476: Well-known LUN    SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.590074] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae96000
+[    0.590319] /soc/display-subsystem@ae00000/dsi@ae94000: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000/panel@0
+[    0.590344] /soc/display-subsystem@ae00000/dsi@ae94000/panel@0: Fixed dependency cycle(s) with /soc/display-subsystem@ae00000/dsi@ae94000
+[    0.591131] msm_dpu ae01000.display-controller: bound ae96000.dsi (ops dsi_ops)
+[    0.591139] scsi 0:0:0:49456: Well-known LUN    SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.591143] msm_dpu ae01000.display-controller: bound ae94000.dsi (ops dsi_ops)
+[    0.592463] [drm:dpu_kms_hw_init:1168] dpu hardware revision:0xa0010000
+[    0.592520] scsi 0:0:0:0: Direct-Access     SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.593477] [drm] Initialized msm-kms 1.13.0 for ae01000.display-controller on minor 0
+[    0.593487] msm_dpu ae01000.display-controller: no GPU device was found
+[    0.593768] scsi 0:0:0:1: Direct-Access     SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.594118] sd 0:0:0:0: [sda] 30709760 4096-byte logical blocks: (126 GB/117 GiB)
+[    0.594342] sd 0:0:0:0: [sda] Write Protect is off
+[    0.594353] sd 0:0:0:0: [sda] Mode Sense: 00 32 00 10
+[    0.594775] sd 0:0:0:0: [sda] Write cache: enabled, read cache: enabled, supports DPO and FUA
+[    0.594914] sd 0:0:0:1: [sdb] 3072 4096-byte logical blocks: (12.6 MB/12.0 MiB)
+[    0.594955] sd 0:0:0:1: [sdb] Write Protect is off
+[    0.594959] sd 0:0:0:1: [sdb] Mode Sense: 00 32 00 10
+[    0.595001] sd 0:0:0:0: [sda] Preferred minimum I/O size 4096 bytes
+[    0.595003] sd 0:0:0:0: [sda] Optimal transfer size 524288 bytes
+[    0.595008] scsi 0:0:0:2: Direct-Access     SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.595046] sd 0:0:0:1: [sdb] Write cache: disabled, read cache: enabled, supports DPO and FUA
+[    0.595081] sd 0:0:0:1: [sdb] Preferred minimum I/O size 4096 bytes
+[    0.595083] sd 0:0:0:1: [sdb] Optimal transfer size 524288 bytes
+[    0.596187] scsi 0:0:0:3: Direct-Access     SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.596364] sd 0:0:0:2: [sdc] 3072 4096-byte logical blocks: (12.6 MB/12.0 MiB)
+[    0.596399] sd 0:0:0:2: [sdc] Write Protect is off
+[    0.596404] sd 0:0:0:2: [sdc] Mode Sense: 00 32 00 10
+[    0.596470] sd 0:0:0:2: [sdc] Write cache: disabled, read cache: enabled, supports DPO and FUA
+[    0.596510] sd 0:0:0:2: [sdc] Preferred minimum I/O size 4096 bytes
+[    0.596512] sd 0:0:0:2: [sdc] Optimal transfer size 524288 bytes
+[    0.597483] sd 0:0:0:3: [sdd] 2048 4096-byte logical blocks: (8.39 MB/8.00 MiB)
+[    0.597488] scsi 0:0:0:4: Direct-Access     SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.597558] sd 0:0:0:3: [sdd] Write Protect is off
+[    0.597570] sd 0:0:0:3: [sdd] Mode Sense: 00 32 00 10
+[    0.597651] sd 0:0:0:3: [sdd] Write cache: enabled, read cache: enabled, supports DPO and FUA
+[    0.597695] sd 0:0:0:3: [sdd] Preferred minimum I/O size 4096 bytes
+[    0.597700] sd 0:0:0:3: [sdd] Optimal transfer size 524288 bytes
+[    0.598759] scsi 0:0:0:5: Direct-Access     SKhynix  HN8T05DEHKX073   A042 PQ: 0 ANSI: 6
+[    0.598958] sd 0:0:0:4: [sde] 499712 4096-byte logical blocks: (2.05 GB/1.91 GiB)
+[    0.598988] sd 0:0:0:4: [sde] Write Protect is off
+[    0.598989] sd 0:0:0:4: [sde] Mode Sense: 00 32 00 10
+[    0.599392] sd 0:0:0:4: [sde] Write cache: enabled, read cache: enabled, supports DPO and FUA
+[    0.599598] sd 0:0:0:4: [sde] Preferred minimum I/O size 4096 bytes
+[    0.599602] sd 0:0:0:4: [sde] Optimal transfer size 524288 bytes
+[    0.600061] sd 0:0:0:5: [sdf] 16384 4096-byte logical blocks: (67.1 MB/64.0 MiB)
+[    0.600274] sd 0:0:0:5: [sdf] Write Protect is off
+[    0.600278] sd 0:0:0:5: [sdf] Mode Sense: 00 32 00 10
+[    0.600360] sd 0:0:0:5: [sdf] Write cache: enabled, read cache: enabled, supports DPO and FUA
+[    0.600555] sd 0:0:0:5: [sdf] Preferred minimum I/O size 4096 bytes
+[    0.600559] sd 0:0:0:5: [sdf] Optimal transfer size 524288 bytes
+[    0.601255] msm_dsi_phy ae95000.phy: Uke O82 PLL rate trace: rate=600000000 parent=19200000 pll_on=0
+[    0.602020] msm_dsi_phy ae95000.phy: Uke O82 PLL rate trace: rate=1189188000 parent=19200000 pll_on=0
+[    0.602173] msm_dsi_phy ae95000.phy: Uke O82 FLL cold-start defaults applied
+[    0.616790]  sdd: sdd1 sdd2 sdd3
+[    0.617113]  sdb: sdb1 sdb2 sdb3 sdb4 sdb5 sdb6
+[    0.617427] sd 0:0:0:3: [sdd] Attached SCSI disk
+[    0.617534]  sda: sda1 sda2 sda3 sda4 sda5 sda6 sda7 sda8 sda9 sda10 sda11 sda12 sda13 sda14 sda15 sda16 sda17 sda18 sda19 sda20 sda21 sda22 sda23 sda24 sda25 sda26 sda27 sda28 sda29 sda30 sda31 sda32
+[    0.617899] sd 0:0:0:1: [sdb] Attached SCSI disk
+[    0.619750]  sdf: sdf1 sdf2 sdf3 sdf4 sdf5 sdf6 sdf7
+[    0.620273]  sdc: sdc1 sdc2 sdc3 sdc4 sdc5 sdc6
+[    0.620901] sd 0:0:0:5: [sdf] Attached SCSI disk
+[    0.621058]  sde: sde1 sde2 sde3 sde4 sde5 sde6 sde7 sde8 sde9 sde10 sde11 sde12 sde13 sde14 sde15 sde16 sde17 sde18 sde19 sde20 sde21 sde22 sde23 sde24 sde25 sde26 sde27 sde28 sde29 sde30 sde31 sde32 sde33 sde34 sde35 sde36 sde37 sde38 sde39 sde40 sde41 sde42 sde43 sde44 sde45 sde46 sde47 sde48 sde49 sde50 sde51 sde52 sde53 sde54 sde55 sde56 sde57 sde58 sde59 sde60 sde61 sde62 sde63 sde64 sde65 sde66 sde67
+[    0.621513] sd 0:0:0:2: [sdc] Attached SCSI disk
+[    0.621611] sd 0:0:0:0: [sda] Attached SCSI disk
+[    0.622797] sd 0:0:0:4: [sde] Attached SCSI disk
+[    0.622992] msm_dsi_phy ae95000.phy: Uke O82 PLL rate trace: rate=1189188000 parent=19200000 pll_on=1
+[    0.731803] msm_dsi ae96000.dsi: Uke O82 staged command broadcast completed on both links
+[    0.859907] panel-xiaomi-o82 ae94000.dsi.0: Uke O82 LP ON batching complete: commands=108 chunks=8 bytes=884
+[    0.860543] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame arm: target=2
+[    0.860635] fb0: sys_fillrect: framebuffer is not in virtual address space.
+[    0.860654] fb0: sys_imageblit: framebuffer is not in virtual address space.
+[    0.861137] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame boundary: target=2 current=2
+[    0.869299] msm_dsi ae94000.dsi: Uke O82 video commands completed at scheduled line2285
+[    0.869379] msm_dsi ae96000.dsi: Uke O82 four-command HS TP-FPS batch completed: bytes=32 line=2285
+[    0.874017] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame checked backlight: brightness=372 result=0
+[    0.877244] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame normal-pixels complete
+[    0.879453] Console: switching to colour frame buffer device 200x66
+[    0.885977] panel-xiaomi-o82 ae94000.dsi.0: O82 first-frame dimming-on complete
+[    0.896631] msm_dpu ae01000.display-controller: [drm] fb0: msm-kmsdrmfb frame buffer device
+[    0.899285] input: gpio-keys as /devices/platform/soc/soc:gpio_key/input/input2
+[    0.900130] clk: Not disabling unused clocks
+[    0.900156] PM: genpd: Not disabling unused power domains
+[    0.900251] Warning: unable to open an initial console.
+[    0.901959] Freeing unused kernel memory: 3328K
+[    0.902080] Failed to set sysctl parameter 'kernel.sched_pelt_multiplier=4': parameter not found
+[    0.902115] Failed to set sysctl parameter 'kernel.hung_task_panic=0': parameter not found
+[    0.902167] Run /ukeinit as init process
+[    0.902169]   with arguments:
+[    0.902171]     /ukeinit
+[    0.902172]   with environment:
+[    0.902174]     HOME=/
+[    0.902175]     TERM=linux
+[    0.902176]     kasan=off
+[    0.902177]     disable_dma32=on
+[    0.902177]     rcu_nocbs=0-7
+[    0.902178]     hung_task_timeout_secs=20
+[    0.902179]     watchdog_thresh=10
+[    0.907539] X9INIT-KMSG-OK los marcadores del init LLEGAN al ring buffer
+[    0.908075] X9INIT-MNTproc-OK
+[    0.908572] X9INIT-MNTdev-OK
+[    0.909055] X9INIT-MNTsys-OK
+[    0.909098] X9INIT-CFGFS-OK
+[    0.909123] X9INIT-console-OK
+[    0.909146] X9S181: init s172 (fix switch_root + consola ttyGS0)
+[    0.909439] S118: init consola-unica arranca t=0
+[    0.909971] X9COLD fin: 0 ficheros de pstore leidos (0 = no habia nada del arranque anterior)
+[    0.910054] X9DT-utmi-si (dtbo s107 aplicado)
+[    0.910169] S136: volcador de log persistente lanzado (rescue/sda30 cada 15 s, en background)
+[    0.910824] X9USB-UDC-si (t=0s desde el inicio de la ventana) [a600000.ssusb]
+[    0.912859] S119: funcion ncm.usb0 creada
+[    0.913558] S118: max_speed=high-speed aplicado
+[    0.913732] configfs-gadget.g1 gadget.0: HOST MAC 02:00:5e:00:00:0d
+[    0.913734] configfs-gadget.g1 gadget.0: MAC 02:00:5e:00:00:0e
+[    0.928143] EXT4-fs (sda30): recovery complete
+[    0.928571] EXT4-fs (sda30): mounted filesystem b11417c2-b53c-4eff-a335-2ed824196008 r/w with ordered data mode. Quota mode: none.
+[    0.937466] S118 RAMA B: bind UDC='a600000.ssusb' rc=0 releida='a600000.ssusb'
+[    0.937494] X9USB-BIND-ok (rc=0)
+[    0.937940] S118 ACMOK: /dev/ttyGS0 presente t=0
+[    0.937996] UKE-K11: param AUSENTE o RO (kernel sin uke_smmu_probe) - SIN arming, boot desarmado intacto
+[    0.940074] S123: raiz candidata /dev/sda32 (110993388 KB)
+[    0.943620] EXT4-fs (sda32): mounted filesystem 4bf2908c-6561-4b6e-81d5-5c0c534a39d9 ro without journal. Quota mode: none.
+[    0.943800] S123: mount ro,noload OK \xe2\x80\x94 verificando init de la raiz
+[    0.947749] S123: RAIZ UBUNTU VERIFICADA \xe2\x80\x94 remontando rw y switch_root
+[    0.949042] EXT4-fs (sda32): warning: mounting unchecked fs, running e2fsck is recommended
+[    0.951176] EXT4-fs (sda32): re-mounted 4bf2908c-6561-4b6e-81d5-5c0c534a39d9 r/w.
+[    0.951762] X9S123-SWITCH t=0 raiz=/dev/sda32
+[    1.008119] S136: log persistente volcado justo antes del switch_root
+[    1.101937] systemd[1]: System time advanced to timestamp on /var/lib/systemd/timesync/clock: Fri 2026-09-25 02:33:29 UTC
+[    1.478238] systemd[1]: systemd 262-1-arch running in system mode (+PAM +AUDIT -SELINUX +APPARMOR -IMA +IPE +SMACK +SECCOMP +GNUTLS +OPENSSL +ACL +BLKID +CURL +ELFUTILS +FIDO2 +IDN2 +KMOD +LIBCRYPTSETUP +LIBCRYPTSETUP_PLUGINS +LIBFDISK +PCRE2 +PWQUALITY +P11KIT +QRENCODE +TPM2 +BZIP2 +LZ4 +XZ +ZLIB +ZSTD +BPF_FRAMEWORK -BTF +XKBCOMMON +UTMP +LIBARCHIVE)
+[    1.478245] systemd[1]: Detected virtualization vm-other.
+[    1.478258] systemd[1]: Detected architecture arm64.
+[    1.485516] systemd[1]: Hostname set to <uke-arch>.
+[    1.534080] systemd[1]: bpf-restrict-fs: BPF LSM hook not enabled in the kernel, BPF LSM not supported.
+[    1.682453] systemd[1]: Queued start job for default target Multi-User System.
+[    1.685283] systemd[1]: Created slice Slice /system/dirmngr.
+[    1.686403] systemd[1]: Created slice Slice /system/getty.
+[    1.687366] systemd[1]: Created slice Slice /system/gpg-agent.
+[    1.688238] systemd[1]: Created slice Slice /system/gpg-agent-browser.
+[    1.689096] systemd[1]: Created slice Slice /system/gpg-agent-extra.
+[    1.689946] systemd[1]: Created slice Slice /system/gpg-agent-ssh.
+[    1.690818] systemd[1]: Created slice Slice /system/keyboxd.
+[    1.691635] systemd[1]: Created slice Slice /system/modprobe.
+[    1.692358] systemd[1]: Created slice User and Session Slice.
+[    1.692936] systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[    1.693494] systemd[1]: Started Forward Password Requests to Wall Directory Watch.
+[    1.694060] systemd[1]: Arbitrary Executable File Formats File System Automount Point skipped, unmet condition check ConditionPathExists=/proc/sys/fs/binfmt_misc
+[    1.694077] systemd[1]: Reached target Local dm-clone Devices.
+[    1.694640] systemd[1]: Reached target Image Downloads.
+[    1.695154] systemd[1]: Reached target Local Integrity Protected Volumes.
+[    1.695672] systemd[1]: Reached target Path Units.
+[    1.696165] systemd[1]: Reached target Remote Encrypted Volumes.
+[    1.696652] systemd[1]: Reached target Remote File Systems.
+[    1.697135] systemd[1]: Reached target Remote Integrity Protected Volumes.
+[    1.697619] systemd[1]: Reached target Remote Verity Protected Volumes.
+[    1.698094] systemd[1]: Reached target Slice Units.
+[    1.698615] systemd[1]: Reached target Swaps.
+[    1.699084] systemd[1]: Reached target Local Verity Protected Volumes.
+[    1.699612] systemd[1]: Listening on Device-mapper event daemon FIFOs.
+[    1.701065] systemd[1]: Listening on Query the User Interactively for a Password.
+[    1.702344] systemd[1]: Listening on Process Core Dump Socket.
+[    1.703659] systemd[1]: Listening on Credential Encryption/Decryption.
+[    1.704970] systemd[1]: Listening on Disk Encryption Enrollment Service Socket.
+[    1.706015] systemd[1]: Listening on Factory Reset Management.
+[    1.706582] systemd[1]: Listening on Hostname Service Socket.
+[    1.710813] systemd[1]: Listening on Journal Audit Socket.
+[    1.711393] systemd[1]: Listening on Journal Socket (/dev/log).
+[    1.711940] systemd[1]: Listening on Journal Sockets.
+[    1.712480] systemd[1]: Listening on DDI File System Mounter Socket.
+[    1.713971] systemd[1]: Listening on Console Output Muting Service Socket.
+[    1.714579] systemd[1]: Listening on Network Management Metrics Varlink Socket.
+[    1.715192] systemd[1]: Listening on Network Management Varlink Socket.
+[    1.715735] systemd[1]: Listening on Network Management Netlink Socket.
+[    1.716260] systemd[1]: Listening on Namespace Resource Manager Socket.
+[    1.716752] systemd[1]: TPM PCR Measurements skipped, unmet condition check ConditionSecurity=measured-os
+[    1.716768] systemd[1]: Make TPM PCR Policy skipped, unmet condition check ConditionSecurity=measured-uki
+[    1.717596] systemd[1]: Listening on Disk Repartitioning Service Socket.
+[    1.719153] systemd[1]: Listening on Report System Basic Metrics Socket.
+[    1.720699] systemd[1]: Listening on CGroup Report Varlink Socket.
+[    1.721710] systemd[1]: Listening on Report Files Metrics Socket.
+[    1.723125] systemd[1]: Listening on Report Signing Socket (Local Software Key).
+[    1.723582] systemd[1]: Report Signing Socket (TPM2) skipped, unmet condition check ConditionSecurity=measured-uki
+[    1.723598] systemd[1]: Report Signing Socket (configfs-tsm) skipped, unmet condition check ConditionSecurity=cvm
+[    1.724431] systemd[1]: Listening on System Report Socket.
+[    1.724953] systemd[1]: Listening on Resolve Monitor Varlink Socket.
+[    1.725454] systemd[1]: Listening on Resolve Service Varlink Socket.
+[    1.726800] systemd[1]: Listening on Simple Block Device Backed Storage Provider.
+[    1.728167] systemd[1]: Listening on Simple File System Backed Storage Provider.
+[    1.729091] systemd[1]: Listening on System Install Tool.
+[    1.729517] systemd[1]: Recompute TPM PCR Policy on Completed System Update skipped, unmet condition check ConditionSecurity=measured-uki
+[    1.730211] systemd[1]: Listening on System Updates.
+[    1.730686] systemd[1]: Listening on udev Kernel Socket.
+[    1.731174] systemd[1]: Listening on udev Varlink Socket.
+[    1.731643] systemd[1]: Listening on User Database Manager Socket.
+[    1.733375] systemd[1]: Mounting Huge Pages File System...
+[    1.734600] systemd[1]: Mounting POSIX Message Queue File System...
+[    1.735646] systemd[1]: Mounting Kernel Debug File System...
+[    1.736768] systemd[1]: Mounting Kernel Trace File System...
+[    1.739350] systemd[1]: tmp.mount: x-systemd.graceful-option=usrquota specified, but option is not available, suppressing.
+[    1.740245] systemd[1]: Mounting Temporary Directory /tmp...
+[    1.740686] systemd[1]: Create List of Static Device Nodes skipped, unmet condition check ConditionFileNotEmpty=/lib/modules/7.2.9-senemos.1.4054.3-ouke2/modules.devname
+[    1.740734] systemd[1]: Load Kernel Module configfs skipped, unmet condition check ConditionKernelModuleLoaded=!configfs
+[    1.741454] systemd[1]: Mounting Kernel Configuration File System...
+[    1.741863] systemd[1]: Load Kernel Module drm skipped, unmet condition check ConditionKernelModuleLoaded=!drm
+[    1.741905] systemd[1]: Load Kernel Module efi_pstore skipped, unmet condition check ConditionKernelModuleLoaded=!efi_pstore
+[    1.742952] systemd[1]: Starting Load Kernel Module fuse...
+[    1.743405] systemd[1]: Clear SysFail Entry If The Boot Is Successful skipped, unmet condition check ConditionPathExists=/sys/firmware/efi/efivars/LoaderEntrySysFail-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
+[    1.743465] systemd[1]: File System Check on Root Device skipped, unmet condition check ConditionPathIsReadWrite=!/
+[    1.743488] systemd[1]: Clear Stale Hibernate Storage Info skipped, unmet condition check ConditionPathExists=/sys/firmware/efi/efivars/HibernateLocation-8cf2644b-4b0b-428f-9387-6d876050dc67
+[    1.745992] systemd[1]: Starting Journal Service...
+[    1.748451] systemd[1]: Load Kernel Modules skipped, no trigger condition checks were met.
+[    1.749378] systemd[1]: Starting Generate Network Units from Kernel Command Line...
+[    1.749840] systemd[1]: TPM PCR Machine ID Measurement skipped, unmet condition check ConditionSecurity=measured-os
+[    1.749867] systemd[1]: TPM PCR OS Separator skipped, unmet condition check ConditionSecurity=measured-os
+[    1.750693] systemd[1]: Starting Remount Root and Kernel File Systems...
+[    1.754346] systemd[1]: Starting Apply Kernel Variables...
+[    1.758540] systemd[1]: Starting Create Static Device Nodes in /dev gracefully...
+[    1.759037] systemd[1]: Early TPM SRK Setup skipped, unmet condition check ConditionSecurity=measured-os
+[    1.759068] systemd[1]: TPM PCR NvPCR Initialization Separator skipped, unmet condition check ConditionPathExists=/etc/initrd-release
+[    1.759087] systemd[1]: Reached target Local Encrypted Volumes.
+[    1.759524] systemd[1]: TPM NvPCR Product ID Measurement skipped, unmet condition check ConditionSecurity=measured-os
+[    1.762538] systemd[1]: Starting Load udev Rules from Credentials...
+[    1.763951] systemd[1]: Starting Coldplug All udev Devices...
+[    1.766671] EXT4-fs (sda32): re-mounted 4bf2908c-6561-4b6e-81d5-5c0c534a39d9.
+[    1.768371] systemd[1]: Mounted Huge Pages File System.
+[    1.769083] systemd[1]: Mounted POSIX Message Queue File System.
+[    1.769723] systemd[1]: Mounted Kernel Debug File System.
+[    1.770322] systemd[1]: Mounted Kernel Trace File System.
+[    1.770916] systemd[1]: Mounted Temporary Directory /tmp.
+[    1.771433] systemd[1]: Mounted Kernel Configuration File System.
+[    1.772066] systemd[1]: modprobe@fuse.service: Deactivated successfully.
+[    1.772277] systemd[1]: Finished Load Kernel Module fuse.
+[    1.773158] systemd[1]: Finished Generate Network Units from Kernel Command Line.
+[    1.774296] systemd[1]: Finished Remount Root and Kernel File Systems.
+[    1.775101] systemd[1]: Finished Apply Kernel Variables.
+[    1.776164] systemd[1]: Finished Load udev Rules from Credentials.
+[    1.777441] systemd[1]: Reached target Preparation for Network.
+[    1.778041] systemd[1]: Listening on Network Management Resolve Hook Socket.
+[    1.778605] systemd[1]: FUSE Control File System skipped, unmet condition check ConditionPathExists=/sys/fs/fuse/connections
+[    1.778887] systemd[1]: Rebuild Hardware Database skipped, unmet condition check ConditionNeedsUpdate=/etc
+[    1.778937] systemd[1]: Platform Persistent Storage Archival skipped, unmet condition check ConditionDirectoryNotEmpty=/sys/fs/pstore
+[    1.779806] systemd[1]: Starting Load/Save OS Random Seed...
+[    1.780225] systemd[1]: TPM SRK Setup skipped, unmet condition check ConditionSecurity=measured-os
+[    1.781820] systemd[1]: Starting User Database Manager...
+[    1.789801] systemd[1]: Finished Load/Save OS Random Seed.
+[    1.792881] systemd-journald[395]: Collecting audit messages is enabled.
+[    1.822544] systemd[1]: Started Journal Service.
+[    1.823137] audit: type=1130 audit(1790303610.565:2): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=systemd-journald comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[    1.824432] audit: type=1130 audit(1790303610.565:3): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=systemd-userdbd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[    1.839296] audit: type=1130 audit(1790303610.581:4): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=modprobe@overlay comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[    1.840298] audit: type=1131 audit(1790303610.581:5): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=modprobe@overlay comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[    1.843012] systemd-journald[395]: Received client request to flush runtime journal.
+[    1.850388] audit: type=1130 audit(1790303610.589:6): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=modprobe@tun comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[    1.851544] audit: type=1131 audit(1790303610.589:7): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=modprobe@tun comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[    1.852796] audit: type=1334 audit(1790303610.593:8): prog-id=22 op=LOAD
+[    1.853461] audit: type=1334 audit(1790303610.593:9): prog-id=23 op=LOAD
+[    1.854084] audit: type=1334 audit(1790303610.593:10): prog-id=24 op=LOAD
+[    3.056732] qcom_common: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.063458] qcom_q6v5: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.069173] qcom_pil_info: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.074052] qcom_q6v5_pas: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.078178] qcom_glink_smem: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.082530] qrtr_smd: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.087496] qcom_pd_mapper: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.092200] pmic_glink: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.096336] ucsi_glink: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[    3.100817] qcom_battmgr: version magic '7.2.0-rc2-palawan SMP preempt mod_unload aarch64' should be '7.2.9-senemos.1.4054.3-ouke2 SMP preempt mod_unload aarch64'
+[   10.976325] arm-scmi arm-scmi.0.auto: Using scmi_mailbox_transport
+[   10.976331] arm-scmi arm-scmi.0.auto: SCMI max-rx-timeout: 30ms / max-msg-size: 104bytes / max-msg: 20
+[   10.976666] arm-scmi arm-scmi.0.auto: failed to setup channel for protocol:0x10
+[   10.978506] arm-smmu 3da0000.kgsl-smmu: deferred probe timeout, ignoring dependency
+[   10.978511] arm-smmu 3da0000.kgsl-smmu: probe with driver arm-smmu failed with error -110
+[   10.978821] adreno 3d00000.qcom,kgsl-3d0: deferred probe timeout, ignoring dependency
+[   10.980281] adreno 3d00000.qcom,kgsl-3d0: failed to load adreno gpu
+[   10.980813] arm-scmi arm-scmi.0.auto: Using scmi_mailbox_transport
+[   10.980817] arm-scmi arm-scmi.0.auto: SCMI max-rx-timeout: 30ms / max-msg-size: 104bytes / max-msg: 20
+[   10.980939] arm-scmi arm-scmi.0.auto: failed to setup channel for protocol:0x10
+[   10.981202] platform 3d00000.qcom,kgsl-3d0: deferred probe pending: adreno: /soc/qcom,kgsl-3d0@3d00000: Failed to get clk index: 2 (ahb)
+[   10.981213] regulator regulator.7.bdev: deferred probe pending: (reason unknown)
+[   10.981218] platform arm-scmi.0.auto: deferred probe pending: arm-scmi: failed to setup channels
+[   10.981305] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to af20000.rsc
+[   10.981312] gcc-cliffs 100000.clock-controller: sync_state() pending due to ade0000.clock-controller
+[   10.981317] gcc-cliffs 100000.clock-controller: sync_state() pending due to 3d90000.clock-controller
+[   10.981322] gcc-cliffs 100000.clock-controller: sync_state() pending due to aaf0000.clock-controller
+[   10.981327] gcc-cliffs 100000.clock-controller: sync_state() pending due to soc:clock-controller@0
+[   10.981331] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to soc:clock-controller@0
+[   10.981338] genpd_provider cluster-pd: sync_state() pending due to soc:cluster-device
+[   10.981361] gcc-cliffs 100000.clock-controller: sync_state() pending due to 3d00000.qcom,kgsl-3d0
+[   10.981371] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to 32300000.remoteproc-cdsp
+[   10.981376] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to 3000000.remoteproc-adsp
+[   10.981380] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to 3d00000.qcom,kgsl-3d0
+[   10.981385] qnoc-cliffs-usb 1700000.interconnect: sync_state() pending due to 32300000.remoteproc-cdsp
+[   10.981388] qnoc-cliffs-usb 1700000.interconnect: sync_state() pending due to 3000000.remoteproc-adsp
+[   10.981394] qnoc-cliffs-usb 24100000.interconnect: sync_state() pending due to 3d00000.qcom,kgsl-3d0
+[   10.981399] qnoc-cliffs-usb 7430000.interconnect: sync_state() pending due to 3000000.remoteproc-adsp
+[   10.981404] gcc-cliffs 100000.clock-controller: sync_state() pending due to 16c0000.interconnect
+[   10.981409] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to soc:qcom,dcvs
+[   10.981413] qnoc-cliffs-usb 24100000.interconnect: sync_state() pending due to soc:qcom,dcvs
+[   10.981417] gcc-cliffs 100000.clock-controller: sync_state() pending due to 3da0000.kgsl-smmu
+[   10.981422] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf0004.qcom,gdsc
+[   10.981427] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf1004.qcom,gdsc
+[   10.981431] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf2004.qcom,gdsc
+[   10.981435] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf2054.qcom,gdsc
+[   10.981439] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf0080.qcom,gdsc
+[   10.981444] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf3058.qcom,gdsc
+[   10.981448] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf30a8.qcom,gdsc
+[   10.981454] qnoc-cliffs-usb 1400000.interconnect: sync_state() pending due to adf32bc.qcom,gdsc
+[   10.981458] gcc-cliffs 100000.clock-controller: sync_state() pending due to adf32bc.qcom,gdsc
+[   10.981462] gcc-cliffs 100000.clock-controller: sync_state() pending due to af09000.qcom,gdsc
+[   10.981466] gcc-cliffs 100000.clock-controller: sync_state() pending due to af0b000.qcom,gdsc
+[   10.981472] gcc-cliffs 100000.clock-controller: sync_state() pending due to aaf80a4.qcom,gdsc
+[   10.981476] gcc-cliffs 100000.clock-controller: sync_state() pending due to aaf804c.qcom,gdsc
+[   10.981480] gcc-cliffs 100000.clock-controller: sync_state() pending due to aaf80cc.qcom,gdsc
+[   10.981485] gcc-cliffs 100000.clock-controller: sync_state() pending due to aaf8078.qcom,gdsc
+[   10.981494] tcsr_cc-pineapple 1f40000.clock-controller: sync_state() pending due to 88e8000.ssphy
+[   10.981498] gcc-cliffs 100000.clock-controller: sync_state() pending due to 88e8000.ssphy
+[   10.981503] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to soc:qcom,ddr-cdev
+[   10.981509] gcc-cliffs 100000.clock-controller: sync_state() pending due to 3d68000.qcom,gmu
+[   10.981515] qnoc-cliffs-usb 1400000.interconnect: sync_state() pending due to aa00000.qcom,vidc
+[   10.981519] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to aa00000.qcom,vidc
+[   10.981523] qnoc-cliffs-usb 1600000.interconnect: sync_state() pending due to aa00000.qcom,vidc
+[   10.981527] qnoc-cliffs-usb 24100000.interconnect: sync_state() pending due to aa00000.qcom,vidc
+[   10.981532] gcc-cliffs 100000.clock-controller: sync_state() pending due to aa00000.qcom,vidc
+[   10.981537] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to af20000.qcom,sde_rscc
+[   10.981541] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to af20000.qcom,sde_rscc
+[   10.981545] qnoc-cliffs-usb 1400000.interconnect: sync_state() pending due to af20000.qcom,sde_rscc
+[   10.981565] gcc-cliffs 100000.clock-controller: sync_state() pending due to ac13000.qcom,cam-cpas
+[   10.981569] qnoc-cliffs-usb 1600000.interconnect: sync_state() pending due to ac13000.qcom,cam-cpas
+[   10.981573] qnoc-cliffs-usb 24100000.interconnect: sync_state() pending due to ac13000.qcom,cam-cpas
+[   10.981577] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to ac13000.qcom,cam-cpas
+[   10.981581] qnoc-cliffs-usb 1400000.interconnect: sync_state() pending due to ac13000.qcom,cam-cpas
+[   10.981615] gcc-cliffs 100000.clock-controller: sync_state() pending due to ab00000.qcom,cvp
+[   10.981626] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to soc:qcom,dsi-display-primary
+[   10.981630] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to soc:qcom,wb-display@1
+[   10.981634] disp_cc-sm8550 af00000.clock-controller: sync_state() pending due to soc:qcom,wb-display@2
+[   10.981672] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-cxlvl: sync_state() pending due to 3d90000.clock-controller
+[   10.981677] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-cxlvl: sync_state() pending due to 9bb00000.remoteproc-wpss
+[   10.981681] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-cxlvl: sync_state() pending due to 32300000.remoteproc-cdsp
+[   10.981685] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-cxlvl: sync_state() pending due to 16b004.qcom,gdsc
+[   10.981691] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-cxlvl: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981695] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to adf32bc.qcom,gdsc
+[   10.981700] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to aaf804c.qcom,gdsc
+[   10.981704] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to aaf8078.qcom,gdsc
+[   10.981708] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to ade0000.clock-controller
+[   10.981713] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to 3d90000.clock-controller
+[   10.981717] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to aaf0000.clock-controller
+[   10.981721] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to 32300000.remoteproc-cdsp
+[   10.981725] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxclvl: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981730] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl: sync_state() pending due to ade0000.clock-controller
+[   10.981735] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl: sync_state() pending due to aaf0000.clock-controller
+[   10.981739] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl: sync_state() pending due to af09000.qcom,gdsc
+[   10.981743] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl: sync_state() pending due to af0b000.qcom,gdsc
+[   10.981747] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981752] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxlvl: sync_state() pending due to ade0000.clock-controller
+[   10.981757] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxlvl: sync_state() pending due to 3d90000.clock-controller
+[   10.981762] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxlvl: sync_state() pending due to 9bb00000.remoteproc-wpss
+[   10.981766] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxlvl: sync_state() pending due to 16c000.qcom,gdsc
+[   10.981771] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxlvl: sync_state() pending due to 150018.qcom,gdsc
+[   10.981775] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-mxlvl: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981780] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-lcxlvl: sync_state() pending due to 3000000.remoteproc-adsp
+[   10.981784] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-lcxlvl: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981789] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-lmxlvl: sync_state() pending due to 3000000.remoteproc-adsp
+[   10.981794] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb1: sync_state() pending due to soc:bt_wcn6750
+[   10.981798] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb1: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981802] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb1: sync_state() pending due to 17110040.qcom,wcn6750
+[   10.981808] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb2: sync_state() pending due to soc:bt_wcn6750
+[   10.981812] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb2: sync_state() pending due to ac15000.qcom,cci0:qcom,actuator0
+[   10.981817] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb2: sync_state() pending due to ac15000.qcom,cci0:qcom,eeprom0
+[   10.981821] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb2: sync_state() pending due to ac15000.qcom,cci0:qcom,cam-sensor0
+[   10.981825] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb2: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981830] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb2: sync_state() pending due to 17110040.qcom,wcn6750
+[   10.981835] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb3: sync_state() pending due to soc:bt_wcn6750
+[   10.981839] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb3: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981843] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-smpb3: sync_state() pending due to 17110040.qcom,wcn6750
+[   10.981849] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob2: sync_state() pending due to ace4000.qcom,csiphy0
+[   10.981853] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob2: sync_state() pending due to ace6000.qcom,csiphy1
+[   10.981858] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob2: sync_state() pending due to ace8000.qcom,csiphy2
+[   10.981862] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob2: sync_state() pending due to acea000.qcom,csiphy3
+[   10.981867] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob2: sync_state() pending due to acec000.qcom,csiphy4
+[   10.981871] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob2: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981877] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob4: sync_state() pending due to 88e8000.ssphy
+[   10.981881] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob4: sync_state() pending due to ace4000.qcom,csiphy0
+[   10.981885] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob4: sync_state() pending due to ace6000.qcom,csiphy1
+[   10.981889] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob4: sync_state() pending due to ace8000.qcom,csiphy2
+[   10.981894] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob4: sync_state() pending due to acea000.qcom,csiphy3
+[   10.981898] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob4: sync_state() pending due to acec000.qcom,csiphy4
+[   10.981902] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob4: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981907] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob5: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981913] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:spf_core_platform
+[   10.981917] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:bt_wcn6750
+[   10.981922] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob7: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981926] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981931] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob8: sync_state() pending due to soc:qcom,dsi-display-primary
+[   10.981936] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob12: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981941] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldob17: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981946] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod1: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981951] qcom,rpmh-regulator 17a00000.rsc:drv@2:rpmh-regulator-ldod3: sync_state() pending due to soc:regulator-ocp-notifier
+[   10.981974] qnoc-cliffs-usb soc:interconnect@1: sync_state() pending due to a90000.spi
+[   10.981978] qnoc-cliffs-usb 16e0000.interconnect: sync_state() pending due to a90000.spi
+[   10.981982] qnoc-cliffs-usb 1600000.interconnect: sync_state() pending due to a90000.spi
+[   10.981986] qnoc-cliffs-usb 24100000.interconnect: sync_state() pending due to a90000.spi
+[   10.981990] qnoc-cliffs-usb soc:interconnect@0: sync_state() pending due to a90000.spi
+[   10.981994] gcc-cliffs 100000.clock-controller: sync_state() pending due to a90000.spi
+[   13.989638] kauditd_printk_skb: 42 callbacks suppressed
+[   13.989647] audit: type=1101 audit(1790303622.729:53): pid=593 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[   13.992116] audit: type=1103 audit(1790303622.733:54): pid=593 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[   13.992138] audit: type=1006 audit(1790303622.733:55): pid=593 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=1 res=1
+[   13.992146] audit: type=1300 audit(1790303622.733:55): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=fffff351a960 a2=1 a3=0 items=0 ppid=547 pid=593 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=1 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[   13.992153] audit: type=1327 audit(1790303622.733:55): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[   14.017424] audit: type=1130 audit(1790303622.757:56): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   14.027386] audit: type=1101 audit(1790303622.769:57): pid=598 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[   14.027440] audit: type=1103 audit(1790303622.769:58): pid=598 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[   14.027522] audit: type=1006 audit(1790303622.769:59): pid=598 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=2 res=1
+[   14.027530] audit: type=1300 audit(1790303622.769:59): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffd0b2ec20 a2=1 a3=0 items=0 ppid=1 pid=598 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=2 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[   23.076265] kauditd_printk_skb: 98 callbacks suppressed
+[   23.076269] audit: type=1131 audit(1790303631.817:97): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=sshd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   23.087135] audit: type=1130 audit(1790303631.829:98): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=sshd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   24.505838] audit: type=1131 audit(1790303633.245:99): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   24.630704] audit: type=1131 audit(1790303633.373:100): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   27.094215] ===UKE-FIX===
+[   27.099798] active
+[   27.110474] ===UKE-CAZADOR-INIT===
+[   27.112671] ===UKE-FIX-FIN===
+[   27.114175] audit: type=1130 audit(1790303635.853:101): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=uke-fix comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   27.114190] audit: type=1131 audit(1790303635.853:102): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=uke-fix comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   31.710486] regulator: Not disabling unused regulators
+[   80.276879] audit: type=1101 audit(1790303689.017:103): pid=634 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[   80.277819] audit: type=1103 audit(1790303689.017:104): pid=634 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[   80.277872] audit: type=1006 audit(1790303689.017:105): pid=634 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=3 res=1
+[   80.277880] audit: type=1300 audit(1790303689.017:105): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffe8dd6c90 a2=1 a3=0 items=0 ppid=618 pid=634 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=3 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[   80.277887] audit: type=1327 audit(1790303689.017:105): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[   80.309491] audit: type=1130 audit(1790303689.049:106): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[   80.319031] audit: type=1101 audit(1790303689.061:107): pid=639 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[   80.319038] audit: type=1103 audit(1790303689.061:108): pid=639 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[   80.319040] audit: type=1006 audit(1790303689.061:109): pid=639 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=4 res=1
+[   80.319043] audit: type=1300 audit(1790303689.061:109): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffc944bac0 a2=1 a3=0 items=0 ppid=1 pid=639 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  111.517622] kauditd_printk_skb: 126 callbacks suppressed
+[  111.517630] audit: type=1106 audit(1790303720.257:169): pid=668 uid=0 auid=0 ses=7 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  111.517887] audit: type=1104 audit(1790303720.257:170): pid=668 uid=0 auid=0 ses=7 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  111.613262] audit: type=1101 audit(1790303720.353:171): pid=777 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  111.614200] audit: type=1103 audit(1790303720.353:172): pid=777 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  111.614397] audit: type=1006 audit(1790303720.353:173): pid=777 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=8 res=1
+[  111.614503] audit: type=1300 audit(1790303720.353:173): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffe2450340 a2=1 a3=0 items=0 ppid=618 pid=777 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=8 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  111.614674] audit: type=1327 audit(1790303720.353:173): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  111.625285] audit: type=1105 audit(1790303720.365:174): pid=777 uid=0 auid=0 ses=8 subj=kernel msg='op=PAM:session_open grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  111.626495] audit: type=1103 audit(1790303720.369:175): pid=780 uid=0 auid=0 ses=8 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  111.629435] audit: type=1103 audit(1790303720.369:176): pid=781 uid=0 auid=0 ses=8 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  121.755266] kauditd_printk_skb: 2 callbacks suppressed
+[  121.755269] audit: type=1131 audit(1790303730.497:179): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  121.853440] audit: type=1131 audit(1790303730.593:180): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  131.773042] audit: type=1101 audit(1790303740.513:181): pid=789 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  131.774080] audit: type=1103 audit(1790303740.513:182): pid=789 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  131.774156] audit: type=1006 audit(1790303740.513:183): pid=789 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=9 res=1
+[  131.774176] audit: type=1300 audit(1790303740.513:183): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=fffff3f174d0 a2=1 a3=0 items=0 ppid=618 pid=789 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=9 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  131.774214] audit: type=1327 audit(1790303740.513:183): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  131.807399] audit: type=1130 audit(1790303740.549:184): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  131.816799] audit: type=1101 audit(1790303740.557:185): pid=794 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  131.816861] audit: type=1103 audit(1790303740.557:186): pid=794 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  131.816941] audit: type=1006 audit(1790303740.557:187): pid=794 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=10 res=1
+[  131.816961] audit: type=1300 audit(1790303740.557:187): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffd6634110 a2=1 a3=0 items=0 ppid=1 pid=794 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=10 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  167.257927] kauditd_printk_skb: 96 callbacks suppressed
+[  167.257931] audit: type=1106 audit(1790303775.997:223): pid=789 uid=0 auid=0 ses=9 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  167.258003] audit: type=1104 audit(1790303775.997:224): pid=789 uid=0 auid=0 ses=9 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  177.499605] audit: type=1131 audit(1790303786.241:225): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  177.637018] audit: type=1131 audit(1790303786.377:226): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  180.765305] audit: type=1101 audit(1790303789.505:227): pid=830 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  180.766899] audit: type=1103 audit(1790303789.509:228): pid=830 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  180.766964] audit: type=1006 audit(1790303789.509:229): pid=830 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=11 res=1
+[  180.766987] audit: type=1300 audit(1790303789.509:229): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffcff9a570 a2=1 a3=0 items=0 ppid=618 pid=830 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=11 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  180.767027] audit: type=1327 audit(1790303789.509:229): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  180.815958] audit: type=1130 audit(1790303789.557:230): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  180.825381] audit: type=1101 audit(1790303789.565:231): pid=835 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  180.825576] audit: type=1103 audit(1790303789.565:232): pid=835 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  191.253470] kauditd_printk_skb: 100 callbacks suppressed
+[  191.253473] audit: type=1131 audit(1790303799.993:271): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  191.368522] audit: type=1131 audit(1790303800.109:272): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  210.589480] audit: type=1109 audit(1790303819.329:273): pid=861 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:bad_ident grantors=? acct="?" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=failed'
+[  216.750204] audit: type=1101 audit(1790303825.489:274): pid=865 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  216.752575] audit: type=1103 audit(1790303825.493:275): pid=865 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  216.754759] audit: type=1006 audit(1790303825.493:276): pid=865 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=13 res=1
+[  216.755858] audit: type=1300 audit(1790303825.493:276): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffc27823e0 a2=1 a3=0 items=0 ppid=618 pid=865 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=13 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  216.758018] audit: type=1327 audit(1790303825.493:276): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  216.779477] audit: type=1130 audit(1790303825.521:277): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  216.789443] audit: type=1101 audit(1790303825.529:278): pid=870 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  216.799337] audit: type=1103 audit(1790303825.529:279): pid=870 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  216.809399] audit: type=1006 audit(1790303825.529:280): pid=870 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=14 res=1
+[  216.814341] audit: type=1300 audit(1790303825.529:280): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffe1360960 a2=1 a3=0 items=0 ppid=1 pid=870 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=14 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  229.753580] kauditd_printk_skb: 108 callbacks suppressed
+[  229.753583] audit: type=1131 audit(1790303838.493:326): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  229.891753] audit: type=1131 audit(1790303838.633:327): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  240.733229] audit: type=1101 audit(1790303849.473:328): pid=911 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  240.735575] audit: type=1103 audit(1790303849.477:329): pid=911 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  240.737737] audit: type=1006 audit(1790303849.477:330): pid=911 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=16 res=1
+[  240.738856] audit: type=1300 audit(1790303849.477:330): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffc97b74d0 a2=1 a3=0 items=0 ppid=618 pid=911 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=16 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  240.741023] audit: type=1327 audit(1790303849.477:330): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  240.760164] audit: type=1130 audit(1790303849.501:331): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  240.770334] audit: type=1101 audit(1790303849.509:332): pid=916 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  240.772552] audit: type=1103 audit(1790303849.509:333): pid=916 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  240.774715] audit: type=1006 audit(1790303849.513:334): pid=916 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=17 res=1
+[  240.775803] audit: type=1300 audit(1790303849.513:334): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffc8e87e20 a2=1 a3=0 items=0 ppid=1 pid=916 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=17 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  251.251340] kauditd_printk_skb: 108 callbacks suppressed
+[  251.251343] audit: type=1131 audit(1792267105.087:382): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  251.366981] audit: type=1131 audit(1792267105.203:383): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  271.258191] audit: type=1131 audit(1792267125.091:384): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=systemd-timedated comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  271.278673] audit: type=1334 audit(1792267125.115:385): prog-id=133 op=UNLOAD
+[  271.283511] audit: type=1334 audit(1792267125.115:386): prog-id=132 op=UNLOAD
+[  271.288300] audit: type=1334 audit(1792267125.115:387): prog-id=131 op=UNLOAD
+[  311.593316] audit: type=1101 audit(1792267165.427:388): pid=953 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  311.603005] audit: type=1103 audit(1792267165.431:389): pid=953 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  311.612439] audit: type=1006 audit(1792267165.431:390): pid=953 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=18 res=1
+[  311.617159] audit: type=1300 audit(1792267165.431:390): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffcbf42120 a2=1 a3=0 items=0 ppid=618 pid=953 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=18 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  311.626518] audit: type=1327 audit(1792267165.431:390): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  311.667309] audit: type=1130 audit(1792267165.503:391): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  311.676941] audit: type=1101 audit(1792267165.511:392): pid=961 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  311.686654] audit: type=1103 audit(1792267165.511:393): pid=961 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  311.696479] audit: type=1006 audit(1792267165.511:394): pid=961 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=19 res=1
+[  311.701184] audit: type=1300 audit(1792267165.511:394): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffeb7e6fe0 a2=1 a3=0 items=0 ppid=1 pid=961 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=19 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  317.137283] kauditd_printk_skb: 108 callbacks suppressed
+[  317.137287] audit: type=1101 audit(1792267170.971:440): pid=1016 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  317.141822] audit: type=1103 audit(1792267170.975:441): pid=1016 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  317.144871] audit: type=1006 audit(1792267170.975:442): pid=1016 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=21 res=1
+[  317.146381] audit: type=1300 audit(1792267170.975:442): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffdc5de380 a2=1 a3=0 items=0 ppid=618 pid=1016 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=21 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  317.149426] audit: type=1327 audit(1792267170.975:442): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  317.150967] audit: type=1105 audit(1792267170.983:443): pid=1016 uid=0 auid=0 ses=21 subj=kernel msg='op=PAM:session_open grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  317.154000] audit: type=1103 audit(1792267170.987:444): pid=1020 uid=0 auid=0 ses=21 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  317.157044] audit: type=1103 audit(1792267170.991:445): pid=1021 uid=0 auid=0 ses=21 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  317.172426] audit: type=1106 audit(1792267171.007:446): pid=1016 uid=0 auid=0 ses=21 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  317.175563] audit: type=1104 audit(1792267171.007:447): pid=1016 uid=0 auid=0 ses=21 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  327.250577] audit: type=1131 audit(1792267181.087:448): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  327.358216] audit: type=1131 audit(1792267181.191:449): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  359.752027] audit: type=1101 audit(1792267213.587:450): pid=1039 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  359.755322] audit: type=1103 audit(1792267213.591:451): pid=1039 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  359.758406] audit: type=1006 audit(1792267213.591:452): pid=1039 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=22 res=1
+[  359.759970] audit: type=1300 audit(1792267213.591:452): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffca356120 a2=1 a3=0 items=0 ppid=618 pid=1039 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=22 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  359.763101] audit: type=1327 audit(1792267213.591:452): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  359.789128] audit: type=1130 audit(1792267213.623:453): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  359.808065] audit: type=1101 audit(1792267213.643:454): pid=1045 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  359.811224] audit: type=1103 audit(1792267213.643:455): pid=1045 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  359.814297] audit: type=1006 audit(1792267213.643:456): pid=1045 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=23 res=1
+[  359.815846] audit: type=1300 audit(1792267213.643:456): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffe1c72960 a2=1 a3=0 items=0 ppid=1 pid=1045 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=23 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  370.501620] kauditd_printk_skb: 98 callbacks suppressed
+[  370.501624] audit: type=1131 audit(1792267224.335:494): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  370.603036] audit: type=1131 audit(1792267224.439:495): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  384.625251] audit: type=1101 audit(1792267238.459:496): pid=1073 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  384.628589] audit: type=1103 audit(1792267238.463:497): pid=1073 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  384.631794] audit: type=1006 audit(1792267238.463:498): pid=1073 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=24 res=1
+[  384.633392] audit: type=1300 audit(1792267238.463:498): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffd713efd0 a2=1 a3=0 items=0 ppid=618 pid=1073 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=24 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  384.636587] audit: type=1327 audit(1792267238.463:498): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  384.668907] audit: type=1130 audit(1792267238.503:499): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  384.687582] audit: type=1101 audit(1792267238.523:500): pid=1078 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  384.690845] audit: type=1103 audit(1792267238.523:501): pid=1078 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  384.694054] audit: type=1006 audit(1792267238.523:502): pid=1078 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=25 res=1
+[  384.695665] audit: type=1300 audit(1792267238.523:502): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=fffffed2c490 a2=1 a3=0 items=0 ppid=1 pid=1078 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=25 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  395.498527] kauditd_printk_skb: 118 callbacks suppressed
+[  395.498531] audit: type=1131 audit(1792267249.335:556): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  395.585846] audit: type=1131 audit(1792267249.419:557): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  402.191961] audit: type=1101 audit(1792267256.027:558): pid=1168 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  402.194864] audit: type=1103 audit(1792267256.027:559): pid=1168 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  402.197198] audit: type=1006 audit(1792267256.031:560): pid=1168 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=28 res=1
+[  402.198287] audit: type=1300 audit(1792267256.031:560): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffe19cefd0 a2=1 a3=0 items=0 ppid=618 pid=1168 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=28 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  402.200467] audit: type=1327 audit(1792267256.031:560): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  402.236924] audit: type=1130 audit(1792267256.071:561): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  402.246445] audit: type=1101 audit(1792267256.079:562): pid=1173 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  402.248679] audit: type=1103 audit(1792267256.083:563): pid=1173 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  402.250861] audit: type=1006 audit(1792267256.083:564): pid=1173 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=29 res=1
+[  402.251950] audit: type=1300 audit(1792267256.083:564): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=fffff6c18ee0 a2=1 a3=0 items=0 ppid=1 pid=1173 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=29 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  409.901476] kauditd_printk_skb: 420 callbacks suppressed
+[  409.901479] audit: type=1101 audit(1792267263.735:886): pid=1839 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  409.904910] audit: type=1103 audit(1792267263.739:887): pid=1839 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  409.907071] audit: type=1006 audit(1792267263.739:888): pid=1839 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=49 res=1
+[  409.908141] audit: type=1300 audit(1792267263.739:888): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=fffffb71f480 a2=1 a3=0 items=0 ppid=618 pid=1839 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=49 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  409.910262] audit: type=1327 audit(1792267263.739:888): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  409.914855] audit: type=1105 audit(1792267263.751:889): pid=1839 uid=0 auid=0 ses=49 subj=kernel msg='op=PAM:session_open grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  409.917143] audit: type=1103 audit(1792267263.751:890): pid=1842 uid=0 auid=0 ses=49 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  409.919325] audit: type=1103 audit(1792267263.755:891): pid=1843 uid=0 auid=0 ses=49 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  410.041832] audit: type=1106 audit(1792267263.875:892): pid=1839 uid=0 auid=0 ses=49 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  410.044171] audit: type=1104 audit(1792267263.875:893): pid=1839 uid=0 auid=0 ses=49 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  420.253074] kauditd_printk_skb: 10 callbacks suppressed
+[  420.253077] audit: type=1131 audit(1792267274.087:902): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  420.347450] audit: type=1131 audit(1792267274.183:903): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  430.029502] audit: type=1101 audit(1792267283.863:904): pid=2045 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  430.031837] audit: type=1103 audit(1792267283.867:905): pid=2045 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  430.033980] audit: type=1006 audit(1792267283.867:906): pid=2045 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=51 res=1
+[  430.035072] audit: type=1300 audit(1792267283.867:906): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffe2416430 a2=1 a3=0 items=0 ppid=618 pid=2045 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=51 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  430.037227] audit: type=1327 audit(1792267283.867:906): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  430.062447] audit: type=1130 audit(1792267283.895:907): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  430.071888] audit: type=1101 audit(1792267283.907:908): pid=2050 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  430.074041] audit: type=1103 audit(1792267283.907:909): pid=2050 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  430.076199] audit: type=1006 audit(1792267283.907:910): pid=2050 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=52 res=1
+[  430.077289] audit: type=1300 audit(1792267283.907:910): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=ffffd9859280 a2=1 a3=0 items=0 ppid=1 pid=2050 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=52 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)
+[  435.833679] kauditd_printk_skb: 118 callbacks suppressed
+[  435.833684] audit: type=1101 audit(1792267289.667:964): pid=2136 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  435.838503] audit: type=1103 audit(1792267289.671:965): pid=2136 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  435.841661] audit: type=1006 audit(1792267289.671:966): pid=2136 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=55 res=1
+[  435.843259] audit: type=1300 audit(1792267289.671:966): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=fffff8a152d0 a2=1 a3=0 items=0 ppid=618 pid=2136 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=55 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  435.846402] audit: type=1327 audit(1792267289.671:966): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  435.849780] audit: type=1105 audit(1792267289.683:967): pid=2136 uid=0 auid=0 ses=55 subj=kernel msg='op=PAM:session_open grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  435.852996] audit: type=1103 audit(1792267289.687:968): pid=2139 uid=0 auid=0 ses=55 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  435.856207] audit: type=1103 audit(1792267289.691:969): pid=2140 uid=0 auid=0 ses=55 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  435.864005] audit: type=1106 audit(1792267289.699:970): pid=2136 uid=0 auid=0 ses=55 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  435.867248] audit: type=1104 audit(1792267289.699:971): pid=2136 uid=0 auid=0 ses=55 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  442.993655] kauditd_printk_skb: 70 callbacks suppressed
+[  442.993659] audit: type=1101 audit(1792267296.827:1028): pid=2525 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  442.998430] audit: type=1103 audit(1792267296.831:1029): pid=2525 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  443.001593] audit: type=1006 audit(1792267296.831:1030): pid=2525 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=63 res=1
+[  443.003212] audit: type=1300 audit(1792267296.831:1030): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=ffffd46b3000 a2=1 a3=0 items=0 ppid=618 pid=2525 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=63 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  443.006364] audit: type=1327 audit(1792267296.831:1030): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  443.014754] audit: type=1105 audit(1792267296.851:1031): pid=2525 uid=0 auid=0 ses=63 subj=kernel msg='op=PAM:session_open grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  443.017957] audit: type=1103 audit(1792267296.851:1032): pid=2528 uid=0 auid=0 ses=63 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  443.021200] audit: type=1103 audit(1792267296.851:1033): pid=2529 uid=0 auid=0 ses=63 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  443.067636] audit: type=1106 audit(1792267296.903:1034): pid=2525 uid=0 auid=0 ses=63 subj=kernel msg='op=PAM:session_close grantors=pam_loginuid,pam_keyinit,pam_systemd_home,pam_limits,pam_unix,pam_permit,pam_lastlog2,pam_mail,pam_umask,pam_systemd,pam_env acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  443.070924] audit: type=1104 audit(1792267296.903:1035): pid=2525 uid=0 auid=0 ses=63 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  466.001006] audit: type=1131 audit(1792267319.835:1036): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  466.131935] audit: type=1131 audit(1792267319.967:1037): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  473.553171] audit: type=1101 audit(1792267327.387:1038): pid=2592 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  473.556617] audit: type=1103 audit(1792267327.391:1039): pid=2592 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=pam_shells,pam_faillock,pam_permit,pam_env,pam_faillock acct="root" exe="/usr/lib/ssh/sshd-session" hostname=192.168.42.1 addr=192.168.42.1 terminal=ssh res=success'
+[  473.559876] audit: type=1006 audit(1792267327.391:1040): pid=2592 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=64 res=1
+[  473.561515] audit: type=1300 audit(1792267327.391:1040): arch=c00000b7 syscall=64 success=yes exit=1 a0=6 a1=fffff45271a0 a2=1 a3=0 items=0 ppid=618 pid=2592 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=64 comm="sshd-session" exe="/usr/lib/ssh/sshd-session" subj=kernel key=(null)
+[  473.564729] audit: type=1327 audit(1792267327.391:1040): proctitle=737368642D73657373696F6E3A20726F6F74205B706F7374617574685D
+[  473.590917] audit: type=1130 audit(1792267327.427:1041): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='unit=user-runtime-dir@0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'
+[  473.609736] audit: type=1101 audit(1792267327.443:1042): pid=2597 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:accounting grantors=pam_access,pam_unix,pam_permit,pam_time acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=success'
+[  473.613002] audit: type=1103 audit(1792267327.443:1043): pid=2597 uid=0 auid=4294967295 ses=4294967295 subj=kernel msg='op=PAM:setcred grantors=? acct="root" exe="/usr/lib/systemd/systemd-executor" hostname=? addr=? terminal=? res=failed'
+[  473.616228] audit: type=1006 audit(1792267327.443:1044): pid=2597 uid=0 subj=kernel old-auid=4294967295 auid=0 tty=(none) old-ses=4294967295 ses=65 res=1
+[  473.617836] audit: type=1300 audit(1792267327.443:1044): arch=c00000b7 syscall=64 success=yes exit=1 a0=8 a1=fffff57f3fb0 a2=1 a3=0 items=0 ppid=1 pid=2597 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=65 comm="(systemd)" exe="/usr/lib/systemd/systemd-executor" subj=kernel key=(null)

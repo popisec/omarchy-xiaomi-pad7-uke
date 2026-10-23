@@ -1,0 +1,247 @@
+# SHA-BUENOS — 27-sep-2026. Todo lo que NO se puede perder, medido con sha256sum real.
+# (A4 lo midió; el orquestador lo reverificó.) NO BORRAR rootfs.img.gz: es el seguro de F5.
+
+ffff8c51265ff03c84cff15ffdb275f396a666a491eb5d67580be705321db99e  avb/boot-s244-bounce.img      <- par bueno, slot b
+d2a29ea524707e32...                                                dtbo-gpu/s229-boot-dtbo-wifi-wpss.img  <- par bueno, slot b
+32e23e14b8fa3dd356830a89e40805b997f7dcbb8360001f31a4caa8f425d68a  out/kernel                  <- kernel que YA ARRANCA
+b6d5411712b...                                                    rootfs.img.gz  (369822577 B) <- SEGURO DE VUELTA ATRÁS
+
+## Artefactos de Arch (F5), reconstruidos tras la corrección del initramfs
+5d8264c26f456d44cd51b0adc2766b743568e9ecf35b11494c648049fb5c174b  bootimg/boot-arch-uke.img   (100663296 B)
+c36557503f4b6fa0ee30facc5a6c3908d82156613447c4ba73915f6830ac2653  rootfs/arch-rootfs.img      (8 GiB)
+bca709a275c1c23c0b7bed3789e63be1ab04f19b0401b5ec3cc5f53edca5e112  rootfs/arch-rootfs.img.gz   (384 MiB)
+6f1915dae23dc26588e3452a8c338e941185425e0541ba5fde7097d45c47ce5c  bootimg/initramfs-arch-uke.cpio.gz  (2392637 B, 70 entradas)
+
+## s237 (27-sep-2026, NO FLASHEADO) — overlay MINIMO, pre-registrado, 10 gates verdes
+a0f71d7d46be20bc927a46dc37f1a8d94b52309f362962088cc65fb667d977bc  bootimg/s237-boot-dtbo-minimo.img  (607310 B)
+    = s229 + `qcom,lamma` en la raiz. UNA linea de diferencia. Retira los dos cambios MUERTOS de
+      s234/s236 (dummy regulator-fixed sobre L8B + enable-gpios sobre una premisa refutada).
+    Contenido semanticamente IDENTICO a s232 (G9b: 34049 lineas de DT fusionado iguales; los
+    payloads difieren en 1 byte, el indice del fragmento anadido).
+    Si s237 sale mal, el rollback es s229, que NO se ha tocado nunca.
+
+## REFUTADOS (no volver a flashear; los constructores llevan banner de aviso)
+b336c69dfbaecd577724fdad3e045284fd8f8316763d8aacf0f87788e54e881d  s233  regulator-fixed sobre L8B con target=<phandle>: DESTRUYO el nodo
+2a28e4b1651b10b6d750c1624f9db446c12663d62c0f025d1e7eda76b4e97115  s234  L8B por target-path: CODIGO MUERTO + provoco el -131
+d9f9f36519fd0c5c89f81c17be6cdac83f4ed59bf13eff33f900d35028e19d50  s236  enable-gpios: NO-OP (la premisa del nombre de propiedad esta refutada)
+   <- ESTE ULTIMO ES EL QUE ESTA EN LA TABLET AHORA MISMO. s237 lo revierte.
+
+## Actualizado 27-sep-2026 tras añadir resolve_userdata() al init
+82c59a528849fe7e71c6ca08f8b9b84867eaf8c6ffcda4553c796c8879173882  bootimg/boot-arch-uke.img   (RECONSTRUIDO: 10/10 aserciones)
+7486a638cea257235553f82d23b8b11323aec1fa2f5f271c75961dc8308b37e1  init/ukeinit-arch           (sha del init EMBEBIDO, verificado)
+
+## V1 (27-sep-2026) - imagen SPARSE para fastboot flash userdata
+0cdc7386bb1c1d7d7f6cf2ef6ebe569b7cafbaf0dc38480a96e8dd417898614e  rootfs/arch-rootfs.simg  (1207455712 B)
+b6d5411712b...  rootfs.simg  (86982848 B, imagen PROBADA 3/3 por el hermano) = seguro de restauracion
+
+## F5-V2 (27-sep-2026) - imagen RECONSTRUIDA con el arreglo de red (flash SIN sparse)
+64b26294ca096ff952991c242f1787f1ec510ce2ba3a6c159b0deeb650cd449f  rootfs/arch-rootfs.img  (V2, red OK - superada)
+c26a5fcd799999664d4552cadf92bcb23b85f3a4f17f4c53ef597de40a39b037  rootfs/arch-rootfs.img  (V3, red + /run/sshd - la que va ahora)
+6d7b3fb8254c3229f2e131d3597c7d791965640fc4673b2e147933760b86624d  rootfs/arch-rootfs.img  (V4, sshd user + identidad root - LA QUE VA, NO flasheada hoy)
+c2a4c82803afc6d8fb0541054417c6f993d5811cf38dcea4ec563a57f246c39b  bootimg/s231-boot-dtbo-gpu-kms.img  (dtbo s229+separate_gpu_kms+lamma - NO flasheado)
+d2a29ea524707e32…  bootimg/dtbo s229-boot-dtbo-wifi-wpss.img  (dtbo VIGENTE, bueno - es el rollback)
+
+## PAR VIGENTE (30-sep-2026 22:10, sesion K16) — el que ARRANCA en la tablet AHORA
+# Copias en build/backup-par-bueno/ (artefactos de flash verificados contra las filas
+# #P42/#P33 del PRE-REGISTRO; NO es read-back del dispositivo). El par anterior
+# (s244-bounce + s229) esta en historico/ y en gpu-work.
+e0ee47dc4044e9cccbcf177ab36cc8efd005ee9ef4d7cff370741578707c5c57  boot-ukek13-dsid.img  <- PAR VIGENTE, boot_b (K13 + video=DSI-1:d, ESTABLE por SSH)
+6fbb5173b8af5add34e90dcff9d3dce742f7fa9fe76182eda2db123b39685ad7  s260-boot-dtbo-dpu-iommus.img  <- PAR VIGENTE, dtbo_b
+d71ea2b5f6aaf7f8b4820748362b5b32ebed4a064f6f224bb037a7abc9707381  boot-ukek13.img  <- PAR BUENO SIN :d (cmdline 336 B, 17 tokens). MEDIDO 2-oct #487: difiere de boot-ukek13-dsid.img en 14 BYTES, offsets 0x190-0x19d, exactamente el token video=DSI-1:d. NO flasheado: la hipotesis ya se midio 2 veces (P50, #475-bis) y ambas wedgearon
+
+## PAR EN LA TABLET (1-oct-2026 03:00, cierre de la noche) — slot A experimental
+# Verificado por relectura del dispositivo (ledger hermano #449). Slot A = experimental
+# con fallback automatico a B (F9 cerrado, #P45).
+8e7ed4f97290c843b969b5bffd09975bdc031488c723f08f9465e55294d0a687  bootimg/boot-ukek23.img  <- boot_a EN LA TABLET (K23)
+fe06fccccefcc9542f6470f788653443043414becf694c502c762ad83a51a11e  bootimg/s263-boot-dtbo-gpu-sid5.img  <- dtbo_a EN LA TABLET (s263)
+08780e3565c2641660703f884bbac9c0f3aab0e1e8cadb78611a674e5238b706  init/uke-k22-initramfs.cpio.gz  <- cpio EMBEBIDO en el kernel (los 3 fw de la GPU)
+
+## KERNEL — como se reconstruye (1-oct-2026; cierra el agujero de F0 "no perder nada")
+# Hasta el 1-oct el kernel NO era reconstruible desde el repo: K19/K20/K21/K23 vivian
+# solo en build/kernel-pokes/k18-tree (ignorado por git), sin .config versionado y sin
+# script de build. Ahora:
+#   config : build/kernel-config/k23b.config           (versionado; apunta al cpio K22)
+#   script : docs/historia/gates-palawan/build-k23b.sh                 (gates de config y de marcadores)
+#   parche : build/gates/patches/ACUMULADO-palawan-d1c7ef2e0-a-k24.diff
+#            (todo el proyecto K1..K24 en un diff; VERIFICADO: patch -p1 sobre
+#             'git archive d1c7ef2e0' reproduce el arbol byte a byte)
+#   shas   : build/gates/patches/SHA-ARBOL-K24.txt     (sha256 de los 8 ficheros)
+#   regen  : python3 build/gates/gen-diff-acumulado.py (regenera diff + shas)
+#   kernel : build/kernel-pokes/k23b-build/arch/arm64/boot/Image.gz  (sha en el log del build)
+# 3-oct (sesion nocturna):
+e8283bb74bcc543f60c62b85bab38803e6849d3dae0663103b1cc2cf80f24302  boot-ukek47-pantalla.img  <- K47-r5 EN boot_a (migas por-comando + fix unprepare; muere en reset-release, #505)
+6eda59562ae56e750b0eeffdf698adb1ba8229f9489645b8a5c2804bdae4dbcd  s262-boot-dtbo-gpu-off.img <- EN dtbo_a y dtbo_b (s261+GPU off; panel o82 vivo)
+# 5-oct (#527-prepare): captura full hardware android (tablet uke, Android 16 stock rooteado)
+c0160b26ae10d5218175b301c405b1c335e78938cbca8cedb0ea7a046906d7e8  uke-full-20261005.tar.gz  <- build/evidencia/android-full/ (3531 fich, sha verificado en dispositivo y PC; tar borrado de /data/local/tmp)
+
+## FIXES #528 APLICADOS (5-oct-2026) — kernel rama uke-fixes-20261005 (base s150-postclk)
+# Commits palawan-linux: 603b37730 (hub 200MHz F2) · 5702c18ac (DT táctil+BT+wpss+adsp)
+# · 760160d41 (pd_mapper qcom,lamma). Build: make O=~/gpu-work/build-uke LLVM=1
+# MAKE=/usr/bin/make Image.gz modules (log: build/logs/build-fix528-20261005.log, EXIT=0).
+# Cambios .config (snapshot: build/kernel-config/fix528-build-uke.config): O82 panel =y,
+# NOVATEK_NT36XXX_SPI =y, THERMAL_GOV_USER_SPACE =y, BATTERY_QCOM_BATTMGR =y,
+# QCOM_IOMMU caído (símbolo ya no existe en 7.2), VIDEO_QCOM_IRIS off (driver roto
+# preexistente; las configs kNN ya lo llevaban off). NO flasheado.
+e3756f6185dec2a1198abdb795478bf9e447ed24af66bb54441032d5440aa932  bootimg/Image-fix528-palawan      (39889408 B, Image crudo 7.2.0-rc2-palawan+)
+021641839028ac39d432c200cc3e6b5647775486eb8a2a144a44ad84c292c3a4  bootimg/Image-fix528-palawan.gz  (15389639 B, gzip -9 del anterior)
+2bdc506633a0877339be591cffbf8ae7bc20f5a36fdef486a23808ca1643d642  bootimg/xiaomi-uke-fix528.dtb    (91884 B, DTB base con los fixes; verificado con fdtget)
+
+## FW RADIO (W1-W4/B1-B2 + A1/A2 + cdsp) #529 — staging build/rootfs/staging/usr/lib/firmware/ + package uke-fw-radio-1-1 (5-oct-2026)
+# Origen: NON-HLOS.bin (FAT16) de ROM-OS3.0.303.0.WOZEUXM.tgz (extraido con 7z sin montar;
+# sha256 del bin: f3c236b6a6058223640a59fef6e42be81c17ab671d1bf84a864a02a374b70c3e) + linux-firmware host .zst descomprimido.
+# Verificado: staging == package (95 fich); wpss SIN b11; adsp sin b24/b51; cdsp sin b14 (asi en la ROM).
+b3451c51cd58e1afd6f172e46b78fefb236cb7efdd02bd4991a3ab2794be6560  qca6750/wpss.mdt
+f5d029a49b38dee301310d04e43efb9d45bd7c89f805e8fbb3ae9665aefb88f5  qca6750/wpss.qdb
+2f0b37ad814da7e612bdd420c411a323367936efea2eea32f19c9b796244b0d4  qca6750/wpss.b00
+3dd190536edda87cda85b69fcc7d03174e948daa3618ca5b9a5e902f4dd2d7d4  qca6750/wpss.b01
+bcaff73b3436be65aa26cf06b5e5f3e4eef3b8b5a625cc78e9169e7c9b3f5dc0  qca6750/wpss.b02
+b7a3b1f97ef810824c8660222d4deb8689de77ea809c6c9ed8d779ec48dfea1d  qca6750/wpss.b03
+41870cea04a11339ed8e99324e33ff2119c8de23cb77d0ad3fc7b52de059f8c9  qca6750/wpss.b04
+aae176b232881e8b9258e1844a9b946a4e4690b9bb5463b281cd1ba2b3ee1f14  qca6750/wpss.b05
+2b9d868e0d776659f3741d9cce75f7239f4693596181657e420c5693979473a3  qca6750/wpss.b06
+d7846f851ef64896a307db5b0e08249cfd9319f0769ec91988156d92833de9fa  qca6750/wpss.b07
+0de7c47d174666be7f6a820951225ce0d50c97007aa186191e9ef25356efcb34  qca6750/wpss.b08
+57464f648ec1a089770e642b7c35717bf9b925e65996ba5d7671e9c77321de13  qca6750/wpss.b09
+26d0fc62bd7983c7c95c03079e751e8a3188a5965b7e0c4a101ad26331819a0c  qca6750/wpss.b10
+a1f14ed3aeb4d122a78d5fea665e1364589c89991d8de16757d06ebccc700374  qca6750/wpss.b12
+efb516e8b589cfa0462d23406edfa3d77768f98e6e0bc89f06b865201f21efbb  adsp.mdt
+04166e7068e52c644c1d8727a6c32b4555d7fbe19aff17457acc17d5ad7884cd  adsp.b00
+11b0009dc008a20ba47cbd6eed0749e2a5f3134672898e831342ba268f7e5595  adsp.b01
+249b0be4fe2c2b89025664aa08cfdcf47e820535218463bd52706518117a22c7  adsp.b02
+f4152045abeea6f75c54d0bdd95ce169d255662be3bb2edb1dcff40417ec9bbc  adsp.b03
+d40caa41d40746e98d6355df9da9c7fab0ffe90fc96bf903788f276bcc197e16  adsp.b04
+ad7b0f83389a920bd3431264d990e2ff93018f49b99c15f73de65f5b7cca052b  adsp.b05
+fbdcc05089173e5cdce903a9c28809f46baef39ecaefaa6877d29daa352770d6  adsp.b06
+7270cebac835b56b5f10b38797aefee0de21574a1de00084533c1267f723dfbe  adsp.b07
+075b802c8a6c19aa1a6faab2099e4b62233b422cf664d7a7ff40f462ff13054a  adsp.b08
+7ad6260783e16811137f8b2533ca129ee5879867a9ebc03c7c64a4a859a779d9  adsp.b09
+6f262d14ef3ec38ef60e1fdfd1e3d4b38a907afb7404262a06fea224936175f8  adsp.b10
+def0a5cda02af8c17698fdb3283d76ff9e25bff5863120d806d437b8ab7e071e  adsp.b11
+bfaf7b1711bcd1f1d9658a67248a114569c5135a0a85d4fb3cbe967b62547941  adsp.b12
+6db58e079d61bd49ec10d05569fd171e89a7d58993b969c830cfcc4f12a1f27a  adsp.b13
+bc6b17e6d619cc625975eb89ee4d29e01ac3f8b9b16f539b9e135d9721767679  adsp.b14
+13606f5a7648cbf07f295cc5bcdac48d4386defc52770d067deb0da216792e98  adsp.b15
+b9068641139d446da954c0fcee7cb68421d66058429de5751fb6e03803bdf762  adsp.b16
+19beb98cc2e1b49e63bffa352f3828f618888775230faebee529613a7236345c  adsp.b17
+c002713910ffae5259f091d1d119ae72af6a78e35a5362386a6e7166479a5af2  adsp.b18
+883f8eac2b0798264e3ad20c2800a402fe5b33e9545eec8b4795cff24a839d9e  adsp.b19
+cc1787d4614b7ba99151867a7d2f6f7bed22e093dc0ce06d67bf0944485d4d14  adsp.b20
+5a092b258739658d6a78834afcc6e4e7870bd4ec0062f1a21e48f3b307e12124  adsp.b21
+fa2ed1a0e4e70416c89fa197ebe6a88b0d6b0b54c921df87a50e796aae3e89d1  adsp.b22
+ab0de7f7fb189b2a5cff99ac069ecc0268fa958ef92068744517ff0e2551c7ce  adsp.b23
+8948a6b88376b9d3f75e89f33ea0c03e149d6ebde637874951c121d0b6b17efd  adsp.b25
+61d0fe2f10ca7f68cedba50945c758ef6620f4358ee87a106fd4e35cedfaba44  adsp.b26
+74c88636f09f3b30dc9945b22f8745db68797a6c4e28b577d08b4c9eff23b0ac  adsp.b27
+792481482e013bf238463d6f9bfd5077eda446a3ad878691d6cc0b8df0c70cc4  adsp.b28
+829d7e34b123ecdb03b8fb687fb9efb5c2f1eef6545fda9ae58641f7d1a70575  adsp.b29
+a786ca4ead6f023fc2d26faf521d40c304e28341d15654511749ed617044559b  adsp.b30
+ff833d47ef0e25d8aa3c83c615a7915c31534618fbd288f6ab8948bac24d1721  adsp.b31
+521b1793218a8d27d787bb65697fd715d5f23ac569839cb0764652a6e8179363  adsp.b32
+c9ea43c30c6a86390a0c1e023f2115ea33d164381ba121e234d74496afeb9113  adsp.b33
+d39b1ea75e4ccb7a53c952c533fd484ff6b68a017966646636838e7012dfc497  adsp.b34
+28af6af2161ed282713883b7d7f247833c69be062b54472f72ee3c07ee472db6  adsp.b35
+b0dbbc00c11a284ca1635a04d7751e31248e26fbb8f625f953246f40f0a67f6b  adsp.b36
+86bcb73ff4cf9f7e8f37be0196f15f0e65f54a78cabfaa9423370101d447adee  adsp.b37
+8831ac9abdbc470d9621d3394f60a8d9c7e777b0f22658433e28505d1a21c562  adsp.b38
+53fc4df4a47b166aef8d245e7de50c05b37f831406c03a180b80deecb9931147  adsp.b39
+42c86837570fabc9cf1504a1f596b7d56305f44e3bbccd3a431be8bf5882b352  adsp.b40
+f6cd091acaf5221a9ea67b694436be261e82f927102062fe98d605daf4bad1bc  adsp.b41
+5589584cfe085b3239e26b31802089a32a0d7ba0570fd8d19512e4d3113a702c  adsp.b42
+a73e35f97bc6ae7a560f95c221e1ee8607e15402f76944ecdf532728c07a1acc  adsp.b43
+f244dadde2813c1dc16dd783cec9595e4eb4ccb9de28dc944782f5b5ec8fc3ad  adsp.b44
+e63b84b3cc47161927ce0b17be6d0896d620b52afd8b710f1920fde6d7c40807  adsp.b45
+8d181fc60c59eaa490ab778b27c18de70f4f0e61f429a724182ead18937ae9e4  adsp.b46
+0e9af7cba3044d140828583f33def093378c147fbc8489a4f283f7c2f2352533  adsp.b47
+e0d37271085706ba7079622063dab8899d1ff591827c6e0ee25c9044c10c3f1e  adsp.b48
+aff7e23303334dd0fa24d9d9b4b523f05cefde0ee418d83177e6c318970bb76f  adsp.b49
+b4f0ffd764727b141a2d6eb0d306bc8a926b472a254ecb01652b8dcee8da47e5  adsp.b50
+aa1bbe070b822357bbccf95353da4babb46b560d22032b35a30fdfbae98676b8  adsp.b52
+37c1f69793d4f4596cb0ba2b72796c7cbc809fff664a33f371901a806c35aa9d  adsp_dtb.mdt
+d40b10067ecbfc6b05c63083da74a0942c3b2ddabffdefb94c55b9533aebe8b3  adsp_dtb.b00
+ad20a9d5b1f070ad6ea813ce4722d9e617c6157d6c6fd2f63b555d0fbea5510d  adsp_dtb.b01
+8fac3773f769af93fdb305d23e3163462000233fc4643f88b6e7a30a41389882  adsp_dtb.b02
+cb62c68e5f10d466ae8d15fcd03b7c89266ade1eeb82cb4283d119578189ec6a  cdsp.mdt
+ca7d42461530d1bfcbfa5994d6f701498ee421b81c29a2de305007738baef41f  cdsp.b00
+9be17ec22ee562eee6ab2890494ec2cbabcb900db05e119a557de99b4d17eece  cdsp.b01
+0f56a959e1e797abbbe8ca1bdd30530cb70a1e9f24c9f57de549813293d6a7ae  cdsp.b02
+2a0c13bb67d25778ca6b59352fbc331c08f83e103abd7fe65cc7026e20b9029d  cdsp.b03
+55f3080eb303a674a34023ab892635eff2e99724aea8c9429291385e9481dc40  cdsp.b04
+25b5b025eb551c2c56ecf974e329f2a96ebc853997f56bed6b887b9ebf9e2c82  cdsp.b05
+4f78c9274334a20fd4643383c963ab77724105c6d0fa8a8134cf773c68f47962  cdsp.b06
+07a4a213fad5600da2886ec82510b36eabd9f086e23092d77a48bf696d01d48f  cdsp.b07
+6d9aa426510b3dbae5668a21d45b0830a24da2d408c91221448affdb4fed5fcf  cdsp.b08
+1f8784c2c72df9a77f6a06737772edf7c854f2252a4ddd76858655ee460143eb  cdsp.b09
+c695c43fa9fc0f9bc9a987b723cafc326e1bd6b14cf8d75c470a6b2d18e75806  cdsp.b10
+a95928282829aad98cc1177afb6cca55e590c977f3f5ef4ae1fb7b6c9b85c534  cdsp.b11
+f387b986031de07fe34594f370edf72352f435899ab820a99f6df61fac800960  cdsp.b12
+62af5c1ecf24e5c4f9ea123f5bceb29e36d12dff99776f9ea4f11bb452eeb2a3  cdsp.b13
+f183c0208b41a1e6858dc971b061d74c9dd71252de080ac31777c4a3203c174f  cdsp.b15
+f4b0cdcc899cc614b817e91e9f232fd394ae1c53ebeec04dda5431d3bea4ceb6  cdsp_dtb.mdt
+e4396dcd9bb9bc847f8429f8c1be9dfc706bead48262400cc35b8ab89a452288  cdsp_dtb.b00
+33e44907f85205cf77d9e445394feb00c65f4d446cbd90a8f4991e56c608e629  cdsp_dtb.b01
+b9433fc8212cb466e5cb52cf468f1d088a6e5a69ad492da2403dc827e7190d00  cdsp_dtb.b02
+2c450354a6947c7c780ceaa180693a0c5464697309933b618b60325f63d005c5  qca/msbtfw11.mbn
+e213c462d9eae57163fa9ad83a5ba06a590630371bccc1e8ecc783a2ec0d3c90  qca/msnv11.bin
+e6ac57da95c246e59d6e8fa0a8bfb7eff4cadabedfdb67f27c79ea4b98cc8fb6  qca/msnv11.b09
+5a3de63780c4c1e6a6223ebee744dff36a992a3712da426c2c88985c3d7fa804  qca/msnv11.b0a
+dd2769c0528ecb575fc66233fe755eb7e4a81dff7b50973d8b5eda7585adf32b  ath11k/WCN6750/hw1.0/board-2.bin
+# package:
+aa573d583041eaa2883130604c78649946f9d408ad9f4899a1db5ffed76c7c7c  ~/proyectos/omarchy-uke/build/pkg/uke-fw-radio/uke-fw-radio-1-1-any.pkg.tar.zst
+
+## #529 vadc NTCs (DTB fix529) + CONFIG QCOM_SPMI_ADC5_GEN3=m (5-oct-2026)
+# DT: xiaomi-uke.dts &pmk8550 vadc@9000 (24 canales del vivo, 10 con qcom,adc-tm).
+# make dtbs ARCH=arm64 O=build-uke; snapshot: build/kernel-config/fix529-build-uke.config
+bff462e1ca433985b9aeaacb6bef6d02ea6617ad0d689f0f785be9f10a6277b9  ~/proyectos/omarchy-uke/build/bootimg/xiaomi-uke-fix529.dtb
+# módulos nuevos #529 (copiados a staging extra/; el resto de los 847 los instala modules_install al hornear):
+7741303f90364f71614a80503207162f9c6119b36d560fe7c0203bbfffbee4f1    qcom-spmi-adc5-gen3.ko
+1602f263daece435abd8fba84831a3a148f932c435bbd10bca513e4a5c9c009b    qcom-vadc-common.ko
+# módulos refresh extra/ (build fix528 22:23, byte-idénticos tras recompilar):
+95ecc0f5b903b539781fc2356892a7241cc43b880d25467025adacd98df15171    qcom_pd_mapper.ko
+
+## #530 packaging boot de validación (6-oct-2026)
+# dtbo s268 = s266 + fragment@2104 (touch 2136x3200 + IRQ 54 EDGE_FALLING).
+# Gates: build/bootimg/mkdtbo-s268.py (log repack-s268-report.txt). Base sin tocar.
+f2dede80e7452fd084420f841aae5f419e45d8d33a3ce0037e95e36df674c44b  ~/proyectos/omarchy-uke/build/bootimg/s268-boot-dtbo-validation.img
+04df0b698232386427fd97bc7affdb39e3c8e32cab4964c4dd5a625cd4bf893d  (payload s268 interno, /var/tmp/uke-s268)
+# boot fix529 = shell boot-s244-bounce (ffff8c51…) con Image.gz 02164183… y cmdline del shell INTACTA
+# (sin token CM3: no existe mecanismo cmdline; hub a validar por ssh, BOOT-PKG-20261006 §3).
+1f1f8703147d99467e4f7d1ee3e657af4512eb7f36c2e2d58bbbd3d8e89c33d6  ~/proyectos/omarchy-uke/build/bootimg/boot-uke-fix529.img
+bd2b30294aee99897ca7e86cb4843317cdf545ee08f1694aac1bc3ccf101899c  rootfs-uke-k521.img v8 (fw gpu+radio + 847 ko + adsp service; backup v7 = 5f9f00fe en /var/tmp/rootfs-v7-backup-20261006.img) #530
+
+## #532 bisectA (4 toggles off)
+# Kernel uke recompilado con los 4 toggles en "is not set" (DRM_PANEL_XIAOMI_O82_DUALDSI,
+# TOUCHSCREEN_NOVATEK_NT36XXX_SPI, BATTERY_QCOM_BATTMGR, THERMAL_GOV_USER_SPACE).
+# make ARCH=arm64 LLVM=1 O=build-uke MAKE=/usr/bin/make -j16 Image Image.gz; build EXIT=0,
+# log /var/tmp/build-bisectA-agent.log. Boot = shell boot-s244-bounce (ffff8c51…), cmdline
+# del shell intacta, sin ramdisk. SELFTEST byte a byte OK; 10 aserciones verdes.
+03a1909ff15410d5f944e20a48e23c15ec93b7056a1f58aba8b28452c1070a02  Image (39889408 B)
+c814ee51a246fe9bc8dc9148452c1f6115bcc7af0277cea4512380c3125b8fec  Image.gz (15382143 B)
+6a87a5b0881dfde2e2b69c10324b3a4da8e2b00a45a0b7e1a41375840f834ea4  boot-uke-bisectA.img (100663296 B)
+8893fe37d76df53a0634506c5f9cb57f9f1bbb4b9a92c0985cfeb96e6cbcd3e6  s269-boot-dtbo-touch.img (táctil novatek@0 via fixup &tlmm; dd dtbo_a desde ssh) #533
+e3f7060759eff340… k54-c1err / 91d1e831… s270 (EN LA TABLET) / 673d6468… k53 / 76a97040… k54 img `76a97040b4b11167`
+91d1e83161ecbfed333cc61b01c20e39cf741f329a85ae2376a2bfd1f0e715e8  s270-boot-dtbo-gpu-on.img (#535)
+2241163cef37964e225cd728cde0abbecce56f696d9f8168e9818bce9c79e6f0  s271-boot-dtbo-gpu-acd.img (qcom,qmp aoss_qmp en GMU) #538
+e09f37ba14748439  k56 Image.gz (assert SYSRESET + cold/warm log + re-assert error-path) #538
+ce26c8e4e82dbcca  boot-uke-k56-cm3dbg.img (k56 + cmdline dorada + msm.uke_smmu_dump=1) #538
+0523a7da639a9bb2  rootfs v8.1 (sin mina modulos + script parcheado + sysctl panic + adsp enable) #538
+2eea1a05ca1016bd  cpio k34-fw REGENERADO (ukeinit con espera UFS+bind manual, K57-fix) #539
+3492c61efd8dfac3  k57 Image.gz (dump-off + initramfs fijo) #539
+083417cc02a69d6b  boot-uke-k57-gpuon.img (k57 + cmdline dorada) #539
+19dd7c235836e81434891250c8e3977a69768f39f31953db2d1863e53344e011  boot-uke-k58-gmuown.img (100663296 B) #540
+2cb81e67a9247d24d8ff40b4dd37570a4dda0eda9ee2ea235cee06e3901834f6  boot-uke-k60-norpmh.img (cddee950… k60 Image.gz: rpmh/PDC neutralizado) #542
+24857e6bdceb10fb  rootfs v8.2 (fstab pstore + nodos estáticos sda30/sda32) #544
+30c1c4eead79866a55976c1a6df7772f3d564deacbdd12419b68f12ad84333d9  cpio k34 K62b (ukeinit V9/V5 + nodos estaticos) #549
+0315086375009b6a  cpio k34 K62c (gmu P1 dentro + ukeinit V9/V5 + nodos estaticos) #549b
+02434bbcade398f1  k62c Image.gz (initramfs con gmu-P1) #549b
+11654be05104f7fabb46f7213a97d39848baab0bab2bb755550bd2a6616454a2  boot-uke-k62c-p1.img (PAQUETE COMPLETO P1: stage2+rescue+hold8s+gmu sin body) #549b
+920e421d21b7cc6c  k62d Image.gz (initramfs con gmu-P2: polls NOPeados) #549d
+1c791e8633c781825503517d237d4a20db1695eed378f0600f1681e7aea2f0ee  boot-uke-k62d-p2.img (P2 completo: stage2+rescue+hold8s) #549d
+c1807f90c395262a  k62e Image.gz (gmu P3: NOP b.w al scatter @0x1ea + polls NOP) #549f
+5564465d378e0238aa4797a01968421e163859fe5e2c6c8905ffc14402afc8e0  boot-uke-k62e-p3.img (P3 completo) #549f
+f828768f75b69fb3  cpio k34 (gmu P0 original restaurado + nodos estaticos + ukeinit V9/V5) #550
+3be9aa7eae212592  k64 Image.gz (register_config vendor K64 + RSC wake + FENCE_R0) #550
+cc8f896a17eecc247633874ec46d67d1ec3d2ae74debbe8af4dc871650302e96  boot-uke-k64-vendorcfg.img (stage=3 flujo normal + vendorcfg + rescue) #550
+
+# 11-oct-2026 (#603): par estable de confianza (auditor KERNEL-ESTABLE: SSH+uptime 3773 s + GPU viva #589)
+boot-uke-k52L19.img  71d89ca6e875941b75af012ac24d20fb7690de407fa341923f2d896557ee51a9
+s275-boot-dtbo-gpu-display.img (=r2)  67a65bc161b645d8664c4ba3fd1bfeaa9a92637bc52a1669feab9784fa7e01df

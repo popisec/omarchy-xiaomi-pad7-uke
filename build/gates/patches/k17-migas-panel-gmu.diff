@@ -1,0 +1,132 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c	2026-09-30 23:35:09.526794925 +0200
+@@ -203,6 +203,7 @@
+ {
+ 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi[0] };
+ 	size_t off = 0;
++	size_t n = 0;
+ 
+ 	while (off < size) {
+ 		u8 dt = cmds[off];
+@@ -214,6 +215,7 @@
+ 		}
+ 
+ 		len = (cmds[off + 5] << 8) | cmds[off + 6];
++		pr_info("UKE-P82: cmd[%zu] off=%zu dt=0x%02x len=%u\n", n++, off, dt, len);
+ 		if (size - off - 7 < len) {
+ 			dev_err(&ctx->dsi[0]->dev, "truncated command payload at %zu\n", off);
+ 			return -EINVAL;
+@@ -253,12 +255,16 @@
+ {
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+ 	usleep_range(10000, 10500);
++	pr_info("UKE-P82: rst: hi(10ms) OK\n");
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+ 	usleep_range(3000, 3500);
++	pr_info("UKE-P82: rst: lo(3ms) OK\n");
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+ 	usleep_range(3000, 3500);
++	pr_info("UKE-P82: rst: hi2(3ms) OK\n");
+ 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
+ 	usleep_range(15000, 16000);
++	pr_info("UKE-P82: rst: lo2(15ms) OK — reset COMPLETO\n");
+ }
+ 
+ /* Vendor power-on order: the three supply entries in order (vddil8b, vsp,
+@@ -270,7 +276,9 @@
+ 	unsigned int i;
+ 	int ret;
+ 
++	pr_info("UKE-P82: power_on: inicio (%zu supplies)\n", ARRAY_SIZE(o82_supplies));
+ 	for (i = 0; i < ARRAY_SIZE(o82_supplies); i++) {
++		pr_info("UKE-P82: power_on[%u]: %s enable-load\n", i, o82_supplies[i].supply);
+ 		ret = regulator_set_load(ctx->supplies[i].consumer,
+ 					 O82_SUPPLY_ENABLE_LOAD_UA);
+ 		if (ret < 0)
+@@ -281,8 +289,10 @@
+ 			goto err;
+ 		}
+ 		usleep_range(2000, 2500);
++		pr_info("UKE-P82: power_on[%u]: %s ENABLED\n", i, o82_supplies[i].supply);
+ 	}
+ 
++	pr_info("UKE-P82: power_on: TODAS OK\n");
+ 	return 0;
+ 
+ err:
+@@ -300,13 +310,20 @@
+ 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi[0] };
+ 	int ret;
+ 
++	pr_info("UKE-P82: prepare: INICIO\n");
+ 	ret = o82_power_on(ctx);
+-	if (ret < 0)
++	if (ret < 0) {
++		pr_info("UKE-P82: prepare: power_on FALLO %d\n", ret);
+ 		return ret;
++	}
++	pr_info("UKE-P82: prepare: power OK\n");
+ 
+ 	o82_reset(ctx);
++	pr_info("UKE-P82: prepare: reset OK\n");
+ 
++	pr_info("UKE-P82: prepare: init cmds INICIO\n");
+ 	ret = o82_send_panel_cmds(ctx, o82_init_cmds, ARRAY_SIZE(o82_init_cmds));
++	pr_info("UKE-P82: prepare: init cmds rc=%d\n", ret);
+ 	if (ret < 0)
+ 		goto err;
+ 
+@@ -330,19 +347,24 @@
+ 	freq_sel[1] = desc->freq_reg_b2;
+ 	mipi_dsi_dual_dcs_write_buffer_multi(&dsi_ctx, ctx->dsi[0], ctx->dsi[1],
+ 					     freq_sel, ARRAY_SIZE(freq_sel));
++	pr_info("UKE-P82: prepare: freq_sel OK (err=%d)\n", dsi_ctx.accum_err);
+ 
+ 	mipi_dsi_dual_dcs_write_buffer_multi(&dsi_ctx, ctx->dsi[0], ctx->dsi[1],
+ 					     (u8[]){ 0x11 }, 1);	/* sleep out */
+ 	mipi_dsi_msleep(&dsi_ctx, 120);	/* vendor delay 0x78 after sleep out */
++	pr_info("UKE-P82: prepare: sleep-out OK (err=%d)\n", dsi_ctx.accum_err);
+ 	mipi_dsi_dual_dcs_write_buffer_multi(&dsi_ctx, ctx->dsi[0], ctx->dsi[1],
+ 					     (u8[]){ 0x29 }, 1);	/* display on */
++	pr_info("UKE-P82: prepare: display-on ENVIADO (err=%d)\n", dsi_ctx.accum_err);
+ 
+ 	if (dsi_ctx.accum_err) {
+ 		ret = dsi_ctx.accum_err;
+ 		goto err;
+ 	}
+ 
++	pr_info("UKE-P82: prepare: backlight_enable...\n");
+ 	backlight_enable(ctx->backlight);
++	pr_info("UKE-P82: prepare: COMPLETO\n");
+ 
+ 	return 0;
+ 
+@@ -389,6 +411,7 @@
+ static int o82_get_modes(struct drm_panel *panel,
+ 			 struct drm_connector *connector)
+ {
++	pr_info("UKE-P82: get_modes: entrada\n");
+ 	struct o82_panel *ctx = to_o82_panel(panel);
+ 	const struct o82_panel_desc *desc = ctx->desc;
+ 	unsigned int i;
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ drivers/gpu/drm/msm/adreno/a6xx_gmu.c	2026-09-30 23:35:09.528005192 +0200
+@@ -296,7 +296,9 @@
+ 	u32 mask, reset_val, val;
+ 	int ret;
+ 
++	uke_poke("S0-dtcmR");
+ 	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
++	pr_info("UKE-K17: dtcmR val=%#x\n", val);
+ 	if (val <= 0x20010004) {
+ 		mask = 0xffffffff;
+ 		reset_val = 0xbabeface;
+@@ -332,7 +334,7 @@
+ 
+ 	ret = gmu_poll_timeout(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT, val,
+ 		(val & mask) == reset_val, 100, 100000);
+-	uke_poke("S4-poll");
++	uke_poke(ret ? "S4-pollFAIL" : "S4-pollOK");
+ 
+ 	if (ret)
+ 		DRM_DEV_ERROR(gmu->dev, "GMU firmware initialization timed out\n");

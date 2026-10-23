@@ -1,0 +1,13 @@
+[Unit]
+Description=Rotacion automatica de la uke (monitor-sensor -> uke-rotate)
+# Solo tiene sentido con el PD de sensores vivo (etapas R1-R4 del informe AUTOROTACION-20261018.md)
+ConditionPathExists=/dev/fastrpc-adsp
+After=graphical-session.target
+
+[Service]
+ExecStart=/usr/local/bin/uke-autorotate run
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

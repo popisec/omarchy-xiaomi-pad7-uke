@@ -1,0 +1,22 @@
+# Gemelo de adsprpcd_audiopd.service (mismo binario /usr/bin/adsprpcd, otro PD estatico). NO instalar sin orden de R3.
+[Unit]
+Description=sensorspd aDSP RPC daemon (SSC)
+After=dev-fastrpc\x2dadsp.device dev-fastrpc\x2dadsp\x2dsecure.device
+ConditionPathExists=|/dev/fastrpc-adsp
+ConditionPathExists=|/dev/fastrpc-adsp-secure
+ConditionPathExists=/var/lib/uke-sensors/odm/etc/sensors/config/json.lst
+
+[Service]
+Type=exec
+ExecStartPre=/usr/local/sbin/uke-sensors-import
+ExecStart=/usr/bin/adsprpcd sensorspd
+Restart=on-failure
+RestartSec=5
+RestartPreventExitStatus=2 32
+RestartForceExitStatus=SIGTERM
+# espera a que el PD publique el acelerometro (iio-sensor-proxy busca cada sensor UNA vez al arrancar)
+ExecStartPost=/bin/sh -c 'for i in $(seq 40); do ssccli --sensor accelerometer --timeout 2 2>&1 | grep -qi "x=\|accel" && exit 0; sleep 1; done; exit 1'
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

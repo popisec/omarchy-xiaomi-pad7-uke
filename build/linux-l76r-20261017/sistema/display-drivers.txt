@@ -1,0 +1,434 @@
+1400000.interconnect
+1500000.interconnect
+15000000.apps-smmu
+1600000.interconnect
+1680000.interconnect
+16c0000.interconnect
+16e0000.interconnect
+1700000.interconnect
+17a00000.rsc:drv@2:rpmh-regulator-bobb1
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl
+17a00000.rsc:drv@2:rpmh-regulator-ebilvl
+17a00000.rsc:drv@2:rpmh-regulator-gfxlvl
+17a00000.rsc:drv@2:rpmh-regulator-lcxlvl
+17a00000.rsc:drv@2:rpmh-regulator-ldob1
+17a00000.rsc:drv@2:rpmh-regulator-ldob10
+17a00000.rsc:drv@2:rpmh-regulator-ldob11
+17a00000.rsc:drv@2:rpmh-regulator-ldob12
+17a00000.rsc:drv@2:rpmh-regulator-ldob13
+17a00000.rsc:drv@2:rpmh-regulator-ldob14
+17a00000.rsc:drv@2:rpmh-regulator-ldob15
+17a00000.rsc:drv@2:rpmh-regulator-ldob16
+17a00000.rsc:drv@2:rpmh-regulator-ldob17
+17a00000.rsc:drv@2:rpmh-regulator-ldob18
+17a00000.rsc:drv@2:rpmh-regulator-ldob19
+17a00000.rsc:drv@2:rpmh-regulator-ldob2
+17a00000.rsc:drv@2:rpmh-regulator-ldob20
+17a00000.rsc:drv@2:rpmh-regulator-ldob21
+17a00000.rsc:drv@2:rpmh-regulator-ldob22
+17a00000.rsc:drv@2:rpmh-regulator-ldob23
+17a00000.rsc:drv@2:rpmh-regulator-ldob3
+17a00000.rsc:drv@2:rpmh-regulator-ldob4
+17a00000.rsc:drv@2:rpmh-regulator-ldob5
+17a00000.rsc:drv@2:rpmh-regulator-ldob7
+17a00000.rsc:drv@2:rpmh-regulator-ldob8
+17a00000.rsc:drv@2:rpmh-regulator-ldob9
+17a00000.rsc:drv@2:rpmh-regulator-ldoc1
+17a00000.rsc:drv@2:rpmh-regulator-ldoc3
+17a00000.rsc:drv@2:rpmh-regulator-ldod1
+17a00000.rsc:drv@2:rpmh-regulator-ldod3
+17a00000.rsc:drv@2:rpmh-regulator-ldoe1
+17a00000.rsc:drv@2:rpmh-regulator-ldoe2
+17a00000.rsc:drv@2:rpmh-regulator-ldoe3
+17a00000.rsc:drv@2:rpmh-regulator-ldoe4
+17a00000.rsc:drv@2:rpmh-regulator-ldoe5
+17a00000.rsc:drv@2:rpmh-regulator-ldoe6
+17a00000.rsc:drv@2:rpmh-regulator-ldoe7
+17a00000.rsc:drv@2:rpmh-regulator-ldom1
+17a00000.rsc:drv@2:rpmh-regulator-ldom2
+17a00000.rsc:drv@2:rpmh-regulator-ldom3
+17a00000.rsc:drv@2:rpmh-regulator-ldom4
+17a00000.rsc:drv@2:rpmh-regulator-ldom6
+17a00000.rsc:drv@2:rpmh-regulator-ldom7
+17a00000.rsc:drv@2:rpmh-regulator-ldon1
+17a00000.rsc:drv@2:rpmh-regulator-ldon2
+17a00000.rsc:drv@2:rpmh-regulator-ldon3
+17a00000.rsc:drv@2:rpmh-regulator-ldon4
+17a00000.rsc:drv@2:rpmh-regulator-ldon5
+17a00000.rsc:drv@2:rpmh-regulator-ldon6
+17a00000.rsc:drv@2:rpmh-regulator-ldon7
+17a00000.rsc:drv@2:rpmh-regulator-lmxlvl
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl
+17a00000.rsc:drv@2:rpmh-regulator-msslvl
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl
+17a00000.rsc:drv@2:rpmh-regulator-nsplvl
+17a00000.rsc:drv@2:rpmh-regulator-smpb1
+17a00000.rsc:drv@2:rpmh-regulator-smpb2
+17a00000.rsc:drv@2:rpmh-regulator-smpb3
+17a00000.rsc:drv@2:rpmh-regulator-smpe1
+17a00000.rsc:drv@2:rpmh-regulator-smpe2
+17a00000.rsc:drv@2:rpmh-regulator-smpe3
+17a00000.rsc:drv@2:rpmh-regulator-smpj1
+24091000.qcom,bwmon-ddr
+240b7400.qcom,bwmon-llcc
+24100000.interconnect
+320c0000.interconnect
+3da0000.kgsl-smmu
+7400000.interconnect
+7430000.interconnect
+7e40000.interconnect
+ae00000.qcom,mdss_mdp
+ae94000.dsi
+ae94000.qcom,mdss_dsi_ctrl0
+ae95000.qcom,mdss_dsi_phy0
+ae96000.dsi
+ae96000.qcom,mdss_dsi_ctrl1
+ae97000.qcom,mdss_dsi_phy1
+af20000.rsc:drv@0:sde_rsc_rpmh
+soc:interconnect@0
+soc:interconnect@1
+soc:qcom,cam_smmu
+soc:qcom,cam_smmu:msm_cam_smmu_cdm
+soc:qcom,cam_smmu:msm_cam_smmu_cre
+soc:qcom,cam_smmu:msm_cam_smmu_icp
+soc:qcom,cam_smmu:msm_cam_smmu_ife
+soc:qcom,cam_smmu:msm_cam_smmu_jpeg
+soc:qcom,cam_smmu:msm_cam_smmu_secure
+soc:qcom,dsi-display-primary
+soc:qcom,smmu_sde_sec_cb
+soc:qcom,smmu_sde_unsec_cb
+soc:qti,smmu-proxy
+nodriver: 0.mmio-sram
+nodriver: 0.qcom,rmtfs_sharedmem
+nodriver: 10001000.csr
+nodriver: 100ff000.dcc_v2
+nodriver: 10b11000.csr
+nodriver: 10b14000.qcom,spmi-debug
+nodriver: 10c3000.qrng
+nodriver: 139004.qcom,gdsc
+nodriver: 1400000.interconnect
+nodriver: 14680000.qcom,msm-imem
+nodriver: 14680720.tz-log
+nodriver: 1500000.interconnect
+nodriver: 150018.qcom,gdsc
+nodriver: 15214c.syscon
+nodriver: 152150.syscon
+nodriver: 1680000.interconnect
+nodriver: 16b004.qcom,gdsc
+nodriver: 16c000.qcom,gdsc
+nodriver: 16c0000.interconnect
+nodriver: 1700000.interconnect
+nodriver: 17110040.qcom,wcn6750
+nodriver: 17400000.qcom,cpucp
+nodriver: 17425000.qcom,gh-qtimer
+nodriver: 177004.qcom,gdsc
+nodriver: 17800054.cpuss-sleep-stats
+nodriver: 17a00000.rsc:drv@2:qcom,dcvs-fp
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-bobb1
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-cxlvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ebilvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-gfxlvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-lcxlvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldob22
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldom1
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldom2
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldom3
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldom4
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldom6
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldom7
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldon1
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldon2
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldon3
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldon4
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldon5
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldon6
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-ldon7
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-lmxlvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-msslvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-mxclvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-mxlvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-nsplvl
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-smpb1
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-smpb3
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-smpe1
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-smpe2
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-smpe3
+nodriver: 17a00000.rsc:drv@2:rpmh-regulator-smpj1
+nodriver: 17a80000.syscon
+nodriver: 19e000.qcom,gdsc
+nodriver: 1d01000.crm
+nodriver: 1de0000.qcedev
+nodriver: 1f40000.syscon
+nodriver: 1fc0000.syscon
+nodriver: 24091000.qcom,bwmon-ddr
+nodriver: 24095000.llcc-pmu
+nodriver: 240b7400.qcom,bwmon-llcc
+nodriver: 240ba000.syscon
+nodriver: 25000000.cache-controller
+nodriver: 320c0000.interconnect
+nodriver: 32300000.remoteproc-cdsp
+nodriver: 3d68000.qcom,gmu
+nodriver: 3d99030.syscon
+nodriver: 3d99034.qcom,gdsc
+nodriver: 3d9908c.qcom,gdsc
+nodriver: 3d990a0.syscon
+nodriver: 3d99180.syscon
+nodriver: 3d99504.syscon
+nodriver: 3d9958c.syscon
+nodriver: 3da0000.qcom,kgsl-iommu
+nodriver: 6c40000.slim
+nodriver: 7400000.interconnect
+nodriver: 7430000.interconnect
+nodriver: 7e40000.interconnect
+nodriver: 816e0000.dump_display_region
+nodriver: 880000.i2c
+nodriver: 888000.qcom,qup_uart
+nodriver: 88c000.i2c
+nodriver: 88e0000.qcom,msm-eud
+nodriver: 88e8000.ssphy
+nodriver: 890000.i2c
+nodriver: a7000000.mtdoops_pmsg
+nodriver: a84000.spi
+nodriver: a8c000.i2c
+nodriver: a94000.qcom,qup_uart
+nodriver: aa00000.qcom,vidc
+nodriver: aaf0000.clock-controller
+nodriver: aaf804c.qcom,gdsc
+nodriver: aaf8078.qcom,gdsc
+nodriver: aaf80a4.qcom,gdsc
+nodriver: aaf80cc.qcom,gdsc
+nodriver: ab00000.qcom,cvp
+nodriver: ac01000.qcom,icp
+nodriver: ac13000.qcom,cam-cpas
+nodriver: ac15000.qcom,cci0
+nodriver: ac15000.qcom,cci0:qcom,actuator0
+nodriver: ac15000.qcom,cci0:qcom,cam-sensor0
+nodriver: ac15000.qcom,cci0:qcom,eeprom0
+nodriver: ac16000.qcom,cci1
+nodriver: ac25000.qcom,rt-cdm0
+nodriver: ac26000.qcom,rt-cdm1
+nodriver: ac27000.qcom,rt-cdm2
+nodriver: ac28000.qcom,rt-cdm3
+nodriver: ac29000.qcom,rt-cdm4
+nodriver: ac2a000.qcom,jpegenc0
+nodriver: ac2b000.qcom,jpegdma0
+nodriver: ac2c000.qcom,bps
+nodriver: ac42000.qcom,ipe0
+nodriver: ac62000.qcom,ife0
+nodriver: ac71000.qcom,ife1
+nodriver: ac80000.qcom,ife2
+nodriver: ac9e000.qcom,sfe0
+nodriver: aca6000.qcom,sfe1
+nodriver: acb8000.qcom,csid0
+nodriver: acba000.qcom,csid1
+nodriver: acbc000.qcom,csid2
+nodriver: accb000.qcom,csid-lite0
+nodriver: accb000.qcom,ife-lite0
+nodriver: acd0000.qcom,csid-lite1
+nodriver: acd0000.qcom,ife-lite1
+nodriver: ace4000.qcom,csiphy0
+nodriver: ace6000.qcom,csiphy1
+nodriver: ace8000.qcom,csiphy2
+nodriver: acea000.qcom,csiphy3
+nodriver: acec000.qcom,csiphy4
+nodriver: acf6000.qcom,tpg13
+nodriver: acf7000.qcom,tpg14
+nodriver: acf8000.qcom,tpg15
+nodriver: acfc000.qcom,cre
+nodriver: add7000.crm
+nodriver: adda000.syscon
+nodriver: ade0000.clock-controller
+nodriver: adf0004.qcom,gdsc
+nodriver: adf0080.qcom,gdsc
+nodriver: adf1004.qcom,gdsc
+nodriver: adf2004.qcom,gdsc
+nodriver: adf2054.qcom,gdsc
+nodriver: adf3058.qcom,gdsc
+nodriver: adf30a8.qcom,gdsc
+nodriver: adf32bc.qcom,gdsc
+nodriver: ae00000.qcom,mdss_mdp
+nodriver: ae94000.qcom,mdss_dsi_ctrl0
+nodriver: ae95000.qcom,mdss_dsi_phy0
+nodriver: ae96000.qcom,mdss_dsi_ctrl1
+nodriver: ae97000.qcom,mdss_dsi_phy1
+nodriver: af09000.qcom,gdsc
+nodriver: af0b000.qcom,gdsc
+nodriver: af20000.qcom,sde_rscc
+nodriver: af20000.rsc:drv@0:sde_rsc_rpmh
+nodriver: af54000.qcom,dp_display
+nodriver: arm-scmi.0.auto
+nodriver: b350000.pdc
+nodriver: c221000.qcom,mpm2-sleep-counter
+nodriver: c320000.sys-pm-vx
+nodriver: c3f0000.sram
+nodriver: c432000.qcom,spmi
+nodriver: chosen:framebuffer@e3940000
+nodriver: d8040000.qcom,cpucp_log
+nodriver: firmware:qcom_smcinvoke
+nodriver: firmware:qtee_shmbridge
+nodriver: gunyah-wdt
+nodriver: hypervisor
+nodriver: hypervisor:qcom,gh-watchdog
+nodriver: hypervisor:qcom,gunyah-vm
+nodriver: hypervisor:qcom,resource-manager-rpc@ef4c71dfbf2313a4
+nodriver: qcomtee
+nodriver: soc:adsp-sleepmon
+nodriver: soc:audio_etm0
+nodriver: soc:bt_wcn6750
+nodriver: soc:clock-controller@0
+nodriver: soc:cluster-device
+nodriver: soc:display_gpio_regulator@0
+nodriver: soc:dload_mode
+nodriver: soc:dma_dev
+nodriver: soc:dmesg-dump
+nodriver: soc:dummy_replicator
+nodriver: soc:dummy_sink
+nodriver: soc:ete0
+nodriver: soc:ete1
+nodriver: soc:ete2
+nodriver: soc:ete3
+nodriver: soc:ete4
+nodriver: soc:ete5
+nodriver: soc:ete6
+nodriver: soc:ete7
+nodriver: soc:funnel@10b33000
+nodriver: soc:funnel@10b44000
+nodriver: soc:funnel@10b50000
+nodriver: soc:funnel_ete
+nodriver: soc:gh-secure-vm-loader@0
+nodriver: soc:gh-secure-vm-loader@1
+nodriver: soc:gh-secure-vm-loader@2
+nodriver: soc:gic-interrupt-router
+nodriver: soc:gladiator
+nodriver: soc:google,debug-kinfo
+nodriver: soc:gpio_key
+nodriver: soc:interconnect@0
+nodriver: soc:iommu_test_device
+nodriver: soc:ipcc-self-ping-adsp
+nodriver: soc:ipcc-self-ping-apss
+nodriver: soc:ipcc-self-ping-cdsp
+nodriver: soc:ipcc-self-ping-slpi
+nodriver: soc:ipclite
+nodriver: soc:limits-stat
+nodriver: soc:lpass_stm
+nodriver: soc:mem_dump
+nodriver: soc:mini_dump_mode
+nodriver: soc:modem2_etm0
+nodriver: soc:modem_diag
+nodriver: soc:modem_etm0
+nodriver: soc:msm_cdc_pinctrl@32
+nodriver: soc:msm_cdc_pinctrl@97
+nodriver: soc:pmic-pon-log
+nodriver: soc:qcom,audio-pkt-core-platform
+nodriver: soc:qcom,c1dcvs
+nodriver: soc:qcom,cam-cdm-intf
+nodriver: soc:qcom,cam-cre
+nodriver: soc:qcom,cam-icp
+nodriver: soc:qcom,cam-isp
+nodriver: soc:qcom,cam-jpeg
+nodriver: soc:qcom,cam-req-mgr
+nodriver: soc:qcom,cam-res-mgr
+nodriver: soc:qcom,cam-sync
+nodriver: soc:qcom,cam_smmu
+nodriver: soc:qcom,cam_smmu:msm_cam_smmu_cdm
+nodriver: soc:qcom,cam_smmu:msm_cam_smmu_cre
+nodriver: soc:qcom,cam_smmu:msm_cam_smmu_icp
+nodriver: soc:qcom,cam_smmu:msm_cam_smmu_ife
+nodriver: soc:qcom,cam_smmu:msm_cam_smmu_jpeg
+nodriver: soc:qcom,cam_smmu:msm_cam_smmu_secure
+nodriver: soc:qcom,camera-flash0
+nodriver: soc:qcom,chd
+nodriver: soc:qcom,cpu-hotplug
+nodriver: soc:qcom,cpu-pause
+nodriver: soc:qcom,cpu-vendor-hooks
+nodriver: soc:qcom,cpu-voltage-cdev
+nodriver: soc:qcom,cpufreq-cdev
+nodriver: soc:qcom,cpufreq-hw-debug
+nodriver: soc:qcom,cpufreq_stats
+nodriver: soc:qcom,dcvs
+nodriver: soc:qcom,ddr-cdev
+nodriver: soc:qcom,devfreq-cdev
+nodriver: soc:qcom,dma-heaps
+nodriver: soc:qcom,dsi-display-primary
+nodriver: soc:qcom,dynpf
+nodriver: soc:qcom,glink
+nodriver: soc:qcom,glinkpkt
+nodriver: soc:qcom,gpu-coresight-cx
+nodriver: soc:qcom,gpu-coresight-gx
+nodriver: soc:qcom,gunyah-panic-notifier
+nodriver: soc:qcom,hdcp
+nodriver: soc:qcom,logbuf-vendor-hooks
+nodriver: soc:qcom,mem-buf
+nodriver: soc:qcom,mem-buf-msgq
+nodriver: soc:qcom,memlat
+nodriver: soc:qcom,memshare
+nodriver: soc:qcom,mpam
+nodriver: soc:qcom,msm-adsp-loader
+nodriver: soc:qcom,msm-adsp-notify
+nodriver: soc:qcom,msm-adsprpc-mem
+nodriver: soc:qcom,msm-cdsp-loader
+nodriver: soc:qcom,msm-ext-disp
+nodriver: soc:qcom,msm-stub-codec
+nodriver: soc:qcom,msm_fastrpc
+nodriver: soc:qcom,msm_hdcp
+nodriver: soc:qcom,pmic_glink_log
+nodriver: soc:qcom,pmu
+nodriver: soc:qcom,qmp-aop
+nodriver: soc:qcom,qmp-tme
+nodriver: soc:qcom,qrtr-gunyah-oemvm
+nodriver: soc:qcom,qrtr-gunyah-tuivm
+nodriver: soc:qcom,scmi_plh
+nodriver: soc:qcom,secure-buffer
+nodriver: soc:qcom,smmu_sde_sec_cb
+nodriver: soc:qcom,smmu_sde_unsec_cb
+nodriver: soc:qcom,smp2p_interrupt_rdbg_2_in
+nodriver: soc:qcom,smp2p_interrupt_rdbg_2_out
+nodriver: soc:qcom,smp2p_interrupt_rdbg_5_in
+nodriver: soc:qcom,smp2p_interrupt_rdbg_5_out
+nodriver: soc:qcom,smp2p_sleepstate
+nodriver: soc:qcom,sps
+nodriver: soc:qcom,test-dbl-oemvm
+nodriver: soc:qcom,test-dbl-tuivm
+nodriver: soc:qcom,test-msgq-oemvm
+nodriver: soc:qcom,test-msgq-tuivm
+nodriver: soc:qcom,tmecom-qmp-client
+nodriver: soc:qcom,userspace-cdev
+nodriver: soc:qcom,wb-display@1
+nodriver: soc:qcom,wb-display@2
+nodriver: soc:qfprom@0
+nodriver: soc:qmi-tmd-devices
+nodriver: soc:qmi-ts-sensors
+nodriver: soc:qseecom@c1700000
+nodriver: soc:qti,smmu-proxy
+nodriver: soc:reboot_reason
+nodriver: soc:regulator-ocp-notifier
+nodriver: soc:rx_core_clk
+nodriver: soc:rx_core_tx_clk
+nodriver: soc:rx_mclk2_2x_clk
+nodriver: soc:spf_core_platform
+nodriver: soc:timer
+nodriver: soc:tlmm-vm-mem-access
+nodriver: soc:tlmm-vm-test
+nodriver: soc:tmc_modem
+nodriver: soc:tpdm@10801000
+nodriver: soc:tpdm@1080d000
+nodriver: soc:tpdm@10981000
+nodriver: soc:tpdm@10b30000
+nodriver: soc:tpdm@10b46000
+nodriver: soc:turing_etm0
+nodriver: soc:tx_core_clk
+nodriver: soc:usb_audio_qmi_dev
+nodriver: soc:usb_nop_phy
+nodriver: soc:va_core_clk
+nodriver: soc:va_mini_dump
+nodriver: soc:vote_lpass_audio_hw
+nodriver: soc:vote_lpass_core_hw
+nodriver: soc:wpss_etm0
+nodriver: soc:wsa_core_clk
+nodriver: soc:wsa_core_tx_clk
+nodriver: soc:xiaomi_fingerprint
+nodriver: soc:xiaomi_hall
+nodriver: soc:xiaomi_touch
+nodriver: soc:xiaomi_wifi_gpio

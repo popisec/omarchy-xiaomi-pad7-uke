@@ -1,0 +1,38 @@
+# k52L15-bread.diff — L15 = L11 + breadcrumb post-release de PRE-BREADCRUMB (10-oct-2026, SOLO-PC, sin flashear).
+# Generado por `diff -U4` L11->L15 (no escrito a mano). Un solo bloque en
+# a6xx_gmu_start(), verbatim de docs/historia/revision/PRE-BREADCRUMB-20261010.md §4,
+# base k52-L11-tree (NO L12, NO L13s, NO L14):
+# tras el bloque `if (!ret) { K44'... }` y antes del `if (ret) DRM_DEV_ERROR`
+# (corre en AMBAS ramas, OK y FAIL, con val/ret en la mano):
+# UN solo readl gmu_read(DTCM_START+0xff7) + poke BC-bc + pr_err UKE-BC
+# (bc + initres-last + ret) + pr_flush inmediato (patron L10/L11).
+# Cero cambios de logica, cero structs, cero RAM, cero SMMU.
+# NO se tocan: S0/S1/S2, K44 A-E, K25, L10-gbif/recfg, L7-pre-rst, write +
+# wmb(), write-done/post-rst/S3, poll vendor (0x1ff)==0x100, K44', epilogo, HFI.
+# Nomenclatura L15 (tag k52L15, testigos BC-bc / UKE-BC:).
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -851,8 +851,23 @@
+ 		pr_err("UKE-K44' E: fence=%08x (esp 0; si no: bus-fault fenceado)\n",
+ 			gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_STATUS));
+ 	}
+ 
++	/* UKE-BC (diseño PRE-BREADCRUMB-20261010): breadcrumb post-release.
++	 * Base L11 (SIN L12/SIN RS). El CM3 ya está suelto y el poll decidió
++	 * (ret/val en la mano); la máquina está viva en ambas ramas (#575).
++	 * UN solo readl a la misma esclava GMU del poll/K44 (regla 3 intacta).
++	 * Baseline pre-release NO releído (taint L12; verificado en PC =
++	 * 0xffffffff). Byte bajo = último stage (§3): 03=NMI-WFI, 04=HardFault-WFI,
++	 * 01141516=stub-OK/fetch-muerto, ffffffff=CM3-no-ejecutó. */
++	{
++		u32 bc = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff7);
++		uke_poke("BC-bc");
++		pr_err("UKE-BC: bc=%#x (esp patron §3) initres-last=%#x ret=%d\n",
++		       bc, val, ret);
++		pr_flush(120, false);
++	}
++
+ 	if (ret)
+ 		DRM_DEV_ERROR(gmu->dev, "GMU firmware initialization timed out\n");
+ 
+ uke_l8_nopoll_done:

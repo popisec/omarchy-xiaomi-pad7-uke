@@ -1,0 +1,8 @@
+#!/bin/sh
+# uke-power-button — boton de encendido de la uke = suspender (s2idle). 18-oct-2026.
+# La pulsacion que DESPIERTA la tablet llega tambien a Hyprland al reanudar: sin esta guarda volveria a suspender.
+# Se ignoran pulsaciones durante 3 s tras la ultima reanudacion (/run/uke-last-resume, de systemd-sleep).
+now=$(date +%s)
+last=$(cat /run/uke-last-resume 2>/dev/null || echo 0)
+[ $((now - last)) -lt 3 ] && exit 0
+exec systemctl suspend

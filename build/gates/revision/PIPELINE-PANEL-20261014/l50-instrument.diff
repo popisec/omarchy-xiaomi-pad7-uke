@@ -1,0 +1,83 @@
+diff -aur a/drivers/gpu/drm/msm/dsi/dsi_host.c b/drivers/gpu/drm/msm/dsi/dsi_host.c
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c	2026-10-14 16:53:44.781145543 +0200
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c	2026-10-14 16:53:50.599290067 +0200
+@@ -1457,12 +1457,17 @@
+ 		return ret;
+ 	}
+ 
++	uke_poke("K50-dma-base");
++	pr_err("K50-dma-base=%llx id=%d\n", (unsigned long long)dma_base, msm_host->id);
+ 	reinit_completion(&msm_host->dma_comp);
+ 
+ 	dsi_wait4video_eng_busy(msm_host);
++	uke_poke("K50-vid-ok");
+ 
+ 	triggered = msm_dsi_manager_cmd_xfer_trigger(
+ 						msm_host->id, dma_base, len);
++	uke_poke("K50-trig-done");
++	pr_err("K50-trig-done: id=%d triggered=%d\n", msm_host->id, triggered);
+ 	if (triggered) {
+ 		ret = wait_for_completion_timeout(&msm_host->dma_comp,
+ 					msecs_to_jiffies(200));
+@@ -2194,8 +2199,11 @@
+ 	 * mdp clock need to be enabled to receive dsi interrupt
+ 	 */
+ 	pm_runtime_get_sync(&msm_host->pdev->dev);
++	uke_poke("K50-clk-rate");
+ 	cfg_hnd->ops->link_clk_set_rate(msm_host);
+ 	cfg_hnd->ops->link_clk_enable(msm_host);
++	uke_poke("K50-clk-en");
++	pr_err("K50-clk-en: id=%d\n", msm_host->id);
+ 
+ 	/* TODO: vote for bus bandwidth */
+ 
+@@ -2207,6 +2215,8 @@
+ 		msm_host->dma_cmd_ctrl_restore |
+ 		DSI_CTRL_CMD_MODE_EN |
+ 		DSI_CTRL_ENABLE);
++	uke_poke("K50-ctrl-ok");
++	pr_err("K50-ctrl-ok: id=%d\n", msm_host->id);
+ 	dsi_intr_ctrl(msm_host, DSI_IRQ_MASK_CMD_DMA_DONE, 1);
+ 
+ 	return 0;
+@@ -2381,6 +2391,8 @@
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+ 
++	uke_poke("K50-commit");
++	pr_err("K50-commit: id=%d base=%08x len=%u\n", msm_host->id, dma_base, len);
+ 	dsi_write(msm_host, REG_DSI_DMA_BASE, dma_base);
+ 	dsi_write(msm_host, REG_DSI_DMA_LEN, len);
+ 	dsi_write(msm_host, REG_DSI_TRIG_DMA, 1);
+diff -aur a/drivers/gpu/drm/msm/dsi/dsi_manager.c b/drivers/gpu/drm/msm/dsi/dsi_manager.c
+--- a/drivers/gpu/drm/msm/dsi/dsi_manager.c	2026-10-14 16:53:44.781049411 +0200
++++ b/drivers/gpu/drm/msm/dsi/dsi_manager.c	2026-10-14 16:53:50.598527544 +0200
+@@ -506,6 +506,9 @@
+ 	if (!msg->tx_buf || !msg->tx_len)
+ 		return 0;
+ 
++	uke_poke("K50-mgr-enter");
++	pr_err("K50-mgr-enter: id=%d need_sync=%d\n", id, need_sync);
++
+ 	/* In bonded master case, panel requires the same commands sent to
+ 	 * both DSI links. Host issues the command trigger to both links
+ 	 * when DSI_1 calls the cmd transfer function, no matter it happens
+@@ -515,14 +518,18 @@
+ 		return is_read ? msg->rx_len : msg->tx_len;
+ 
+ 	if (need_sync && msm_dsi0) {
++		uke_poke("K50-prep0-before");
+ 		ret = msm_dsi_host_xfer_prepare(msm_dsi0->host, msg);
++		uke_poke("K50-prep0-after");
+ 		if (ret) {
+ 			pr_err("%s: failed to prepare non-trigger host, %d\n",
+ 				__func__, ret);
+ 			return ret;
+ 		}
+ 	}
++	uke_poke("K50-prep1-before");
+ 	ret = msm_dsi_host_xfer_prepare(host, msg);
++	uke_poke("K50-prep1-after");
+ 	if (ret) {
+ 		pr_err("%s: failed to prepare host, %d\n", __func__, ret);
+ 		goto restore_host0;

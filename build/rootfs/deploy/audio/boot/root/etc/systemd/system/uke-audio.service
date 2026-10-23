@@ -1,0 +1,35 @@
+[Unit]
+Description=uke: audio (AudioReach E2d: overlay q6apm/q6prm + apr) al arranque
+Documentation=file:///etc/uke/LEEME file:///usr/local/sbin/uke-audio-up.sh file:///usr/local/sbin/uke-bootguard
+# Persistencia de E2d (build/gates/revision/AUDIO-E2d-RESULTADO-20261018.md). NO VERIFICADO EN FRIO: se instala con `deploy.sh --service`
+# y NO se habilita hasta `deploy.sh --arm`. Mismas protecciones que uke-wifi/uke-bt:
+#  1) INTERRUPTORES manuales:  touch /etc/uke/no-audio   (o /etc/uke/safe-mode: ni WiFi ni BT ni escritorio ni audio)
+#  2) GUARDA automatica (uke-bootguard, ExecCondition): si el intento anterior no llego a 'ok' (cuelgue + reset fisico), cuenta un fallo;
+#     con 2 seguidos se omite solo hasta `uke-bootguard reset audio`.
+# El ADSP lo arranca uke-carga.service (auto_boot): este servicio solo espera a que este running. `apr` sigue en la blacklist de autoload.
+ConditionPathExists=!/etc/uke/no-audio
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionPathExists=/usr/local/sbin/uke-bootguard
+ConditionKernelVersion=*senemos*
+After=local-fs.target systemd-udevd.service uke-carga.service
+Wants=systemd-udevd.service uke-carga.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# WAIT_ADSP 60 + WAIT_APM 75 + modprobe: margen para que systemd no mate la unidad a medias (el ExecStopPost borraria el pending)
+TimeoutStartSec=240
+# 2 = AMARILLO (cargado pero sin ver el estado del APM a tiempo): no es un fallo del servicio
+SuccessExitStatus=2
+# exit 1 = omitir sin fallo (interruptor/guarda); 0 = adelante
+ExecCondition=/usr/local/sbin/uke-bootguard begin audio
+ExecStart=/usr/local/sbin/uke-audio-up.sh --service
+# el guion volvio: la carga de apr/q6apm no colgo la tablet -> limpia el 'pending' YA (no a los 180 s)
+ExecStartPost=/usr/local/sbin/uke-bootguard ok audio
+ExecStopPost=/usr/local/sbin/uke-bootguard ok audio
+# Sin ExecStop a proposito (descargar en cada apagado es un camino sin probar). A mano: /usr/local/sbin/uke-audio-up.sh --down
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,30 @@
+[Unit]
+Description=uke: audio E8 (4 FS19xx + tarjeta UKE de los altavoces) al arranque
+Documentation=file:///etc/uke/LEEME file:///usr/local/sbin/uke-audio-amps-up.sh
+# Etapa 2 del audio. NO VERIFICADO EN FRIO: se instala con `deploy-amps.sh --service` y NO se habilita hasta `deploy-amps.sh --arm`.
+# Interruptores: touch /etc/uke/no-audio-amps (solo esta etapa), /etc/uke/no-audio, /etc/uke/safe-mode.
+# Guarda: contador PROPIO `audio-amps` de uke-bootguard (si esta etapa cuelga la tablet y hay reset fisico, el siguiente arranque cae a e8b y con 2 seguidos se omite
+# hasta `uke-bootguard reset audio-amps`; el interruptor /etc/uke/no-audio-amps coincide con ese nombre). NO comparte contador con la etapa 1 (si lo compartiera, el `ok` de la etapa 1 borraria el fallo de la 2).
+ConditionPathExists=!/etc/uke/no-audio-amps
+ConditionPathExists=!/etc/uke/no-audio
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionPathExists=/usr/local/sbin/uke-bootguard
+ConditionKernelVersion=*senemos*
+Requires=uke-audio.service
+After=uke-audio.service local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=120
+SuccessExitStatus=2
+ExecCondition=/usr/local/sbin/uke-bootguard begin audio-amps
+ExecStart=/usr/local/sbin/uke-audio-amps-up.sh --service
+ExecStartPost=/usr/local/sbin/uke-bootguard ok audio-amps
+ExecStopPost=/usr/local/sbin/uke-bootguard ok audio-amps
+# Sin ExecStop a proposito. A mano: /usr/local/sbin/uke-audio-amps-up.sh --down (no tras un oops: reiniciar)
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

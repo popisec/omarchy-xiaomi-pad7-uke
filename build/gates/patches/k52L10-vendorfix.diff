@@ -1,0 +1,113 @@
+# k52L10-vendorfix.diff — L10 = L9 + fix vendor C1+C2 (10-oct-2026, SOLO-PC, sin flashear).
+# Generado por `diff -U4` L9->L10 (no escrito a mano). Hunk unico entre S1 y el
+# write en a6xx_gmu_start() (diseno §3 de build/gates/revision/CRITICA-HW-20261010.md):
+# (1) C1: gpu_write GBIF_HALT=0 + RBBM_GBIF_HALT=0 + readbacks + poke L10-gbif
+# + flush; (2) C2: re-escribir CM3_FW_INIT_RESULT=0, CM3_BOOT_CONFIG=2,
+# CM3_CFG=0x4052, fence BIT31|0x32<<18|0x8a0 (rama a7xx: Adreno 732),
+# HFI_QTBL_ADDR/INFO + poke L10-recfg + flush; (3) GENERAL_9 preservado
+# (leer-antes-de-S1, escribir-tras-S1) en vez de 0; (4) wmb() tras SYSRESET=0
+# (C7, gratis); (5) write SYSRESET=0 RESTAURADO (L9 lo comento, #573 cerro el
+# veredicto) + pokes write-done/post-rst/S3 + goto nopoll-ok intactos.
+# Lectura prevista: nopoll-ok con el CM3 suelto => LLAVE (a por poll vendor
+# bit8 + HFI); muerte en pre-rst/write-done => C1/C2 inocentes, cae a C3/C5.
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -632,9 +632,10 @@
+ static int a6xx_gmu_start(struct a6xx_gmu *gmu)
+ {
+ 	struct a6xx_gpu *a6xx_gpu = container_of(gmu, struct a6xx_gpu, gmu);
+ 	struct adreno_gpu *adreno_gpu = &a6xx_gpu->base;
+-	u32 mask, reset_val, val;
++	struct msm_gpu *gpu = &adreno_gpu->base;
++	u32 mask, reset_val, val, gen9_saved = 0;
+ 	int ret;
+ 
+ 	uke_poke("S0-dtcmR");
+ 	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
+@@ -669,20 +670,31 @@
+ 		     val, mask, reset_val,
+ 		     ((val & mask) == reset_val) ? "OK(fw dejo el magic)" :
+ 		     "STALE/NO-OK(fw NO dejo el magic: la imagen no llego a la RAM del CM3)");
+ 
++	/* UKE-L10 (10-oct-2026): GENERAL_9 preservado (vendor §2-fila 5: el vendor
++	 * restaura log_wptr_retention, no escribe 0). Se lee ANTES de afirmar
++	 * el reset y se re-escribe tras S1. */
++	if (adreno_is_a8xx(adreno_gpu))
++		gen9_saved = gmu_read(gmu, REG_A8XX_GMU_GENERAL_9);
++	else if (adreno_is_a7xx(adreno_gpu))
++		gen9_saved = gmu_read(gmu, REG_A7XX_GMU_GENERAL_9);
++	else
++		gen9_saved = gmu_read(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP);
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 1);
+ 	uke_poke("S1-rst1");
+ 
+ 	/* Set the log wptr index
+ 	 * note: downstream saves the value in poweroff and restores it here
++	 *
++	 * UKE-L10 (10-oct-2026): se restaura el valor leido pre-S1 en vez de 0.
+ 	 */
+ 	if (adreno_is_a8xx(adreno_gpu))
+-		gmu_write(gmu, REG_A8XX_GMU_GENERAL_9, 0);
++		gmu_write(gmu, REG_A8XX_GMU_GENERAL_9, gen9_saved);
+ 	else if (adreno_is_a7xx(adreno_gpu))
+-		gmu_write(gmu, REG_A7XX_GMU_GENERAL_9, 0);
++		gmu_write(gmu, REG_A7XX_GMU_GENERAL_9, gen9_saved);
+ 	else
+-		gmu_write(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP, 0);
++		gmu_write(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP, gen9_saved);
+ 	uke_poke("S2-gen9");
+ 
+ 	/* UKE-K44 (3-oct-2026, ledger #499): SOLO LECTURA de los registros que
+ 	 * definen desde donde fetch-ea el CM3, impresa ANTES de soltar el reset
+@@ -751,17 +763,47 @@
+ 	uke_poke("L7-k25ok");
+ 	pr_err("UKE-L7: k25-ok\n");
+ 	pr_flush(120, false);
+ 
++	/* UKE-L10 (10-oct-2026): fix vendor C1+C2 (§3 CRITICA-HW-20261010),
++	 * entre S1 y el release. C1: sanear el GBIF halted (el vendor lo
++	 * limpia justo antes del boot: "may not get cleared if the gdsc was
++	 * not reset"). C2: re-programar el CM3 tras afirmar el reset (el
++	 * vendor programa CM3_CFG/BOOT_CONFIG/fence/HFI despues del reset,
++	 * no antes). Cada paso con readback+poke+flush para la ACM. */
++	gpu_write(gpu, REG_A6XX_GBIF_HALT, 0);
++	gpu_read(gpu, REG_A6XX_GBIF_HALT);
++	gpu_write(gpu, REG_A6XX_RBBM_GBIF_HALT, 0);
++	gpu_read(gpu, REG_A6XX_RBBM_GBIF_HALT);
++	uke_poke("L10-gbif");
++	pr_err("UKE-L10: gbif-ok\n");
++	pr_flush(120, false);
++
++	gmu_write(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT, 0);
++	gmu_write(gmu, REG_A6XX_GMU_CM3_BOOT_CONFIG, 0x02);
++	gmu_write(gmu, REG_A6XX_GMU_CM3_CFG, 0x4052);
++	gmu_write(gmu, REG_A6XX_GMU_AHB_FENCE_RANGE_0,
++		  BIT(31) |
++		  FIELD_PREP(GENMASK(30, 18), 0x32) |
++		  FIELD_PREP(GENMASK(17, 0), 0x8a0));
++	gmu_write(gmu, REG_A6XX_GMU_HFI_QTBL_ADDR, gmu->hfi.iova);
++	gmu_write(gmu, REG_A6XX_GMU_HFI_QTBL_INFO, 1);
++	uke_poke("L10-recfg");
++	pr_err("UKE-L10: recfg-ok\n");
++	pr_flush(120, false);
++
+ 	/* UKE-L7 (10-oct-2026): ANTES del write SYSRESET=0 (si el write mata,
+ 	 * pre-rst sale y post-rst no). */
+ 	uke_poke("L7-pre-rst");
+ 	pr_err("UKE-L7: pre-rst\n");
+ 	pr_flush(120, false);
+-	/* UKE-L9 (10-oct-2026): MINUS-write — el write SYSRESET=0 COMENTADO
+-	 * (vs L8, que lo mantiene). SOLO esta linea; pokes+flushes, S3 y el
+-	 * goto nopoll-ok quedan intactos. */
+-	/* gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0); */
++	/* UKE-L10 (10-oct-2026): write RESTAURADO (L9 lo comento y #573 cerro el
++	 * veredicto: el write mata sin el fix) + wmb() vendor tras el release
++	 * (C7, gratis: adreno_gen7_gmu.c device_start hace SYSRESET=0 + wmb).
++	 * Si C1+C2 sanearon el release, write-done sale; si no, pre-rst es el
++	 * ultimo testigo y C1/C2 caen a C3/C5. */
++	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
++	wmb();
+ 	/* UKE-L8 (10-oct-2026): write-done INMEDIATO tras el write (si el
+ 	 * write mata, pre-rst sale y write-done no). */
+ 	uke_poke("L8-write-done");
+ 	pr_err("UKE-L8: write-done\n");

@@ -1,0 +1,352 @@
+#!/bin/sh
+# s118-cons: initramfs de CONSOLA UNICA + VOLCADO AUTOMATICO de diagnostico por el ACM.
+#
+# POR QUE se inundaba el ACM con s107: la "shell" sobre ttyGS0 era un bucle infinito en
+# segundo plano que ABRIA Y CERRABA el dispositivo en cada pasada:
+#   ( while :; do printf 'S83-SHELL>' > /dev/ttyGS0; read -r line < /dev/ttyGS0 &&
+#     sh -c "$line" > /dev/ttyGS0 2>&1; done ) &
+# Nunca salia: en cuanto read fallaba (EOF/EIO al cerrar/reabrir el puerto en el PC, o
+# reconexion del host) reintentaba a maxima velocidad, apilando UN PROMPT POR VUELTA en
+# el buffer del ACM; y la salida de cada sh -c competia con los prompts del bucle (N
+# escritores sobre la misma tty). Resultado visto desde el PC: prompts "S83-SHELL>" a
+# mogollon y comandos triturados por la intercalacion.
+#
+# s118 en su lugar:
+#   1) Montajes, ventana UDC, setup configfs del gadget y bind (con reintento)
+#      IDENTICOS a s107: es la parte que funciona y NO se toca.
+#   2) Tras el bind: sleep 3 y VOLCADO AUTOMATICO de diagnostico a /dev/ttyGS0 entre
+#      marcadores ===X9DUMP-BEGIN=== / ===X9DUMP-END=== (uptime, dmesg tail -120,
+#      partitions, /dev/sd* y /dev/block, udc, cmdline). Cada ciclo entrega al PC un
+#      informe completo sin interaccion. (tail no tiene symlink pero el applet SI va
+#      dentro de este busybox: se llama como "busybox tail".)
+#   3) UN SOLO shell de consola: setsid sh </dev/ttyGS0 >/dev/ttyGS0 2>&1 en segundo
+#      plano, SIN bucle de relanzamiento. Un unico escritor = prompt/salida limpios.
+#      Si muere, muere: el reboot de fin de ventana rearranca el ciclo entero.
+#   4) Ventana de gracia de 300 s y reboot -f (como s107): el ciclo sigue y el ACM
+#      re-enumera. Se ELIMINA el panico deliberado del final (echo c > sysrq-trigger):
+#      el canal ramoops DDR esta muerto (#250), el volcado ahora sale por el ACM y el
+#      panico solo anadia un reset sucio.
+#
+# Serial del gadget: UKE-S95 -> UKE-S120 (identifica la build desde el PC con udev).
+#
+# Interfaz con el pintor (drivers/soc/qcom/uke-panic-fb.c) - tokens que este init emite:
+#   X9INIT-KMSG-OK / X9INIT-MNT* / X9INIT-CFGFS-* / X9INIT-console-*
+#   X9COLD (ficheros de pstore del arranque anterior)
+#   X9USB-UDC-si / X9USB-UDC-no    X9USB-BIND-ok / X9USB-BIND-mal
+#   X9DT-utmi-si/-no (dtbo s107 aplicado al DT vivo)
+#   X9DONE (ancla de ventana)      X9S118 (sello de este init)
+#   X9DUMP-BEGIN / X9DUMP-END (solo por ttyGS0, alrededor del informe entero)
+kmsg() { echo "$*" > /dev/kmsg 2>/dev/null; }
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+# --- S123: panic=10 en runtime (elimina el limbo-panico para siempre) ---
+# Leccion #261: el fork desactiva el watchdog => un panic = cuelgo eterno hasta Power
+# fisico. Con panic=10, cualquier pánico (incluido PID1 muerto tras switch_root) rebota
+# en 10 s y el ciclo continúa sin dueño.
+echo 10 > /proc/sys/kernel/panic 2>/dev/null && kmsg "S123: panic=10 runtime OK (no mas limbo)" || kmsg "S123: panic=10 no disponible"
+
+
+# --- PUNTOS DE MONTAJE (identico a s107) ---
+# Sin /dev no hay /dev/kmsg; sin /sys/kernel/config el gadget jamas se crea; sin
+# /sys/fs/pstore no hay X9COLD. Se crean aqui ademas de existir en el cpio.
+mkdir -p /dev /proc /sys /tmp /run /mnt 2>/dev/null
+mkdir -p /sys/kernel/config /sys/fs/pstore /sys/kernel/debug 2>/dev/null
+mount -t proc proc /proc 2>/dev/null
+mount -t sysfs sys /sys 2>/dev/null
+# H9-ronda5: crear los subdirectorios ANTES de taparlos con el mount no vale; tras montar.
+mkdir -p /sys/kernel/config /sys/fs/pstore /sys/kernel/debug 2>/dev/null
+mount -t devtmpfs dev /dev 2>/dev/null
+mkdir -p /dev/pts /dev/shm /tmp /sys/kernel/config 2>/dev/null
+mount -t devpts devpts /dev/pts 2>/dev/null
+mount -t tmpfs tmpfs /tmp 2>/dev/null
+mount -t configfs none /sys/kernel/config 2>/dev/null
+mount -t debugfs none /sys/kernel/debug 2>/dev/null
+
+# --- AUTOTEST DEL INSTRUMENTO (identico a s107; conserva el marker X9INIT del gate) ---
+if [ -w /dev/kmsg ]; then
+  kmsg "X9INIT-KMSG-OK los marcadores del init LLEGAN al ring buffer"
+else
+  mknod /dev/kmsg c 1 11 2>/dev/null
+  kmsg "X9INIT-KMSG-mknod hubo que crear /dev/kmsg a mano"
+fi
+grep -q " /proc " /proc/mounts 2>/dev/null && kmsg "X9INIT-MNTproc-OK" || kmsg "X9INIT-MNTproc-FALLO"
+grep -q " /dev " /proc/mounts 2>/dev/null && kmsg "X9INIT-MNTdev-OK" || kmsg "X9INIT-MNTdev-FALLO"
+grep -q " /sys " /proc/mounts 2>/dev/null && kmsg "X9INIT-MNTsys-OK" || kmsg "X9INIT-MNTsys-FALLO"
+[ -d /sys/kernel/config/usb_gadget ] && kmsg "X9INIT-CFGFS-OK" || kmsg "X9INIT-CFGFS-FALLO"
+[ -e /dev/console ] && kmsg "X9INIT-console-OK" || kmsg "X9INIT-console-FALLO"
+kmsg "X9S181: init s172 (fix switch_root + consola ttyGS0)"
+kmsg "S118: init consola-unica arranca t=$(cut -d. -f1 /proc/uptime 2>/dev/null)"
+
+# --- X9COLD: pstore del ARRANQUE ANTERIOR (identico a s107) ---
+mount -t pstore pstore /sys/fs/pstore 2>/dev/null
+if [ -e /sys/fs/pstore ]; then
+  n=0
+  for f in /sys/fs/pstore/dmesg-ramoops-* /sys/fs/pstore/console-ramoops-*; do
+    [ -e "$f" ] || continue
+    n=$((n+1))
+    kmsg "X9COLD fichero=$f"
+  done
+  kmsg "X9COLD fin: $n ficheros de pstore leidos (0 = no habia nada del arranque anterior)"
+else
+  kmsg "X9COLD pstore no disponible"
+fi
+
+# --- DT vivo: sello del dtbo aplicado (version compacta del bloque de s107) ---
+D=/proc/device-tree/soc/ssusb@a600000
+if [ ! -e "$D" ]; then D=$(ls -d /proc/device-tree/soc/*ssusb* 2>/dev/null | head -1); fi
+if [ -e "$D/qcom,select-utmi-as-pipe-clk" ]; then kmsg "X9DT-utmi-si (dtbo s107 aplicado)"; else kmsg "X9DT-utmi-no (SIN select-utmi-as-pipe-clk)"; fi
+
+# ============ s136: LOG PERSISTENTE EN rescue (para leerlo desde el recovery) ============
+# El painter solo muestra una ventana de ~0.5 s y el USB aparece a t~3.5 s. Sin esto, el
+# momento interesante queda fuera de la pantalla. `rescue` (sda30) la monta el recovery
+# de Android como /cache y sus ficheros se leen SIN root: adb exec-out cat /cache/forklog.txt
+# El volcado va en BACKGROUND y cada 15 s para no bloquear nunca al PID1 (leccion de #269).
+(
+  i=0
+  while [ $i -lt 80 ]; do
+    /dump-log.sh 2>/dev/null
+    sleep 15
+    i=$((i+1))
+  done
+) &
+kmsg "S136: volcador de log persistente lanzado (rescue/sda30 cada 15 s, en background)"
+
+# ============ VENTANA UDC (identica a s107: hasta 600 s sondeando /sys/class/udc) ============
+# No se decide "sin UDC" a la primera: el probe diferido (relojes/PHY) puede tardar.
+UDC=""; UDCSEC=""; i=0
+while [ $i -lt 300 ]; do
+  UDC=$(ls /sys/class/udc 2>/dev/null | head -1)
+  if [ -n "$UDC" ]; then UDCSEC=$((i*2)); break; fi
+  sleep 2; i=$((i+1))
+done
+if [ -n "$UDC" ]; then
+  kmsg "X9USB-UDC-si (t=${UDCSEC}s desde el inicio de la ventana) [$UDC]"
+else
+  kmsg "X9USB-UDC-no (600 s de ventana sin /sys/class/udc)"
+fi
+
+# ============ GADGET ACM via configfs (identico a s107; serial -> UKE-S120) ============
+RC="-1"
+if [ -z "$UDC" ]; then
+  kmsg "S118 RAMA C: sin UDC => dwc3 no registro gadget"
+  kmsg "X9USB-BIND-mal rc=sin-udc (no hubo intento de bind)"
+else
+  G=/sys/kernel/config/usb_gadget/g1
+  mkdir -p "$G" 2>/dev/null || kmsg "S118 ACMFALLO: mkdir gadget rc=$?"
+  if [ -n "$(cat "$G/UDC" 2>/dev/null)" ]; then echo "" > "$G/UDC" 2>/dev/null; kmsg "S118: UDC liberada antes de reconfigurar"; fi
+  echo 0x1d6b > "$G/idVendor" 2>/dev/null
+  echo 0x0104 > "$G/idProduct" 2>/dev/null
+  mkdir -p "$G/strings/0x409" 2>/dev/null
+  echo UKE-S120 > "$G/strings/0x409/serialnumber" 2>/dev/null
+  echo "Xiaomi Pad 7 Linux" > "$G/strings/0x409/manufacturer" 2>/dev/null
+  echo "UKE fork shell" > "$G/strings/0x409/product" 2>/dev/null
+  mkdir -p "$G/functions/acm.usb0" 2>/dev/null || kmsg "S118 ACMFALLO: funcion acm.usb0 (usb_f_acm?)"
+  mkdir -p "$G/configs/c.1/strings/0x409" 2>/dev/null
+  echo ACM > "$G/configs/c.1/strings/0x409/configuration" 2>/dev/null
+  echo 120 > "$G/configs/c.1/MaxPower" 2>/dev/null
+  # --- S119: red por USB (ncm) junto al ACM ---
+  mkdir -p "$G/functions/ncm.usb0" 2>/dev/null && kmsg "S119: funcion ncm.usb0 creada" || kmsg "S119 NETFALLO: ncm.usb0 (¿USB_F_NCM?)"
+  ln -s "$G/functions/ncm.usb0" "$G/configs/c.1/" 2>/dev/null || kmsg "S119 NETFALLO: ln ncm"
+  ln -s "$G/functions/acm.usb0" "$G/configs/c.1/" 2>/dev/null || kmsg "S118 ACMFALLO: ln -s funcion rc=$?"
+  echo high-speed > "$G/max_speed" 2>/dev/null && kmsg "S118: max_speed=high-speed aplicado"
+  echo "$UDC" > "$G/UDC" 2>/dev/null; rc=$?
+  RC="$rc"
+  kmsg "S118 RAMA B: bind UDC='$UDC' rc=$rc releida='$(cat "$G/UDC" 2>/dev/null)'"
+  if [ "$rc" = "0" ]; then kmsg "X9USB-BIND-ok (rc=0)"; else kmsg "X9USB-BIND-mal rc=$rc"; fi
+  # Reintento (identico a s107): la UDC puede aparecer justo despues del primer fallo.
+  if [ "$rc" != "0" ]; then
+    k=0
+    while [ $k -lt 60 ]; do
+      U2=$(ls /sys/class/udc 2>/dev/null | head -1)
+      [ -n "$U2" ] && break
+      sleep 2; k=$((k+1))
+    done
+    if [ -n "$U2" ]; then
+      UDC="$U2"
+      echo "$UDC" > "$G/UDC" 2>/dev/null; rc=$?
+      [ "$rc" = "0" ] && kmsg "X9USB-BIND-ok (reintento, UDC=$UDC)" || kmsg "X9USB-BIND-mal (reintento rc=$rc)"
+    fi
+  fi
+fi
+
+# Esperar a que exista el nodo de consola del gadget (identico a s107)
+i=0
+while [ $i -lt 60 ]; do
+  if [ -e /dev/ttyGS0 ]; then kmsg "S118 ACMOK: /dev/ttyGS0 presente t=$(cut -d. -f1 /proc/uptime 2>/dev/null)"; break; fi
+  sleep 1; i=$((i+1))
+done
+[ -e /dev/ttyGS0 ] || kmsg "S118 ACMFALLO: sin ttyGS0 tras 60 s"
+
+# ============ K11 (#P30): ARMING del probe del apps-smmu CON CONSOLA VIVA ============
+# La cmdline K11 NO lleva arm_smmu.uke_smmu_probe=1: el probe del apps-smmu queda
+# diferido y DESARMADO (igual que un boot sano). Aqui, en la ventana 3,6-13 s
+# (ttyGS0 vivo a 3,57 s; UFS sin probear hasta 13,8 s), se arma por sysfs: el .set
+# del param dispara driver_deferred_probe_trigger() y el probe ARMADO corre a ~5 s
+# CON consola viva y SIN DMA de UFS -> las migas UKE-POKE son visibles pase lo que
+# pase (#P23/#P27/#P28 murieron mudas a 0,44 s sin dato).
+#
+# Desenlace del echo en BACKGROUND (decision documentada, req. c): el arming se
+# lanza desprendido tras `sync`, asi PID1 jamas bloquea en el nodo del param y el
+# flujo S123 (fsck/mount/switch_root) sigue su curso. El probe en si corre en el
+# workqueue del deferred (async): si se cuelga, se cuelga un kworker; si el kernel
+# muere entero, las migas ya salieron (kmsg + ttyGS0). La ausencia del miga
+# "UKE-K11: armado rc=" localiza la muerte DENTRO del propio arming.
+UKEP=/sys/module/arm_smmu/parameters/uke_smmu_probe
+if [ -w "$UKEP" ]; then
+  kmsg "UKE-K11: param presente (valor=$(cat "$UKEP" 2>/dev/null)) a $(cut -d. -f1 /proc/uptime)s"
+  sync
+  kmsg "UKE-K11: armando probe a $(cut -d. -f1 /proc/uptime)s (ttyGS0: $([ -e /dev/ttyGS0 ] && echo si || echo NO))"
+  echo "uke: UKE-K11 armando probe por sysfs" > /dev/ttyGS0 2>/dev/null
+  ( sync; echo 1 > "$UKEP" 2>/dev/null; kmsg "UKE-K11: armado rc=$? a $(cut -d. -f1 /proc/uptime)s" ) &
+else
+  kmsg "UKE-K11: param AUSENTE o RO (kernel sin uke_smmu_probe) - SIN arming, boot desarmado intacto"
+fi
+
+
+# --- UKE-K51 (#511): SUENO DISCRIMINADOR. 30 s de initramfs puro ANTES de
+# --- esperar/montar/fsck-ear el rootfs. Latido cada 5 s por kmsg y ttyGS0.
+kmsg "K51: sueno discriminador 30s empieza t=$(cut -d. -f1 /proc/uptime)s"
+_k51i=0
+while [ $_k51i -lt 6 ]; do
+  sleep 5
+  _k51t=$(cut -d. -f1 /proc/uptime)
+  kmsg "K51-vivo t=${_k51t}s ($(($_k51i+1))/6)"
+  echo "uke: K51-vivo t=${_k51t}s ($(($_k51i+1))/6)" > /dev/ttyGS0 2>/dev/null
+  _k51i=$((_k51i+1))
+done
+kmsg "K51: sueno COMPLETO t=$(cut -d. -f1 /proc/uptime)s — sigue el flujo S123"
+echo "uke: K51 sueno completo" > /dev/ttyGS0 2>/dev/null
+
+# ============ S123: switch_root a Ubuntu (fase 2) ============
+# Orden estricto de ESTADO.md: /proc/partitions -> candidata (particion UFS de MAYOR
+# tamano = userdata 113 GB) -> mount SOLO LECTURA con noload (sin replay del journal)
+# -> verificar /sbin/init -> remontar rw -> switch_root. Cualquier fallo = fallback fork
+# (el getty y la ventana de abajo siguen vivos: el canal de desarrollo NUNCA se pierde).
+UBUNTU=""
+max=0
+espera=0
+# X9 s180 (#381): esperar a que el UFS enumere las particiones GRANDES. El sondeo
+# viejo salia con la primera sd*N (pequena) a los ~16 s y elegia sda7 (512 bloques)
+# => fallback SIEMPRE. Ahora: hasta 240 s a que exista una particion > 20 GB
+# (userdata sda32 = 105,9 GB; sda31 = super 10,5 GB queda por debajo).
+while [ $espera -lt 120 ]; do
+  max=0; UBUNTU=""
+  while read -r maj min bloques nombre; do
+    [ -n "$bloques" ] || continue
+    case "$nombre" in
+      sd[a-z]*[0-9])
+        if [ "$bloques" -gt "$max" ] 2>/dev/null; then max=$bloques; UBUNTU=$nombre; fi ;;
+    esac
+  done < /proc/partitions
+  [ "$max" -gt 20000000 ] && break
+  [ $espera -eq 10 ] && kmsg "S123: esperando particion grande (max=$max KB por ahora)"
+  sleep 2; espera=$((espera+1))
+done
+if [ -n "$UBUNTU" ] && [ "$max" -gt 20000000 ]; then
+  kmsg "S123: raiz candidata /dev/$UBUNTU ($max KB)"
+
+# --- UKE-K50 (#510): fsck del rootfs ANTES de montarlo. La corrupcion acumulada
+# --- por las muertes sucias (norecovery) mataba el arranque a los ~8.2 s.
+if [ -x /bin/e2fsck-k50 ]; then
+  kmsg "K50: e2fsck -fy /dev/$UBUNTU ARRANCA"
+  LD_LIBRARY_PATH=/lib /bin/e2fsck-k50 -fy "/dev/$UBUNTU" >/tmp/fsck-k50.log 2>&1
+  rc=$?
+  kmsg "K50: e2fsck rc=$rc (0=limpio 1=corregido 2+3=reparado|reiniciar 4=cancelado)"
+  busybox tail -n 6 /tmp/fsck-k50.log 2>/dev/null | while IFS= read -r _l; do
+    kmsg "K50-fsck: $_l"
+  done
+  sync
+else
+  kmsg "K50: SIN e2fsck embebido (esto no deberia verse)"
+fi
+
+  mkdir -p /mnt/ubuntu 2>/dev/null
+  if mount -t ext4 -o ro,noload "/dev/$UBUNTU" /mnt/ubuntu 2>/dev/null; then
+    kmsg "S123: mount ro,noload OK — verificando init de la raiz"
+    if [ -x /mnt/ubuntu/sbin/init ] || [ -x /mnt/ubuntu/usr/sbin/init ] || [ -x /mnt/ubuntu/lib/systemd/systemd ]; then
+      kmsg "S123: RAIZ UBUNTU VERIFICADA — remontando rw y switch_root"
+      mount -o remount,rw /mnt/ubuntu 2>/dev/null || kmsg "S123 AVISO: remount rw fallo (raiz en ro)"
+      kmsg "X9S123-SWITCH t=$(cut -d. -f1 /proc/uptime 2>/dev/null) raiz=/dev/$UBUNTU"
+      sync
+      # S133: matar telnetd (y cualquier lector de ttyGS0 ya lanzado) para que el
+      # serial-getty de systemd no compita por el tty. El shell de consola aun no
+      # existe en este punto (se lanza despues del bloque S123).
+      busybox killall telnetd 2>/dev/null
+      /dump-log.sh 2>/dev/null
+      kmsg "S136: log persistente volcado justo antes del switch_root"
+      # X9 s181 (#382): RESTAURADO exec. El s172 lo quito "por seguridad" pero
+      # busybox switch_root EXIGE ser PID1: sin exec corre como HIJO y se niega
+      # ("must be used as PID 1") => la S123 llegaba hasta aqui y fallaba en 60 ms
+      # (visto en vivo en s180). El applet existe en este busybox (verificado).
+      exec busybox switch_root /mnt/ubuntu /sbin/init
+    else
+      kmsg "S123: montada pero SIN init (¿userdata sin rootfs?) — fallback fork"
+      umount /mnt/ubuntu 2>/dev/null
+    fi
+  else
+    kmsg "S123: mount ro fallo — fallback fork"
+  fi
+else
+  kmsg "S123: sin particion >20 GB (UFS?) — fallback fork"
+fi
+
+
+
+# ============ s118: VOLCADO AUTOMATICO de diagnostico por el ACM ============
+# Se emite ANTES de lanzar el getty: el informe llega al PC limpio, sin prompts.
+if [ -e /dev/ttyGS0 ]; then
+  # --- S119: IP en la interfaz de red del gadget + telnetd (la base de trabajo) ---
+  IFACE=$(ls /sys/class/net 2>/dev/null | busybox grep -vE "lo|sit0" | head -1)
+  if [ -n "$IFACE" ]; then
+    busybox ifconfig "$IFACE" 192.168.42.129 netmask 255.255.255.0 up && kmsg "S119 NET-OK: $IFACE=192.168.42.129" || kmsg "S119 NETFALLO: ifconfig $IFACE"
+  else
+    kmsg "S119 NETFALLO: sin interfaz de red (¿bind sin ncm?)"
+  fi
+  busybox telnetd -l /bin/sh -p 23 2>/dev/null && kmsg "S119 TELNET-OK: :23" || kmsg "S119 TELNETFALLO"
+  # consola scriptable: sin echo del lado del fork (el PC gestiona el suyo)
+  busybox stty -echo < /dev/ttyGS0 2>/dev/null && kmsg "S119 TTY: -echo aplicado" || kmsg "S119 TTY: stty fallo"
+  sleep 3
+  {
+    echo "===X9DUMP-BEGIN==="
+    echo "--- sello/uptime: S123-root"
+    cat /proc/uptime
+    echo "--- kernel (dmesg, ultimas 120 lineas):"
+    busybox dmesg 2>/dev/null | busybox tail -n 120
+    echo "--- partitions:"
+    cat /proc/partitions
+    echo "--- /dev/sd* /dev/block:"
+    ls /dev/sd* /dev/block 2>&1
+    echo "--- ps:"; busybox ps 2>/dev/null | head -25
+
+    echo "--- stty ttyGS0:"; busybox stty -a < /dev/ttyGS0 2>/dev/null | head -3
+
+    echo "--- udc:"
+    ls /sys/class/udc
+    echo "--- cmdline:"
+    cat /proc/cmdline
+    echo "===X9DUMP-END==="
+  } > /dev/ttyGS0 2>&1 &
+  # S133: en background — si el PC no drena el ACM, el write se duerme en el hijo,
+  # jamas en PID1 (causa del cuelgue del arranque anterior). El sleep da margen a
+  # que el volcado arranque antes del getty.
+  sleep 1
+  kmsg "X9S118: volcado de diagnostico emitido a ttyGS0 (X9DUMP-BEGIN..END, en bg)"
+else
+  kmsg "X9S118: sin ttyGS0, no hay volcado por ACM"
+fi
+
+# ============ s118: UN SOLO getty, SIN bucle de relanzamiento ============
+# Un unico escritor sobre ttyGS0. Si el shell muere, muere: no hay respawn; el reboot
+# de fin de ventana rearranca el ciclo y el ACM re-enumera.
+if [ -e /dev/ttyGS0 ]; then
+  ( exec </dev/ttyGS0 >/dev/ttyGS0 2>&1; while IFS= read -r line; do eval "$line"; done ) &
+  kmsg "S118 RAMA A: getty unico sobre /dev/ttyGS0 (pid=$!, sin respawn)"
+  kmsg "X9DONE t=$(cut -d. -f1 /proc/uptime 2>/dev/null) getty=unico"
+fi
+
+# ============ VENTANA DE GRACIA + REBOOT (como s107: 300 s) ============
+# X9 s175 (#369): ventana INFINITA — el shell de ttyGS0 es ahora el canal de
+# trabajo; el ciclo por reboot solo servia para re-enumrar el ACM y estorbaba.
+while :; do sleep 60; done
+# Fondo de emergencia: el PID1 NUNCA sale (un exit de PID1 = panic del kernel).
+while :; do sleep 60; done

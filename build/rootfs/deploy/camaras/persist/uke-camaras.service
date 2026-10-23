@@ -1,0 +1,15 @@
+# PREPARADO 22-oct-2026, NO INSTALADO (decisión del dueño, docs/historia/DUDAS-CAMARAS.md §3). Carga única de las cámaras en el arranque.
+[Unit]
+Description=uke: camaras (trasera OV13B10 + VCM, frontal OV08D10) una vez por arranque
+After=uke-carga.service systemd-modules-load.service
+Before=uke-camaras-lente.service
+ConditionPathExists=!/etc/uke/no-camaras
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/uke-camaras/uke-camaras-up.sh
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+# /etc/udev/rules.d/71-uke-pen.rules — NO instalada. 20-oct-2026.
+# input_id (60-input-id.rules) ya etiqueta ID_INPUT_TABLET a un nodo con ABS_X/Y + BTN_TOOL_PEN + BTN_STYLUS; esta regla es cinturon y tirantes
+# por si la clasificacion del uinput saliera como pantalla tactil (BTN_TOUCH + INPUT_PROP_DIRECT) y para dejar el nodo de botones como teclado.
+# Ejecutar DESPUES de 60-input-id.rules (por eso el numero 71). Tras instalar: udevadm control --reload && udevadm trigger -s input
+ACTION=="remove", GOTO="uke_pen_end"
+SUBSYSTEM!="input", GOTO="uke_pen_end"
+KERNEL!="event[0-9]*", GOTO="uke_pen_end"
+ATTRS{id/vendor}!="2717", GOTO="uke_pen_end"
+
+ATTRS{id/product}=="4d80", ATTRS{name}=="uke Focus Pen", ENV{ID_INPUT_TABLET}="1", ENV{ID_INPUT_TOUCHSCREEN}="", ENV{ID_INPUT_MOUSE}=""
+ATTRS{id/product}=="4d81", ATTRS{name}=="uke Focus Pen Buttons", ENV{ID_INPUT_KEY}="1", ENV{ID_INPUT_KEYBOARD}="1", ENV{ID_INPUT_TABLET}=""
+
+LABEL="uke_pen_end"

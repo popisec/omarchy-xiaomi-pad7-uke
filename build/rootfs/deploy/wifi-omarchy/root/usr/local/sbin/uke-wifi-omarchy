@@ -1,0 +1,112 @@
+#!/bin/bash
+# uke-wifi-omarchy — (EN LA TABLET) cambia wlan0 de wpa_supplicant+networkd a NetworkManager (solo wlan0) y vuelve.
+#   apply     migra la red guardada (el PSK hash se lee del conf de wpa_supplicant; nunca sale de la tablet), arma el
+#             revert automatico, conmuta, verifica y, si todo va bien, cancela el revert.
+#   revert    vuelve al esquema anterior (lo que usa tambien el temporizador de seguridad).
+#   status    solo lectura.
+# usb0 NO se toca nunca; apply aborta si usb0 no tiene 192.168.42.129 y revert/apply lo comprueban al final.
+set -u
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+ST=/var/lib/uke-wifi-omarchy
+WPA=/etc/wpa_supplicant/wpa_supplicant-nl80211-wlan0.conf
+NET=/etc/systemd/network/20-uke-wlan.network
+NETOFF=$ST/20-uke-wlan.network.orig
+NMDIR=/etc/NetworkManager/system-connections
+REVERT_SECS=${REVERT_SECS:-180}
+LOG=/var/log/uke-wifi-omarchy.log
+say() { printf '%s %s\n' "$(date +%F_%T)" "$*" | tee -a "$LOG"; }
+usb_ok() { ip -4 -o addr show dev usb0 2>/dev/null | grep -q '192\.168\.42\.129/24'; }
+wlan_state() { nmcli -t -g GENERAL.STATE device show wlan0 2>/dev/null; }
+
+do_revert() {
+	say "== REVERT a wpa_supplicant + networkd =="
+	systemctl disable --now uke-wifi-nm.service >/dev/null 2>&1
+	systemctl stop NetworkManager.service >/dev/null 2>&1
+	[ -f "$NETOFF" ] && cp -a "$NETOFF" "$NET"
+	[ -f "$ST/wpa.conf.orig" ] && [ ! -f "$WPA" ] && cp -a "$ST/wpa.conf.orig" "$WPA"
+	rm -f "$NMDIR"/uke-*.nmconnection "$NET.disabled-by-wifi-omarchy" "$WPA.disabled-by-wifi-omarchy"
+	networkctl reload 2>&1 | tee -a "$LOG"
+	ip link set wlan0 up 2>/dev/null
+	systemctl start wpa_supplicant-nl80211@wlan0.service 2>&1 | tee -a "$LOG"
+	networkctl reconfigure wlan0 2>&1 | tee -a "$LOG"
+	rm -f /etc/uke/wifi-nm
+	sync
+	say "usb0 $(usb_ok && echo OK || echo ROTA)"
+}
+
+case "${1:-status}" in
+status)
+	echo "NM: $(systemctl is-active NetworkManager)  wpa@wlan0: $(systemctl is-active wpa_supplicant-nl80211@wlan0)  unit uke-wifi-nm: $(systemctl is-enabled uke-wifi-nm 2>&1)"
+	echo "wlan0: $(wlan_state)"; ip -br a show dev wlan0; ip -br a show dev usb0; nmcli -t -f NAME,DEVICE connection show 2>&1 | head
+	echo "revert timer: $(systemctl is-active uke-wifi-omarchy-revert.timer 2>&1)" ;;
+revert) do_revert ;;
+apply)
+	[ "$(id -u)" = 0 ] || { echo root; exit 1; }
+	mkdir -p "$ST"
+	usb_ok || { say "ABORTO: usb0 sin 192.168.42.129/24"; exit 1; }
+	[ -f "$WPA" ] || { say "ABORTO: falta $WPA (¿ya migrado?)"; exit 1; }
+	command -v nmcli >/dev/null || { say "ABORTO: sin NetworkManager"; exit 1; }
+	ssid=$(sed -n 's/^[[:space:]]*ssid="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$WPA" | head -1)
+	psk=$(sed -n 's/^[[:space:]]*psk=\([0-9a-f]\{64\}\)$/\1/p' "$WPA" | head -1)
+	[ -n "$ssid" ] && [ -n "$psk" ] || { say "ABORTO: no hay ssid + psk hash de 64 hex en $WPA; que el dueño meta la clave en el panel"; exit 1; }
+	[ -f "$ST/wpa.conf.orig" ] || cp -a "$WPA" "$ST/wpa.conf.orig"
+	[ -f "$NETOFF" ] || cp -a "$NET" "$NETOFF"
+	cp -a /usr/lib/systemd/system-sleep/uke-resume-stamp "$ST/uke-resume-stamp.orig" 2>/dev/null
+	# 1. red de seguridad: revert automatico si nadie lo cancela
+	systemctl stop uke-wifi-omarchy-revert.timer uke-wifi-omarchy-revert.service >/dev/null 2>&1
+	systemd-run --unit=uke-wifi-omarchy-revert --on-active="$REVERT_SECS" --collect /usr/local/sbin/uke-wifi-omarchy revert >/dev/null
+	say "revert automatico armado a $REVERT_SECS s"
+	# 2. keyfile de la red guardada (psk = hash de 64 hex; permiso 600)
+	umask 077
+	f="$NMDIR/uke-wifi.nmconnection"
+	cat > "$f" <<KF
+[connection]
+id=$ssid
+uuid=$(uuidgen)
+type=wifi
+interface-name=wlan0
+autoconnect=true
+
+[wifi]
+mode=infrastructure
+ssid=$ssid
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=$psk
+
+[ipv4]
+method=auto
+route-metric=600
+
+[ipv6]
+method=auto
+KF
+	chmod 600 "$f"; chown root:root "$f"
+	# 3. conmutar
+	touch /etc/uke/wifi-nm
+	systemctl stop wpa_supplicant-nl80211@wlan0.service 2>&1 | tee -a "$LOG"
+	mv "$NET" "$NET.disabled-by-wifi-omarchy"; networkctl reload 2>&1 | tee -a "$LOG"
+	mv "$WPA" "$WPA.disabled-by-wifi-omarchy"
+	systemctl daemon-reload
+	systemctl enable uke-wifi-nm.service >/dev/null 2>&1
+	systemctl restart NetworkManager.service 2>&1 | tee -a "$LOG"
+	# 4. verificar (60 s)
+	ok=0
+	for _ in $(seq 1 60); do
+		case "$(wlan_state)" in 100*) ip -4 -o addr show dev wlan0 | grep -q inet && { ok=1; break; } ;; esac
+		sleep 1
+	done
+	gw=$(ip route show default dev wlan0 | awk '{print $3; exit}')
+	if [ "$ok" = 1 ] && [ -n "$gw" ] && ping -c2 -W2 -I wlan0 "$gw" >/dev/null 2>&1 && usb_ok; then
+		say "VERDE: wlan0 conectada por NM ($(ip -4 -br a show wlan0)), gw $gw responde, usb0 intacta. Cancelo el revert."
+		systemctl stop uke-wifi-omarchy-revert.timer
+		sync
+	else
+		say "ROJO: estado='$(wlan_state)' gw='${gw:-}' usb0=$(usb_ok && echo ok || echo rota). Revierto ya."
+		systemctl stop uke-wifi-omarchy-revert.timer
+		do_revert
+		exit 2
+	fi ;;
+*) echo "uso: $0 apply|revert|status"; exit 1 ;;
+esac

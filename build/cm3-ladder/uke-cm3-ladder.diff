@@ -1,0 +1,245 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -296,7 +296,16 @@
+ 	u32 mask, reset_val, val;
+ 	int ret;
+ 
++	/* UKE-CM3 ladder L10: PRIMER readl del camino CM3 (antes de tocar el
++	 * reset). Si el bloque GMU esta sin reloj/power, el cuelgue cae AQUI
++	 * y la ultima linea del log es este PRE.
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE dtcm-magic reg=0x%05x\n",
++		     REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
++	uke_poke("L10-pre-dtcm");
+ 	val = gmu_read(gmu, REG_A6XX_GMU_CM3_DTCM_START + 0xff8);
++	uke_poke("L10-post-dtcm");
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: POST dtcm-magic val=%#x\n", val);
+ 	if (val <= 0x20010004) {
+ 		mask = 0xffffffff;
+ 		reset_val = 0xbabeface;
+@@ -312,27 +321,80 @@
+ 	DRM_DEV_INFO(gmu->dev, "UKE-CM3DBG: dtcm-magic=%#x mask=%#x reset_val=%#x\n",
+ 		     val, mask, reset_val);
+ 
++	/* UKE-CM3 ladder L11: SYSRESET=1 (assert). writel es posted: si el bus
++	 * esta wedged, el hang se vera en el siguiente readl, no aqui.
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE sysreset-assert reg=0x%05x val=0x1\n",
++		     REG_A6XX_GMU_CM3_SYSRESET);
++	uke_poke("L11-pre-rst1");
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 1);
++	uke_poke("L11-post-rst1");
+ 	uke_poke("S1-rst1");
+ 
+ 	/* Set the log wptr index
+ 	 * note: downstream saves the value in poweroff and restores it here
+ 	 */
+-	if (adreno_is_a8xx(adreno_gpu))
++	/* UKE-CM3 ladder L12: indice del log wptr (la rama depende del
++	 * silicio; uke/Adreno 732 es a7xx -> A7XX_GMU_GENERAL_9).
++	 */
++	if (adreno_is_a8xx(adreno_gpu)) {
++		DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE logwptr-a8 reg=0x%05x\n",
++			     REG_A8XX_GMU_GENERAL_9);
++		uke_poke("L12-pre-logw");
+ 		gmu_write(gmu, REG_A8XX_GMU_GENERAL_9, 0);
+-	else if (adreno_is_a7xx(adreno_gpu))
++		uke_poke("L12-post-logw");
++	} else if (adreno_is_a7xx(adreno_gpu)) {
++		DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE logwptr-a7 reg=0x%05x\n",
++			     REG_A7XX_GMU_GENERAL_9);
++		uke_poke("L12-pre-logw");
+ 		gmu_write(gmu, REG_A7XX_GMU_GENERAL_9, 0);
+-	else
++		uke_poke("L12-post-logw");
++	} else {
++		DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE logwptr-a6 reg=0x%05x\n",
++			     REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP);
++		uke_poke("L12-pre-logw");
+ 		gmu_write(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_RESP, 0);
++		uke_poke("L12-post-logw");
++	}
+ 	uke_poke("S2-gen9");
+ 
+ 
++	/* UKE-CM3 ladder L13: SYSRESET=0 (release). El CM3 empieza a fetchear
++	 * aqui; si su fetch muere, el siguiente readl (canario L14) es el que
++	 * se cuelga.
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE sysreset-release reg=0x%05x val=0x0\n",
++		     REG_A6XX_GMU_CM3_SYSRESET);
++	uke_poke("L13-pre-rst0");
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_SYSRESET, 0);
++	uke_poke("L13-post-rst0");
+ 	uke_poke("S3-rst0");
+ 
++	/* UKE-CM3 ladder L14 (canario): UN SOLO readl de FW_INIT_RESULT antes
++	 * del sondeo. Distingue "bus wedged al soltar el reset" (cuelgue aqui,
++	 * ultima linea = PRE canary) de "cuelgue dentro del poll" (el canario
++	 * vuelve y el poll no termina -> firma dependiente del fw/CM3 vivo).
++	 * FW_INIT_RESULT es solo-lectura de estado: leerlo no cambia nada.
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE canary-init-result reg=0x%05x\n",
++		     REG_A6XX_GMU_CM3_FW_INIT_RESULT);
++	uke_poke("L14-pre-canary");
++	val = gmu_read(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT);
++	uke_poke("L14-post-canary");
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: POST canary-init-result val=%#x\n", val);
++
++	/* UKE-CM3 ladder L15: sondeo de FW_INIT_RESULT. Si vuelve con ret!=0
++	 * el bus FUNCIONA y el CM3 no contesto (timeout != cuelgue).
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE poll-init-result reg=0x%05x mask=%#x expect=%#x\n",
++		     REG_A6XX_GMU_CM3_FW_INIT_RESULT, mask, reset_val);
++	uke_poke("L15-pre-poll");
+ 	ret = gmu_poll_timeout(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT, val,
+ 		(val & mask) == reset_val, 100, 100000);
++	uke_poke("L15-post-poll");
+ 	uke_poke("S4-poll");
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: POST poll-init-result ret=%d last=%#x\n",
++		     ret, val);
+ 
+ 	if (ret)
+ 		DRM_DEV_ERROR(gmu->dev, "GMU firmware initialization timed out\n");
+@@ -347,10 +409,20 @@
+ 	u32 val;
+ 	int ret;
+ 
++	/* UKE-CM3 ladder L16: lo que hay DESPUES del CM3. Si L15 cerro y esto
++	 * no, el CM3 arranco pero el HFI no contesta (otro cuelgue distinto).
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE hfi-init reg=0x%05x\n",
++		     REG_A6XX_GMU_HFI_CTRL_INIT);
++	uke_poke("L16-pre-hfi");
+ 	gmu_write(gmu, REG_A6XX_GMU_HFI_CTRL_INIT, 1);
++	uke_poke("L16-mid-hfi");
+ 
+ 	ret = gmu_poll_timeout(gmu, REG_A6XX_GMU_HFI_CTRL_STATUS, val,
+ 		val & 1, 100, 10000);
++	uke_poke("L16-post-hfi");
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: POST hfi-init ret=%d last=%#x\n",
++		     ret, val);
+ 	if (ret)
+ 		DRM_DEV_ERROR(gmu->dev, "Unable to start the HFI queues\n");
+ 
+@@ -932,8 +1004,17 @@
+ 	}
+ 
+ 	uke_poke("F3-loopOK");
++	/* UKE-CM3 ladder L00: este readl prueba el bloque GMU en fase de
++	 * carga. Si L00 vuelve pero L10+ se cuelga, es gating de power/reloj
++	 * entre carga y arranque, no bloque muerto.
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE fw-version reg=0x%05x\n",
++		     REG_A6XX_GMU_CORE_FW_VERSION);
++	uke_poke("L00-pre-ver");
+ 	ver = gmu_read(gmu, REG_A6XX_GMU_CORE_FW_VERSION);
++	uke_poke("L00-post-ver");
+ 	uke_poke("F4-verOK");
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: POST fw-version val=%#x\n", ver);
+ 	DRM_INFO_ONCE("Loaded GMU firmware v%u.%u.%u\n",
+ 		      FIELD_GET(A6XX_GMU_CORE_FW_VERSION_MAJOR__MASK, ver),
+ 		      FIELD_GET(A6XX_GMU_CORE_FW_VERSION_MINOR__MASK, ver),
+@@ -1001,14 +1082,28 @@
+ 		uke_poke("H7-fw");
+ 	}
+ 
++	/* UKE-CM3 ladder L01: limpiar INIT_RESULT + BOOT_CONFIG antes de
++	 * soltar al CM3. Son writes (posted); el poke por acceso basta.
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE cfg-init-result reg=0x%05x\n",
++		     REG_A6XX_GMU_CM3_FW_INIT_RESULT);
++	uke_poke("L01-pre-initres");
+ 	/* Clear init result to make sure we are getting a fresh value */
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_FW_INIT_RESULT, 0);
++	uke_poke("L01-mid-initres");
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_BOOT_CONFIG, 0x02);
++	uke_poke("L01-post-bootcfg");
+ 	uke_poke("P1-initres");
+ 
++	/* UKE-CM3 ladder L02: tabla HFI que el CM3 leera al arrancar. */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE cfg-qtbl addr=%#llx\n",
++		     (unsigned long long)gmu->hfi.iova);
++	uke_poke("L02-pre-qtbl");
+ 	/* Write the iova of the HFI table */
+ 	gmu_write(gmu, REG_A6XX_GMU_HFI_QTBL_ADDR, gmu->hfi.iova);
++	uke_poke("L02-mid-qtbl");
+ 	gmu_write(gmu, REG_A6XX_GMU_HFI_QTBL_INFO, 1);
++	uke_poke("L02-post-qtbl");
+ 	uke_poke("P2-qtbl");
+ 
+ 	if (adreno_is_a8xx(adreno_gpu)) {
+@@ -1022,16 +1117,26 @@
+ 		fence_range_lower = 0xa0;
+ 	}
+ 
++	/* UKE-CM3 ladder L03: fence + CM3_CFG + chipid + logcfg. El chipid
++	 * se imprime porque es la hipotesis viva (1) del reencuadre R-57:
++	 * 0x70b0000 del catalogo para 0x43030b00 nunca validado en el GMU.
++	 */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE cfg-burst fence=0x%x/0x%x\n",
++		     fence_range_upper, fence_range_lower);
++	uke_poke("L03-pre-fence");
+ 	gmu_write(gmu, REG_A6XX_GMU_AHB_FENCE_RANGE_0,
+ 		  BIT(31) |
+ 		  FIELD_PREP(GENMASK(30, 18), fence_range_upper) |
+ 		  FIELD_PREP(GENMASK(17, 0), fence_range_lower));
++	uke_poke("L03-mid-fence");
+ 
+ 	/*
+ 	 * Snapshots toggle the NMI bit which will result in a jump to the NMI
+ 	 * handler instead of __main. Set the M3 config value to avoid that.
+ 	 */
++	uke_poke("L03-pre-cfg");
+ 	gmu_write(gmu, REG_A6XX_GMU_CM3_CFG, 0x4052);
++	uke_poke("L03-mid-cfg");
+ 
+ 	if (a6xx_info->gmu_chipid) {
+ 		chipid = a6xx_info->gmu_chipid;
+@@ -1049,20 +1154,34 @@
+ 	}
+ 
+ 	if (adreno_is_a8xx(adreno_gpu)) {
++		DRM_DEV_INFO(gmu->dev, "UKE-CM3: cfg-chipid=%#x log=%#llx (a8)\n",
++			     chipid, (unsigned long long)gmu->log.iova);
++		uke_poke("L03-pre-gen10");
+ 		gmu_write(gmu, REG_A8XX_GMU_GENERAL_10, chipid);
++		uke_poke("L03-mid-gen10");
+ 		gmu_write(gmu, REG_A8XX_GMU_GENERAL_8,
+ 			  (gmu->log.iova & GENMASK(31, 12)) |
+ 			  ((gmu->log.size / SZ_4K - 1) & GENMASK(7, 0)));
++		uke_poke("L03-post-gen8");
+ 	} else if (adreno_is_a7xx(adreno_gpu)) {
++		DRM_DEV_INFO(gmu->dev, "UKE-CM3: cfg-chipid=%#x log=%#llx (a7)\n",
++			     chipid, (unsigned long long)gmu->log.iova);
++		uke_poke("L03-pre-gen10");
+ 		gmu_write(gmu, REG_A7XX_GMU_GENERAL_10, chipid);
++		uke_poke("L03-mid-gen10");
+ 		gmu_write(gmu, REG_A7XX_GMU_GENERAL_8,
+ 			  (gmu->log.iova & GENMASK(31, 12)) |
+ 			  ((gmu->log.size / SZ_4K - 1) & GENMASK(7, 0)));
++		uke_poke("L03-post-gen8");
+ 	} else {
++		DRM_DEV_INFO(gmu->dev, "UKE-CM3: cfg-chipid=%#x log=%#llx (a6)\n",
++			     chipid, (unsigned long long)gmu->log.iova);
++		uke_poke("L03-pre-gen10");
+ 		gmu_write(gmu, REG_A6XX_GMU_HFI_SFR_ADDR, chipid);
+ 
+ 		gmu_write(gmu, REG_A6XX_GPU_GMU_CX_GMU_PWR_COL_CP_MSG,
+ 			  gmu->log.iova | (gmu->log.size / SZ_4K - 1));
++		uke_poke("L03-post-gen8");
+ 	}
+ 
+ 	/* For A7x and newer, do the CX GBIF configurations before GMU wake up */
+@@ -1075,9 +1194,11 @@
+ 	}
+ 
+ 	/* Set up the lowest idle level on the GMU */
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: PRE power-config\n");
+ 	uke_poke("P3-pwr");
+ 	a6xx_gmu_power_config(gmu);
+ 	uke_poke("P3-pwrOK");
++	DRM_DEV_INFO(gmu->dev, "UKE-CM3: POST power-config\n");
+ 
+ 	ret = a6xx_gmu_start(gmu);
+ 	if (ret) {

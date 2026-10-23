@@ -1,0 +1,57 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e4c-card.dtso — ETAPA E4c: tarjeta MINIMA para ver la primera DMA del LPASS hacia memoria de Linux, sin hardware de salida.
+ * BORRADOR del PC (18-oct-2026), NO probado en la tablet. ALTERNATIVA a uke-audio-e5-card (misma etiqueta de modelo "UKE": no cargar las dos).
+ *
+ * Que crea:
+ *   sound  qcom,sm8650-sndcard, model = "UKE"  -> driver snd_soc_sc8280xp; el kernel pide qcom/sm8650/UKE-tplg.bin (topology.c:1320)
+ *     └─ UN solo dai-link de BACKEND: cpu = bedais PRIMARY_MI2S_RX, platform = q6apm (service@3), codec = un `linux,spdif-dit` FICTICIO.
+ *   spdif-dit  codec de reproduccion generico (snd-soc-spdif-tx): sumidero digital sin hardware, solo para que el backend tenga un codec (qcom_snd_parse_of
+ *   trata un enlace sin `codec` como FRONTEND, common.c:147).
+ * Los frontends (MultiMedia1..) NO se declaran aqui: salen de la topologia (SectionPCM de UKE-tplg.bin), como en la QRD de mainline.
+ *
+ * Por que PRIMARY_MI2S_RX: no hay NINGUN pinctrl de MI2S primario en el DT vendor (solo quin_mi2s_pinctrl = TDM1 de los amplificadores y fm_i2s1),
+ * es decir esa interfaz LPAIF no tiene pines asignados: el ADSP consume los datos por DMA pero no salen por ningun pin. (INFERIDO; si estuviese cableada
+ * a algo, saldria como mucho una senal digital muda/baja: la prueba usa -40 dBFS.)
+ *
+ * Requiere e2d + e4a + e4b (usa &uke_q6apm, &uke_q6apmbedai; los `dais` ya enlazados al SMMU). No usa e3 ni e5.
+ * Cargar DESPUES de `snd-soc-spdif-tx` y `snd-soc-sc8280xp` (se autocargan por modalias), con UKE-tplg.bin ya en /lib/firmware.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			uke_dit: spdif-dit {
+				compatible = "linux,spdif-dit";
+				#sound-dai-cells = <0>;
+			};
+
+			uke_sound_e4c: sound {
+				compatible = "qcom,sm8650-sndcard", "qcom,sm8450-sndcard";
+				model = "UKE";
+
+				mi2s-playback-dai-link {
+					link-name = "PRIMARY_MI2S_RX";
+
+					cpu {
+						sound-dai = <&uke_q6apmbedai PRIMARY_MI2S_RX>;
+					};
+
+					codec {
+						sound-dai = <&uke_dit>;
+					};
+
+					platform {
+						sound-dai = <&uke_q6apm>;
+					};
+				};
+			};
+		};
+	};
+};

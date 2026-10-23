@@ -1,0 +1,24 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1789,9 +1789,18 @@
+ 	uke_poke("H2-gx");
+ 
+ 	/* Use a known rate to bring up the GMU */
+-	clk_set_rate(gmu->core_clk, 200000000);
+-	clk_set_rate(gmu->hub_clk, adreno_is_a740_family(adreno_gpu) ?
+-		     200000000 : 150000000);
++	/* UKE-K68 (9-oct-2026, BARRIDO-W4): D2-SOLO SIN D1 SIN D3.
++	 * Rama gemela de K67: SOLO el hub a 200M (tabla real
++	 * ftbl_gpu_cc_hub_clk_src={200M} desde GPLL0; pedir 150M daba -EINVAL
++	 * y rate heredado XBL en k52b2). D1 ELIMINADO (core_clk sin tocar:
++	 * el GMU conserva el rate heredado de XBL; D1 programaba el PLL
++	 * dedicado gpu_cc_pll1, la rama menos sistémica). D3 ELIMINADO como
++	 * en K66 (voto CX que no votaba y mataba en resume). Los rc NO
++	 * abortan: el experimento debe medir D2 aunque el rate falle. */
++	ret = clk_set_rate(gmu->hub_clk, 200000000);
++	pr_err("UKE-K68: D2 hub clk_set 200M rc=%d\n", ret);
++	pr_err("UKE-K68: SIN-D1 (core_clk sin tocar: rate heredado XBL) + SIN-D3 (voto CX eliminado)\n");
++	pr_flush(120, false);
+ 	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
+ 	if (ret) {
+ 		uke_poke("H3-clkFAIL");

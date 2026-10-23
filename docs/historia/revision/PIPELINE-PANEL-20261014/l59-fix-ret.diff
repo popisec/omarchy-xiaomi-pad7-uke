@@ -1,0 +1,10 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -433,6 +433,7 @@
+ 		uke_poke("L37-pps-done");
+ 		if (dsi_ctx.accum_err) {
+ 			pr_info("UKE-L37: PPS envio fallo rc=%d\n", dsi_ctx.accum_err);
++			ret = dsi_ctx.accum_err;
+ 			goto err;
+ 		}
+ 	}

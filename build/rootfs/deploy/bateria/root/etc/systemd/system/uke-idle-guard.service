@@ -1,0 +1,7 @@
+[Unit]
+Description=uke: no suspender ni apagar pantalla mientras haya sesion SSH
+[Service]
+ExecStart=/usr/local/bin/uke-idle-guard
+Restart=always
+[Install]
+WantedBy=multi-user.target

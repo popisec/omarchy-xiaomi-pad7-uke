@@ -1,0 +1,24 @@
+=== G0 pins ===
+  OK  pins (s285 0b0b16b5 + base 3f973c78), fragmento y herramientas
+=== G1: extraer payload s285 ===
+  OK  payload s285 (157 frags, max=2401), sin GENI tocado
+=== G2: aislar SOLO fragment@2202 (bus i2c@a80000 del KTZ) ===
+  OK  compila con 1 fragmento anadido (2202->2402, /soc/qcom,qupv3_0_geni_se@ac0000/i2c@a80000)
+=== G3: fdtoverlay (gate 1: el ABL haria lo mismo) ===
+  OK  fdtoverlay verde (s286 y s285)
+=== G4: el bus del KTZ cambia, y SOLO el ===
+  OK  vallas 1+2+2b: compatible mainline + clock-names=se + dmas al GPI de su wrapper + proto I2C
+  OK  los 2 gpi-dma intactos de s285 (sm6350 + channels + mask)
+  OK  los 6 GENI no tocados siguen identicos a s285
+=== G5: paridad s285 ===
+  OK  gpr disabled + backlight resuelto + OPP 148648750 + panel identico: paridad s285
+=== G5b: diff exhaustivo m285 vs m286 (solo el bus puede diferir) ===
+  OK  set de nodos identico (4267 nodos, ninguno creado ni borrado)
+  OK  cero cambios fuera de /soc/qcom,qupv3_0_geni_se@ac0000/i2c@a80000
+=== G6: dt_table + roundtrip ===
+  OK  dt_table (1 entrada) + roundtrip; 608530 B
+=== G7: uke-dtbo-check.py (GATE, no aviso) ===
+  OK  uke-dtbo-check.py limpio
+
+PUBLICADO: ~/proyectos/omarchy-uke/build/bootimg/s286-boot-dtbo-gpu-display-gpi-i2c-ktz.img
+sha256 = 33d153f2cec617e2a7c8512559d57a06e1a9c15844b57106ee0891374aa2f419

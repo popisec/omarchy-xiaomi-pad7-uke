@@ -1,0 +1,163 @@
+# Artefactos grandes o derivados: fuera de git, referenciados por sha256 en
+# build/gates/SHA-BUENOS.txt. Git lleva el CÓDIGO y los INFORMES.
+build/rootfs/staging/
+build/rootfs/dl/
+build/rootfs/pkgs/
+build/rootfs/arch-rootfs.img
+build/rootfs/arch-rootfs.img.gz
+build/rootfs/*.img
+build/rootfs/*.gz
+build/bootimg/boot-arch-uke.img
+build/bootimg/initramfs-arch-uke.cpio.gz
+build/rootfs/uke-arch-root
+*.swp
+*~
+build/rootfs/*.pub
+# Artefactos de makepkg (pkg/, src/, paquetes construidos): reproducibles
+# con `makepkg` desde el PKGBUILD + blobs. Fuera de git.
+build/pkg/*/pkg/
+build/pkg/*/src/
+build/pkg/*/*.pkg.tar.zst
+# Backups e imagenes de boot leidas o reempaquetadas (96-100 MB cada una):
+# DERIVADOS, fuera de git. Se regeneran con los scripts de build/gates/
+# (ver build/gates/POR-QUE-FUERA-DE-GIT.md); el sha manda, no el fichero.
+build/backup-par-bueno/
+build/bootimg/*.img
+# Arbol de build del kernel (salida de make, GBs): derivado, fuera de git.
+# Se recompila con build/gates/build-pokes.sh. Nunca ha estado en el indice.
+build/kernel-pokes/
+# Logs de build (salida de compilador, crecen con cada build): derivados,
+# fuera de git. El registro curado va en build/gates/, el ledger y NOTAS.
+build/logs/
+# BCB limpio de 8192 B: derivado (se regenera con build/gates/bcb-clean-8192.py),
+# fuera de git. El sha manda y esta en build/gates/DECISION-misc-BCB.md.
+build/gates/misc-zeros-8192.img
+# Caché de .db de ALARM para stage-p2-ctrl.py (10+ MB, re-descargable con --download)
+build/pkg/staging-p2-ctrl/*.db
+
+# Evidencia cruda (DTs reconstruidos, consolas, configs): grande, regenerable desde
+# los artefactos citados; el sha manda en build/gates/SHA-EVIDENCIA-28SEP.txt
+build/evidencia/
+# Binarios .ko derivados (recompilables con build/gates/compilar-panel-o82.sh): sha en el informe
+build/pkg/*/*.ko
+__pycache__/
+# Cache de las .db de pacman (10 MB cada una) y los .pkg (60 MB) del staging
+# de P2-ctrl: se regeneran con build/gates/stage-p2-ctrl.py --download
+build/pkg/staging-p2-ctrl/
+
+# RE del vendor (F1-F3): C decompilado de Ghidra, 19 MB. Derivado y reproducible:
+#   build/tools/ghidra/ExportAllDecompiled.java sobre el proyecto ~/ghidra-projects/uke-msm_drm
+build/vendor-re/decomp/
+
+# 17-oct: blobs del vendor regenerables (sha256 en sus README/SHA*.txt, que SI van en git)
+build/android/dt-full-uke-android/
+build/android/vendor-static-display-20261017/configs/
+build/android/vendor-static-display-20261017/configs.tar
+build/android/vendor-static-display-20261017/modules/*.ko
+build/gates/revision/RE-NOCTURNO-20261017/artifacts/wifi/amss-kiwi-tabletProbe.bin
+
+# capturas de deploy/omarchy (deploy.sh shot)
+build/rootfs/deploy/omarchy/out/
+# Registro y calibracion de sensores sacados de Android (ficheros del fabricante y del aparato): fuera de git.
+build/android/sensores-*/
+# Configs del fabricante sacadas de Android (termica, camara, WiFi): fuera de git.
+build/android/vendor-cfg-*/
+# Binarios y firmware del fabricante (Qualcomm/Xiaomi/Novatek): NO se versionan (regla del proyecto; 20-oct-2026).
+# Copia con sha256 en ~/backups/uke-vendor-blobs-20261020/ (fuera del repo). Siguen en el historial anterior a este commit:
+# NO publicar este repo tal cual sin reescribir el historial.
+build/android/*.bin
+build/android/*.mbn
+build/android/*.elf
+build/android/vendor-modules-*/
+build/android/flash-b/*.img
+build/android/lapiz-*/binarios/*
+!build/android/lapiz-*/binarios/SHA256.txt
+build/gates/lib/firmware/
+build/gates/revision/RE-NOCTURNO-*/artifacts/**/*.ko
+build/gates/revision/RE-NOCTURNO-*/artifacts/**/*.so
+build/gates/revision/RE-NOCTURNO-*/artifacts/wifi/*.bin
+build/gates/revision/RE-NOCTURNO-*/artifacts/wifi/*.elf
+build/gates/revision/RE-NOCTURNO-*/artifacts/wifi/*.mdt
+build/gates/revision/RE-NOCTURNO-*/artifacts/wifi/*.b0[0-9]
+build/pkg/uke-fw-radio/*.mdt
+build/pkg/uke-fw-radio/*.mbn
+build/pkg/uke-fw-radio/*.bin
+build/pkg/uke-fw-radio/*.b[0-9][0-9]
+build/pkg/uke-gpu-firmware/*.bin
+build/pkg/uke-gpu-firmware/*.mbn
+build/rootfs/deploy/wifi/root/usr/lib/firmware/*
+# ... pero su MANIFIESTO de sha256 si se versiona: son hashes y origen, no firmware.
+!build/rootfs/deploy/wifi/root/usr/lib/firmware/uke-wifi-fw.sha256
+charge/firmware/*.mdt
+charge/firmware/*.b[0-9][0-9]
+# Firmware de amplificadores FourSemi (.fsm) y copias de /etc de la tablet (contienen claves SSH de host y /etc/shadow):
+# nunca en git (21-oct-2026). Copias en ~/backups/uke-vendor-blobs-20261020/.
+*.fsm
+build/backup/tablet-*/etc-*.tar*
+build/rootfs/deploy/camaras/out/good-*.raw
+out-ciclo14/*.ko
+out-ciclo14/*.dtbo
+out-ciclo14/merged.dtb
+build/rootfs/deploy/camaras/out/b14-*.raw
+build/rootfs/deploy/camaras/out/b15-*.raw
+
+# --- Repo público (22-oct-2026): nada binario ni del fabricante, nada del aparato ni secretos ---
+*.img
+*.simg
+*.ko
+*.so
+*.o
+*.mdt
+*.mbn
+*.b[0-9][0-9]
+*.b[0-9a-f][0-9a-f]
+*.bin
+*.elf
+*.fsm
+*.acdb
+*.qdb
+*.dtb
+*.dng
+*.raw
+*.tar
+*.tar.*
+*.zip
+*.apk
+*.log
+*.pem
+*.key
+id_*
+!id_*.pub
+build/rootfs/uke-arch-root*
+build/bootimg/
+# build/android/ entero (blobs del fabricante y volcados de la tablet), pero
+# con una excepcion: el manifiesto de SHA256 del lapiz SI se versiona, porque
+# el sha es lo que se publica, no el fichero. Ojo: la excepcion solo funciona
+# si el DIRECTORIO no esta ignorado ("build/android/**" en vez de
+# "build/android/"), porque git no baja a un directorio excluido.
+build/android/**
+!build/android/lapiz-*/
+!build/android/lapiz-*/binarios/
+!build/android/lapiz-*/binarios/SHA256.txt
+build/backup/
+build/stage-escritorio/
+build/vendor-re/
+out/
+**/out/
+**/out-*/
+# Solo las capturas que se generan al hacer deploy; las que se citan en
+# los informes (build/gates/revision/capturas-*) se versionan.
+build/rootfs/deploy/*/out/capturas-*/
+build/logs/**/capturas-*/
+**/etc/shadow*
+**/etc/gshadow*
+**/ssh_host_*
+**/system-connections/
+
+# Salida de kbuild/make (modpost, .cmd, .symvers): se regenera en cada build.
+# No aportan nada al repo y filtran rutas del arbol de compilacion local.
+*.cmd
+*.mod.c
+*.mod.o
+*.symvers
+*.o.d

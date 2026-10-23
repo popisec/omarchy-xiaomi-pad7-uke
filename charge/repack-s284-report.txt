@@ -1,0 +1,26 @@
+=== G0 pins ===
+  OK  pins, fragmento y herramientas
+=== G1: extraer payload s283 ===
+  OK  payload s283 (155 frags, max=2301)
+=== G2: renumerar e inyectar los 9 fragmentos del GENI ===
+  OK  9 fragmentos renumerados a 2400..2408, sin colision con 2301
+  OK  compila con los 9 fragmentos anadidos
+=== G3: fdtoverlay (gate 1: el ABL haria lo mismo) ===
+  OK  fdtoverlay verde (s284 y s283)
+=== G4: las TRES vallas, una por una (rutas derivadas del fragmento) ===
+  OK  9 target-path derivados del fragmento: 7 GENI + 2 GPI
+  OK  valla 1+2: 7/7 GENI con compatible mainline + clock-names=se + dma-names=tx,rx
+  OK  valla 2b: 7/7 dmas con phandles al GPI de su wrapper + proto correcto
+  OK  valla 3: 2/2 gpi-dma con compatible sm6350 + #dma-cells=3 + channels + mask
+=== G5: paridad s283 (nada mas puede haber cambiado) ===
+  OK  gpr disabled + backlight resuelto + OPP 148648750 + panel identico: paridad s283
+=== G5b: diff exhaustivo m283 vs m284 (el overlay no puede tocar nada mas) ===
+  OK  set de nodos identico (4267 nodos, ninguno creado ni borrado)
+  OK  cero cambios fuera de los 9 target-path del fragmento
+=== G6: dt_table + roundtrip ===
+  OK  dt_table (1 entrada) + roundtrip; 609778 B
+=== G7: gate 2 (uke-dtbo-check.py, igual que antes de flashear) ===
+  OK  uke-dtbo-check.py limpio
+
+PUBLICADO: ~/proyectos/omarchy-uke/build/bootimg/s284-boot-dtbo-gpu-display-opp148-nogpr-bl-geni.img
+sha256 = f6ed6ced41bf4bc1705e0a4cb736b7a0dba42dace1dd5b63f68f1b73c50f9454

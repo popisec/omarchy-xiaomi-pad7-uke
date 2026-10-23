@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-2.0
+# snd-q6apm.ko (parches 0005+0006) y q6apm-lpass-dais.ko (0006: ops TDM) como modulos externos con el MISMO nombre que los del arbol.
+snd-q6apm-y := q6apm.o audioreach.o topology.o
+obj-m += snd-q6apm.o q6apm-lpass-dais.o
+ccflags-y += -I$(src)

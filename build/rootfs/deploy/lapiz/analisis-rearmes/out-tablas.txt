@@ -1,0 +1,13 @@
+sesion-20261020d/20261020-144206                     hallflips= 30 dwell<1s= 3 | enable=15 (tras flip hall <0.6s: 15) disable=15 (idem 15) rearme=1 | rafagas>=5 muestras= 9 con hall 'pegado' al inicio=0
+   dwell hall: pegado med 4.2 s, despegado med 5.4 s
+sesion-20261020d/20261020-145504                     hallflips=  4 dwell<1s= 0 | enable= 2 (tras flip hall <0.6s:  2) disable= 2 (idem  2) rearme=1 | rafagas>=5 muestras= 4 con hall 'pegado' al inicio=0
+   dwell hall: pegado med 4.3 s, despegado med 56.4 s
+sesion-20261020d/20261020-145932                     hallflips= 52 dwell<1s= 5 | enable=26 (tras flip hall <0.6s: 26) disable=26 (idem 25) rearme=5 | rafagas>=5 muestras= 8 con hall 'pegado' al inicio=0
+   dwell hall: pegado med 3.0 s, despegado med 3.5 s
+sesion-20261020-d/ultima                             hallflips=  6 dwell<1s= 1 | enable= 3 (tras flip hall <0.6s:  3) disable= 3 (idem  2) rearme=1 | rafagas>=5 muestras=10 con hall 'pegado' al inicio=0
+   dwell hall: pegado med 31.9 s, despegado med 3.4 s
+sesion-20261020c/20261020-143806                     hallflips=  3 dwell<1s= 0 | enable= 1 (tras flip hall <0.6s:  1) disable= 1 (idem  1) rearme=0 | rafagas>=5 muestras= 9 con hall 'pegado' al inicio=0
+   dwell hall: pegado med 21.9 s, despegado med 118.2 s
+sesion-20261020b/20261020-115800                     hallflips= 14 dwell<1s= 1 | enable= 0 (tras flip hall <0.6s:  0) disable= 0 (idem  0) rearme=0 | rafagas>=5 muestras= 1 con hall 'pegado' al inicio=0
+   dwell hall: pegado med 40.5 s, despegado med 10.7 s
+sesion-20261020/20261020-095013                      hallflips=  1 dwell<1s= 0 | enable= 0 (tras flip hall <0.6s:  0) disable= 0 (idem  0) rearme=0 | rafagas>=5 muestras= 0 con hall 'pegado' al inicio=0

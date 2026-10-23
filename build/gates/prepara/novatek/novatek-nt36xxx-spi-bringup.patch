@@ -1,0 +1,179 @@
+--- a/drivers/input/touchscreen/novatek-nt36xxx-spi.c
++++ b/drivers/input/touchscreen/novatek-nt36xxx-spi.c
+@@ -1,6 +1,10 @@
+ // SPDX-License-Identifier: GPL-2.0-or-later
+ /*
+  * SPI driver for Novatek NT36xxx-family touch controllers
++ * (bring-up patch para el arbol in-tree; ver P2-lapiz.md §(b)):
++ *  - acepta el nodo vendor del dtbo s258 (novatek,irq-gpio -> gpiod_to_irq)
++ *  - max_x/max_y por module param (default 2136x3200, medidos en Android)
++ *  - frame_dump para el RE del layout de dedo y de los records del lapiz
+  * (Xiaomi Pad 7 "uke": NT36532, TDDI panel, touch on QUP0 SE4 SPI).
+  *
+  * PROTOCOL: verified against the actual vendor kernel module
+@@ -77,8 +81,8 @@
+ #define NVT_SPI_XFER_MAX		512	/* kmalloc'd bus buffers */
+ 
+ /* Panel del Xiaomi Pad 7 (uke): 1600x2136. Overridable por DT. */
+-#define NVT_SPI_DEF_X_SIZE		1600
+-#define NVT_SPI_DEF_Y_SIZE		2136
++#define NVT_SPI_DEF_X_SIZE		2136	/* Android: abs_x_max=2136 (rx=40) */
++#define NVT_SPI_DEF_Y_SIZE		3200	/* Android: abs_y_max=3200 (tx=60) */
+ 
+ /*
+  * LAYOUT del registro de dedo: NO verificado (ver nvt_spi_parse_point).
+@@ -90,8 +94,36 @@
+ MODULE_PARM_DESC(point_layout,
+ 		 "Finger record layout guess: 0=A(head+6B), 1=B(7B classic), 2=C(5B LE)");
+ 
++/*
++ * Ejes: el nodo VENDOR del dtbo s258 no trae touchscreen-size-x/y, asi que
++ * touchscreen_parse_properties() deja el absinfo que pongamos aqui. Valores
++ * nativos medidos en Android (nvt_ts_probe: abs_x_max=2136, abs_y_max=3200;
++ * rx_num=40 x tx_num=60). Cambiables en caliente para el triaje:
++ *   /sys/module/novatek_nt36xxx_spi_ext/parameters/max_x
++ */
++static unsigned int max_x = NVT_SPI_DEF_X_SIZE;
++static unsigned int max_y = NVT_SPI_DEF_Y_SIZE;
++module_param_named(max_x, max_x, uint, 0644);
++module_param_named(max_y, max_y, uint, 0644);
++MODULE_PARM_DESC(max_x, "ABS_MT_POSITION_X max+1 si el DT no lo trae (default 2136)");
++MODULE_PARM_DESC(max_y, "ABS_MT_POSITION_Y max+1 si el DT no lo trae (default 3200)");
++
++/*
++ * Volcado de frames crudos (256 B) para el triaje EN TABLET:
++ *   modprobe novatek-nt36xxx-spi-ext frame_dump=40
++ * o  echo 40 > /sys/module/novatek_nt36xxx_spi_ext/parameters/frame_dump
++ * Sirve para (1) confirmar el layout de dedo (point_layout) y (2) empezar
++ * el RE de los records del LAPIZ (el .ko vendor no los decodifica: se los
++ * pasa crudos a xiaomi_touch.ko).
++ */
++static unsigned int frame_dump;
++static unsigned int frame_dump_done;
++module_param_named(frame_dump, frame_dump, uint, 0644);
++MODULE_PARM_DESC(frame_dump, "Vuelca en dmesg los primeros N frames no-idle (0=off)");
++
+ struct nvt_spi_data {
+ 	struct spi_device *spi;
++	int irq;			/* spi->irq o el de novatek,irq-gpio */
+ 	struct input_dev *input;
+ 	struct gpio_desc *reset_gpio;
+ 	struct mutex bus_mutex;		/* the .ko guards its bus with one */
+@@ -381,6 +413,14 @@
+ 		return IRQ_HANDLED;
+ 	}
+ 
++	if (frame_dump && frame_dump_done < frame_dump) {
++		frame_dump_done++;
++		dev_info(dev, "frame no-idle %u/%u (head %16ph):", frame_dump_done,
++			 frame_dump, ev);
++		print_hex_dump(KERN_INFO, "nvt: ", DUMP_PREFIX_OFFSET, 16, 1,
++			       ev, NVT_SPI_EVENT_DATA_LEN, false);
++	}
++
+ 	if (!nvt_spi_frame_cksum_ok(data, ev))
+ 		return IRQ_HANDLED;
+ 
+@@ -420,7 +460,7 @@
+ {
+ 	struct nvt_spi_data *data = input_get_drvdata(dev);
+ 
+-	enable_irq(data->spi->irq);
++	enable_irq(data->irq);
+ 
+ 	return 0;
+ }
+@@ -429,7 +469,7 @@
+ {
+ 	struct nvt_spi_data *data = input_get_drvdata(dev);
+ 
+-	disable_irq(data->spi->irq);
++	disable_irq(data->irq);
+ }
+ 
+ static int nvt_spi_suspend(struct device *dev)
+@@ -530,11 +570,36 @@
+ 	struct device *dev = &spi->dev;
+ 	struct nvt_spi_data *data;
+ 	struct input_dev *input;
+-	int error;
++	int error, irq;
++	bool irq_from_gpio;
+ 
+-	if (!spi->irq) {
+-		dev_err(dev, "no IRQ specified\n");
+-		return -EINVAL;
++	/*
++	 * IRQ: el nodo CONSTRUCTOR (fragment@1200) trae `interrupts` y esto ya
++	 * valdria; el nodo VENDOR del dtbo s258 (el que gana el CS 0) trae
++	 * `novatek,irq-gpio = <&tlmm 54 0x2001>` y spi->irq == 0. El vendor
++	 * .ko lo resuelve con gpio_to_irq (dmesg Android: novatek,irq-gpio=387
++	 * -> tlmm 54, int_trigger_type=1 = RISING). Aqui igual: gpiolib prueba
++	 * "novatek,irq-gpios" y luego "novatek,irq-gpio" (gpiolib-of.c:705).
++	 * GPIOD_IN ademas muxea el pin a funcion GPIO en el TLMM.
++	 */
++	irq = spi->irq;
++	irq_from_gpio = false;
++	if (!irq) {
++		struct gpio_desc *irq_gpio =
++			devm_gpiod_get(dev, "novatek,irq", GPIOD_IN);
++
++		if (IS_ERR(irq_gpio)) {
++			dev_err(dev, "no IRQ: ni `interrupts` ni novatek,irq-gpio (%ld)\n",
++				PTR_ERR(irq_gpio));
++			return -EINVAL;
++		}
++		irq = gpiod_to_irq(irq_gpio);
++		if (irq < 0) {
++			dev_err(dev, "gpiod_to_irq(novatek,irq-gpio) = %d\n", irq);
++			return irq;
++		}
++		irq_from_gpio = true;
++		dev_info(dev, "IRQ %d desde novatek,irq-gpio (nodo vendor s258)\n", irq);
+ 	}
+ 
+ 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
+@@ -542,6 +607,7 @@
+ 		return -ENOMEM;
+ 
+ 	data->spi = spi;
++	data->irq = irq;
+ 	spi_set_drvdata(spi, data);
+ 	mutex_init(&data->bus_mutex);
+ 
+@@ -590,9 +656,9 @@
+ 	input->close = nvt_spi_stop;
+ 
+ 	input_set_abs_params(input, ABS_MT_POSITION_X,
+-			     0, NVT_SPI_DEF_X_SIZE - 1, 0, 0);
++			     0, max_x - 1, 0, 0);
+ 	input_set_abs_params(input, ABS_MT_POSITION_Y,
+-			     0, NVT_SPI_DEF_Y_SIZE - 1, 0, 0);
++			     0, max_y - 1, 0, 0);
+ 	touchscreen_parse_properties(input, true, &data->prop);
+ 	if (data->prop.max_x + 1 > NVT_SPI_MAX_SIZE ||
+ 	    data->prop.max_y + 1 > NVT_SPI_MAX_SIZE) {
+@@ -609,9 +675,10 @@
+ 	data->input = input;
+ 	input_set_drvdata(input, data);
+ 
+-	error = devm_request_threaded_irq(dev, spi->irq, NULL, nvt_spi_irq,
++	error = devm_request_threaded_irq(dev, data->irq, NULL, nvt_spi_irq,
+ 					  IRQF_ONESHOT | IRQF_NO_AUTOEN |
+-						irq_get_trigger_type(spi->irq),
++						(irq_from_gpio ? IRQ_TYPE_EDGE_RISING :
++								 irq_get_trigger_type(spi->irq)),
+ 					  input->name, data);
+ 	if (error)
+ 		return dev_err_probe(dev, error, "failed to request irq\n");
+@@ -622,8 +689,8 @@
+ 				     "failed to register input device\n");
+ 
+ 	dev_info(dev,
+-		 "NT36xxx SPI probe ok: irq %d (trigger 0x%lx), %ux%u, transporte verificado vs nt36532_touch.ko; layout de dedo SIN verificar (point_layout=%u)\n",
+-		 spi->irq, (unsigned long)irq_get_trigger_type(spi->irq),
++		 "NT36xxx SPI probe ok: irq %d (gpio=%d, trigger 0x%lx), %ux%u, transporte verificado vs nt36532_touch.ko; layout de dedo SIN verificar (point_layout=%u)\n",
++		 data->irq, irq_from_gpio, (unsigned long)irq_get_trigger_type(data->irq),
+ 		 data->prop.max_x + 1, data->prop.max_y + 1, point_layout);
+ 
+ 	return 0;

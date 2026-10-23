@@ -1,0 +1,209 @@
+--- a/uke-touchd.py
++++ b/uke-touchd.py
+@@ -11,7 +11,7 @@
+   Coordenadas publicadas en pixeles del panel tal como lo muestra Linux (3200x2136, DSI-1). La orientacion se fija
+   con --swap-xy/--invert-* (por defecto, medido: X de pantalla = Y de Android, Y de pantalla = X de Android invertido).
+ """
+-import argparse, array, ctypes, fcntl, glob, os, select, struct, subprocess, sys, time
++import argparse, array, ctypes, fcntl, glob, os, select, signal, struct, subprocess, sys, time
+ 
+ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+ import thp_algo  # noqa: E402
+@@ -123,11 +123,24 @@
+         fcntl.ioctl(self.fd, _ioc(0, U, 1, 0))                  # UI_DEV_CREATE
+         self.slot_of = {}                                       # tracking id -> slot
+         self.buf = []
++        self.resync = False                                     # un write fallo: soltar todo antes del siguiente frame
++        self.drops = 0
+ 
+     def ev(self, t, c, v):
+         self.buf.append(struct.pack("qqHHi", 0, 0, t, c, v))
+ 
++    def close(self):
++        """Suelta los dedos que sigan apoyados y destruye el dispositivo (UI_DEV_DESTROY) antes de salir."""
++        try:
++            self.frame([])
++            fcntl.ioctl(self.fd, _ioc(0, ord('U'), 2, 0))
++        except OSError:
++            pass
++        os.close(self.fd)
++
+     def frame(self, pts):
++        if self.resync:
++            pts, self.resync = [], False                        # frame vacio: libera todos los slots ocupados
+         alive = {tid for tid, *_ in pts}
+         for tid in [t for t in self.slot_of if t not in alive]:
+             self.ev(EV_ABS, ABS_MT_SLOT, self.slot_of.pop(tid))
+@@ -155,8 +168,14 @@
+             self.ev(EV_ABS, ABS_X, first[0])
+             self.ev(EV_ABS, ABS_Y, first[1])
+         self.ev(EV_SYN, 0, 0)
+-        os.write(self.fd, b"".join(self.buf))
+-        self.buf = []
++        data, self.buf = b"".join(self.buf), []
++        try:
++            os.write(self.fd, data)
++        except OSError as e:                                    # EAGAIN con uinput lleno: perder el frame, no el demonio
++            self.drops += 1
++            self.resync = True
++            if self.drops in (1, 10, 100) or self.drops % 1000 == 0:
++                print("uke-touchd: uinput write fallo (%s), frames perdidos: %d" % (e, self.drops), flush=True)
+ 
+ 
+ FW = "/lib/firmware/novatek_nt36532_o82_fw_csot.bin"
+@@ -186,14 +205,30 @@
+ 
+ 
+ def fw_alive(spi):
+-    fi = spi.read(FWINFO, 2)
++    try:
++        fi = spi.read(FWINFO, 2)
++    except OSError as e:
++        log("fw_alive: error SPI (%s)" % e)
++        return False
+     return fi[0] == (~fi[1] & 0xFF) and fi[0] not in (0, 0xFF)
+ 
+ 
++def frame_id(spi):
++    """Contador de frame de la cabecera THP (F+4); None si el SPI falla."""
++    try:
++        return struct.unpack_from("<H", spi.read(EVENT_BUF + THP_OFF, 8), 4)[0]
++    except OSError:
++        return None
++
++
+ def load_fw():
+     t = time.monotonic()
+-    r = subprocess.run([sys.executable, "-u", FWLOAD, "--execute", "--force", "--fw", FW],
+-                       capture_output=True, text=True, timeout=60)
++    try:
++        r = subprocess.run([sys.executable, "-u", FWLOAD, "--execute", "--force", "--fw", FW],
++                           capture_output=True, text=True, timeout=60)
++    except subprocess.TimeoutExpired:
++        log("carga de firmware: timeout de 60 s")
++        return False
+     tail = [l for l in r.stdout.splitlines() if "FWINFO:" in l or "estado de reset" in l or "ERROR" in l.upper()]
+     log("carga de firmware rc=%d en %.2f s: %s" % (r.returncode, time.monotonic() - t, " | ".join(tail[-2:])))
+     return r.returncode == 0
+@@ -227,8 +262,14 @@
+             sy = SCR_H - 1 - sy
+         return int(max(0, min(SCR_W - 1, sx))), int(max(0, min(SCR_H - 1, sy)))
+ 
++    def _term(signum, frame):
++        raise SystemExit(0)                              # SIGTERM/SIGINT: salir por el finally (soltar dedos, destruir uinput)
++    signal.signal(signal.SIGTERM, _term)
++    signal.signal(signal.SIGINT, _term)
++
+     spi = Spi()
+-    ui = UInput(SCR_W, SCR_H)
++    global _UI
++    ui = _UI = UInput(SCR_W, SCR_H)
+     tr = thp_algo.Tracker()
+     gfd = None
+     if not a.no_irq:
+@@ -264,17 +305,21 @@
+     hold = a.hold_ms / 1000.0
+     idle_period = a.idle_div / 180.0                    # el chip da ~180 frames/s (medido 19-oct)
+     next_idle = 0.0
++    poll_mode = False            # IRQ perdida con el chip vivo (el contador de frame avanza sin IRQ): sondear a --hz
++    wd_fid = last_fid = None
++    last_new = time.monotonic()  # ultimo frame NUEVO visto (en sondeo, para detectar un chip congelado)
++    spi_err = bad_run = 0
+     while True:
+-        if gfd is not None and a.idle_div > 1 and ready and not was_down:
++        if (gfd is not None or poll_mode) and a.idle_div > 1 and ready and not was_down:
+             # reposo: dormir hasta el siguiente frame util; los flancos se acumulan en el fd y se vacian de una vez
+             # (60 despertares/s en vez de 180)
+             t = time.monotonic()
+             if t - last_touch > hold and next_idle > t:
+                 time.sleep(next_idle - t)
+             next_idle = max(next_idle + idle_period, time.monotonic())
+-        evs = poller.poll(500 if gfd is not None else period_ms)
++        evs = poller.poll(500 if gfd is not None and not poll_mode else period_ms)
+         now = time.monotonic()
+-        irq = gfd is None
++        irq = gfd is None or poll_mode
+         for fd, ev in evs:
+             if fd == sfd:
+                 ng, nr = read_state(sfd)
+@@ -291,6 +336,8 @@
+             continue
+         if loaded_gen != gen and not a.no_fwload:
+             time.sleep(0.05)
++            if was_down:                                  # el chip se reinicio con un dedo apoyado: soltarlo (si no, toque fantasma)
++                ui.frame([]); was_down = False
+             if load_fw():
+                 loaded_gen = gen
+                 tr.reset()
+@@ -299,20 +346,54 @@
+                 time.sleep(2)
+             continue
+         if not irq:
+-            # sin IRQ en 3 s con el panel listo: comprobar si el chip perdio el firmware (reset no notificado)
+-            if now - last_frame > 3 and not a.no_fwload:
+-                if not fw_alive(spi):
++            # sin IRQ en 3 s con el panel listo: comprobar si el chip perdio el firmware (reset no notificado) y, si
++            # sigue vivo, si el contador de frame avanza sin IRQ (linea IRQ perdida: pasar a sondeo en vez de quedar mudo)
++            if now - last_frame > 3:
++                if not a.no_fwload and not fw_alive(spi):
+                     log("sin frames y FWINFO invalido: recarga")
+                     loaded_gen = None
++                else:
++                    fid = frame_id(spi)
++                    if wd_fid is not None and fid is not None and fid != wd_fid:
++                        log("IRQ perdida: el contador de frame avanza (%d -> %d) sin flancos; paso a sondeo a %.0f Hz"
++                            % (wd_fid, fid, a.hz))
++                        poll_mode = True
++                    wd_fid = fid
+                 last_frame = now
+             continue
+         last_frame = now
+-        F = spi.read(EVENT_BUF, THP_OFF + 0x40 + 2 * thp_algo.ROWS * thp_algo.COLS, THP_OFF)
++        try:
++            F = spi.read(EVENT_BUF, THP_OFF + 0x40 + 2 * thp_algo.ROWS * thp_algo.COLS, THP_OFF)
++        except OSError as e:
++            spi_err += 1
++            if spi_err in (1, 10) or spi_err % 100 == 0:
++                log("error SPI al leer el frame (%s), consecutivos: %d" % (e, spi_err))
++            if spi_err >= 50:
++                raise SystemExit("SPI roto: salgo para que systemd relance (ExecStartPre revincula spidev)")
++            time.sleep(min(1.0, 0.02 * spi_err))
++            continue
++        spi_err = 0
+         fid, mag, nid, nmag = struct.unpack_from("<H2xH2xH2xH", F, 4)
++        if poll_mode:
++            if fid == last_fid:
++                # sondeando y no hay frame nuevo: si lleva 3 s congelado, comprobar firmware (como el camino sin IRQ)
++                if now - last_new > 3 and not a.no_fwload:
++                    if not fw_alive(spi):
++                        log("chip congelado y FWINFO invalido: recarga")
++                        loaded_gen = None
++                    last_new = now
++                continue
++            last_fid = fid
++        last_new = now
+         if mag != thp_algo.MAGIC or nmag != (~thp_algo.MAGIC & 0xFFFF) or nid != (~fid & 0xFFFF):
+             bad += 1
++            bad_run += 1
++            if was_down and bad_run >= 10:                # frames invalidos seguidos con un dedo "apoyado": liberar
++                ui.frame([]); was_down = False
++                tr.reset()
+         else:
+             good += 1
++            bad_run = 0
+             del mut[:]
+             mut.frombytes(F[0x40:0x40 + 2 * thp_algo.ROWS * thp_algo.COLS])
+             if tr.quick_idle(mut):
+@@ -335,5 +416,11 @@
+             last_log = now
+ 
+ 
++_UI = None
++
+ if __name__ == "__main__":
+-    main()
++    try:
++        main()
++    finally:
++        if _UI is not None:
++            _UI.close()

@@ -1,0 +1,66 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -604,6 +604,20 @@
+ MODULE_PARM_DESC(uke_handoff,
+ 	"UKE (K8): 0=apagado (K7); 1 (defecto)=handoff completo (barrido de SMR vivos + qcom,handoff-smrs + CB desde arriba); 2=sin barrido de SMR (solo lo que la RAM ya sabe vivo + el DT). Solo apps-smmu (0x15000000).");
+ 
++/*
++ * PARAMETRO NUEVO `uke_disp_split` (solo apps-smmu, con handoff activo; default 1):
++ *   1 = la banda display (SID 0x1c00/0x1c01) lleva GRUPO PROPIO por dispositivo:
++ *       el dpu hace iommu_attach_device normal (grupo de 1, camino K13 sin
++ *       fallback) y mdss/unsec_cb se quedan en el dominio default, en vez de
++ *       que el fallback attach_group de K13 attach-e el GRUPO ENTERO
++ *       {mdss, dpu, unsec_cb} al dominio paging del KMS.
++ *   0 = comportamiento K13 (fusion por SME compartido + fallback attach_group).
++ */
++static int uke_disp_split = 1;
++module_param(uke_disp_split, int, 0644);
++MODULE_PARM_DESC(uke_disp_split,
++	"UKE (K16): 1 (defecto)=grupos individuales para la banda display (0x1c00/0x1c01); 0=comportamiento K13 (fusion por SME + fallback attach_group).");
++
+ /* Pares <id, mask> de qcom,handoff-smrs del DT (el vendor declara 1; 8 sobra). */
+ static struct {
+ 	u16	id;
+@@ -2918,6 +2932,42 @@
+ 	int i, idx;
+ 
+ 	mutex_lock(&smmu->stream_map_mutex);
++
++	/* UKE-K16 (#P44): banda display (0x1c00/0x1c01) con GRUPO PROPIO por
++	 * dispositivo. Con s260, dpu+mdss (y el proxy unsec_cb si probea) comparten
++	 * la misma <0x1c00 0x2> -> find_sme reutiliza el SME -> la fusion de abajo
++	 * los mete en UN grupo -> el fallback attach_group de K13 attacho ese grupo
++	 * ENTERO al dominio paging del KMS. Con split, cada display va en su grupo:
++	 * el dpu pasa iommu_attach_device (grupo de 1) y el resto se queda en el
++	 * dominio default. NO se graba s2crs[idx].group: el unico lector es la
++	 * fusion de abajo, y grabarlo volveria a fundir a los siguientes (devuelve
++	 * el grupo del primero). iommu_group_alloc() da un grupo FRESCO por
++	 * dispositivo; generic_single_device_group() NO sirve aqui: es singleton
++	 * POR IOMMU y nos fundiria a los tres igual que K13. Si el alloc falla, se
++	 * cae al camino K13 (sin split). */
++	if (uke_disp_split && uke_handoff_activo(smmu)) {
++		bool display = false;
++		int j;
++
++		for (j = 0; j < fwspec->num_ids; j++) {
++			u32 sid = FIELD_GET(ARM_SMMU_SMR_ID, fwspec->ids[j]);
++
++			if (sid == 0x1c00 || sid == 0x1c01) {
++				display = true;
++				break;
++			}
++		}
++		if (display) {
++			group = iommu_group_alloc();
++			pr_info("UKE-K16: display sid=0x%04x -> grupo PROPIO rc=%ld (split)\n",
++				(unsigned)FIELD_GET(ARM_SMMU_SMR_ID, fwspec->ids[0]),
++				PTR_ERR(group));
++			if (!IS_ERR(group)) {
++				mutex_unlock(&smmu->stream_map_mutex);
++				return group;
++			}
++		}
++	}
+ 	for_each_cfg_sme(cfg, fwspec, i, idx) {
+ 		if (group && smmu->s2crs[idx].group &&
+ 		    group != smmu->s2crs[idx].group) {

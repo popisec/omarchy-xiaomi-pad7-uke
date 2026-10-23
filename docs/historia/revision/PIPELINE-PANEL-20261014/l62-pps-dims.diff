@@ -1,0 +1,42 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -408,17 +408,35 @@
+ 	 */
+ 	{
+ 		struct drm_dsc_picture_parameter_set pps;
++		/*
++		 * L62 (14-oct): la PPS es POR INTERFAZ, no por panel.
++		 *
++		 * ctx->dsc NO trae ceros a prepare-time: msm_host->dsc ES
++		 * &ctx->dsc (attach, dsi_host.c:1750) y dsi_timing_setup()
++		 * (dsi_host.c:1034-1035, via power_on en el pre_enable del
++		 * bridge DSI, ANTES del prepare del panel) ya dejo
++		 * pic_width=FULL + RC calculados. L59 envio 3200 por link;
++		 * cada link lleva 1600 px (2 slices x 800) => PPS
++		 * inconsistente (3200/800 = 4 slices). VESA DSC: pic_width =
++		 * slices x slice_width de LA INTERFAZ = 2x800 = 1600.
++		 * Copia local: el struct compartido con el host no se toca.
++		 */
++		struct drm_dsc_config dsc_link = ctx->dsc;
+ 
+ 		uke_poke("L37-pps-pack");
+-		drm_dsc_pps_payload_pack(&pps, &ctx->dsc);
++		/* Bonded dual-DSI: el modo es FULL; cada link, la mitad. */
++		dsc_link.pic_width = desc->modes[0].hdisplay / 2;
++		dsc_link.pic_height = desc->modes[0].vdisplay;
++		drm_dsc_pps_payload_pack(&pps, &dsc_link);
++		pr_info("UKE-L62: PPS dims=%ux%u por link (host=%ux%u)\n",
++			dsc_link.pic_width, dsc_link.pic_height,
++			ctx->dsc.pic_width, ctx->dsc.pic_height);
+ 		uke_poke("L37-pps-send");
+ 		/* L40 (14-oct, rev DSI): la PPS debe llegar a LOS DOS links. El
+ 		 * vendor la emite en broadcast (dsi_panel_tx_cmd_set() con
+ 		 * qcom,mdss-dsi-panel-broadcast-mode); mipi_dsi_picture_parameter_set_multi()
+ 		 * solo transmite por ctx->dsi (drm_mipi_dsi.c:1556), asi que hay que
+-		 * llamarla una vez por link. NOTA: pic_width/pic_height del PPS salen
+-		 * del template (0 a prepare-time; el host los rellena en modeset) —
+-		 * el vendor los lleva del modo; pendiente verificar byte a byte.
++		 * llamarla una vez por link (misma PPS: links simetricos).
+ 		 */
+ 		dsi_ctx.dsi = ctx->dsi[0];
+ 		mipi_dsi_picture_parameter_set_multi(&dsi_ctx, &pps);

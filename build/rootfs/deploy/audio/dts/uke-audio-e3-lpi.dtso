@@ -1,0 +1,129 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e3-lpi.dtso — ETAPA E3: controlador de pines LPI (LPASS TLMM) de mainline.
+ * ESBOZO DE E0 (18-oct-2026): compila y se aplica con fdtoverlay sobre el DT vivo, NO probado en la tablet.
+ *
+ * Requiere e2d-gpr-ports aplicado antes (E2d; etiqueta uke_q6prmcc en service@7) (usa &uke_q6prmcc: relojes LPASS_HW_MACRO_VOTE / LPASS_HW_DCODEC_VOTE,
+ * que son votos PRM al ADSP => esta etapa YA toca el ADSP).
+ *
+ * Plantilla: sm8650.dtsi `lpass_tlmm: pinctrl@6e80000` (compat sm8650, 23 pines, mismo reg 0x6e80000/0x20000
+ * que el nodo vendor `lpi_pinctrl@6E80000`, que declara `reg = <0x6e80000 0>` y compat `qcom,lpi-pinctrl`
+ * sin driver mainline: queda intacto y huerfano; los nodos OF no reservan MMIO, solo lo hacen los drivers).
+ *
+ * Estados de pin incluidos (todos medidos contra el DT vivo/Android):
+ *   - uke_tx_swr_active / uke_rx_swr_active : identicos a sm8650.dtsi (SWR TX = gpio0-2,14 ; SWR RX = gpio3-5).
+ *   - uke_wcd_reset_default : LPI gpio12 = RESET del WCD9395 (`wcd_reset` vendor, aud_active = output-high,
+ *                             aud_sleep = pull-down). En mainline el reset es `reset-gpios` con GPIO_ACTIVE_LOW:
+ *                             reposo `output-low` = en reset, como `wcd_default` de sm8650-qrd.dts.
+ *   - uke_tdm1_active : SOLO E7, sin consumidor. gpio6-9 funcion 2 = lpi_tdm1_{sck,ws,sd0,sd1} del vendor
+ *                       (quin_mi2s_pinctrl) = en el driver mainline `i2s1_clk/i2s1_ws/i2s1_data`. Ojo:
+ *                       gpio6-9 TAMBIEN son dmic01/dmic23 (funcion 1): conflicto sin resolver (informe §1.1 #14).
+ * NO se definen estados DMIC (que grupo lleva los micros reales esta por decidir) ni WSA (la uke no tiene).
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
+
+/ {
+	fragment@0 {
+		target-path = "/soc";
+
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			uke_lpi: pinctrl@6e80000 {
+				compatible = "qcom,sm8650-lpass-lpi-pinctrl";
+				reg = <0x06e80000 0x20000>;
+
+				clocks = <&uke_q6prmcc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_q6prmcc LPASS_HW_DCODEC_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+				clock-names = "core", "audio";
+
+				gpio-controller;
+				#gpio-cells = <2>;
+				gpio-ranges = <&uke_lpi 0 0 23>;
+
+				uke_tx_swr_active: tx-swr-active-state {
+					clk-pins {
+						pins = "gpio0";
+						function = "swr_tx_clk";
+						drive-strength = <2>;
+						slew-rate = <1>;
+						bias-disable;
+					};
+
+					data-pins {
+						pins = "gpio1", "gpio2", "gpio14";
+						function = "swr_tx_data";
+						drive-strength = <2>;
+						slew-rate = <1>;
+						bias-bus-hold;
+					};
+				};
+
+				uke_rx_swr_active: rx-swr-active-state {
+					clk-pins {
+						pins = "gpio3";
+						function = "swr_rx_clk";
+						drive-strength = <2>;
+						slew-rate = <1>;
+						bias-disable;
+					};
+
+					data-pins {
+						pins = "gpio4", "gpio5";
+						function = "swr_rx_data";
+						drive-strength = <2>;
+						slew-rate = <1>;
+						bias-bus-hold;
+					};
+				};
+
+				uke_wcd_reset_default: wcd-reset-n-active-state {
+					pins = "gpio12";
+					function = "gpio";
+					drive-strength = <16>;
+					bias-disable;
+					output-low;
+				};
+
+				/* E7 (altavoces por TDM1): sin consumidor hasta que exista el soporte TDM en AudioReach. */
+				uke_tdm1_active: tdm1-active-state {
+					clk-pins {
+						pins = "gpio6";
+						function = "i2s1_clk";
+						drive-strength = <8>;
+						bias-disable;
+						output-high;
+					};
+
+					ws-pins {
+						pins = "gpio7";
+						function = "i2s1_ws";
+						drive-strength = <8>;
+						bias-disable;
+						output-high;
+					};
+
+					sd0-pins {
+						pins = "gpio8";
+						function = "i2s1_data";
+						drive-strength = <8>;
+						bias-disable;
+						output-high;
+					};
+
+					sd1-pins {
+						pins = "gpio9";
+						function = "i2s1_data";
+						drive-strength = <8>;
+						bias-pull-down;
+						output-high;
+					};
+				};
+			};
+		};
+	};
+};

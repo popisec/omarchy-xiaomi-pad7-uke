@@ -1,0 +1,13 @@
+[Unit]
+Description=uke: hora desde el RTC de la PMIC + desfase guardado (y guardarlo al apagar)
+# Lo arranca udev al aparecer rtc0 (90-uke-rtc-offset.rules); no bloquea sysinit.
+DefaultDependencies=no
+After=systemd-udevd.service
+Before=chronyd.service time-sync.target shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/uke-rtc-offset restore
+ExecStop=/usr/local/sbin/uke-rtc-offset save

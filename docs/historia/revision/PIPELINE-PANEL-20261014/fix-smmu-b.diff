@@ -1,0 +1,176 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -436,22 +436,33 @@
+ MODULE_PARM_DESC(uke_protect_smr0,
+ 	"UKE (K5): 1 = si find_sme elige un indice con smrs[idx].valid del bootloader (vivo), escribe en un indice libre alto en vez de tocar el vivo; 0 (defecto) = comportamiento K4. Solo apps-smmu.");
+ /*
+- * UKE-FIX-A1 (14-oct-2026, sesion FIX): RECLAIM opt-in del SID del display.
+- * El BL deja el SID del display (0x1c00/0x2, el del splash) vivo en HW en un
+- * idx bajo PINADO (medido idx 2, dmesg ~1799), y el SMMU da prioridad al idx
+- * MAS BAJO que casa: programar solo un idx libre alto (20) no desvia el
+- * trafico (el fetch seguiria al CB del BL). Con =1, el claimant del display
+- * reutiliza la entrada del BL: se localiza por LECTURA de SMR (medida segura,
+- * #P9; el S2CR no se lee, #P13), se des-pinea SOLO ese idx y el camino normal
+- * lo reescribe (write_sme via wmask bit6, install_s2cr via bit7, CB69 via
+- * bit8). 0 (defecto) = comportamiento K8/K12 intacto. Solo apps-smmu.
+- * Requiere uke_write_mask=0x1C0. Mutuamente excluyente con uke_disp_bypass.
++ * UKE-FIX-A1b (14-oct-2026, sesion FIX, tras L51): RECLAIM QUIRURGICO del SID
++ * del display (0x1c00/0x2). L51 demostro que el wmask global 0x1C0 escribe
++ * SMEs ajenas y la del SDE (idx8, sid 0x3fff) aborta el bus (sync ext abort
++ * en write_sme, kworker deferred_probe; ledger #626): aqui uke_write_mask
++ * queda 0x0 y SOLO la entrada del display se programa, via force-idx
++ * (uke_force_sme_idx para SMR+S2CR, uke_force_cb_idx para su CB), que los
++ * gates de wmask admiten con miga+flush. 0 (defecto) = K8/K12 intacto, cero
++ * escrituras nuevas. Solo apps-smmu. Sin TLB extra: sin trafico previo no hay
++ * entradas rancias y el CB es nuevo (la F4 ya invalido en el probe).
+  */
+ static bool uke_disp_reclaim;
+ 
+ module_param(uke_disp_reclaim, bool, 0644);
+ MODULE_PARM_DESC(uke_disp_reclaim,
+-	"UKE (FIX-A1): 1 = el attach del SID del display (0x1c00/0x2) reutiliza su entrada PINADA del BL en vez de un idx libre. 0 = K8/K12. Requiere wmask 0x1C0.");
++	"UKE (FIX-A1): 1 = el attach del SID del display (0x1c00/0x2) reutiliza su entrada PINADA del BL en vez de un idx libre. 0 = K8/K12. Con wmask 0x0 SOLO programa su entrada (force-idx).");
++
++/* UKE-FIX-A1b: force-idx (-1 = nadie). Se arman en el reclaim del display
++ * y los gates de wmask los admiten; se consumen tras usarse (el reclaim
++ * los rearma en cada probe si hace falta: reescritura identica). */
++static int uke_force_sme_idx = -1;
++static int uke_force_cb_idx = -1;
++
++/* UKE-FIX-A1b: el unico SID con reclaim (display, DT palawan.dtsi). */
++static bool uke_sid_es_display(u16 sid, u16 mask)
++{
++	return sid == 0x1c00 && mask == 0x2;
++}
+ 
+ /*
+  * Bitmap de indices ya preservados por uke_attach_log=2: evita que un segundo
+@@ -1603,7 +1614,12 @@
+ 		return;
+ 	}
+ 
+-	if (!uke_wmask_on(smmu, UKE_WMASK_CTXBANK)) {
++	if (idx == uke_force_cb_idx && uke_force_cb_idx >= 0) {
++		pr_info("UKE-POKE: FIX-A1b: force-idx: PROGRAMO el CB idx=%d del dominio display (wmask bit8=0; resto intactos)\n",
++			idx);
++		pr_flush(500, false);
++	}
++	if (!uke_wmask_on(smmu, UKE_WMASK_CTXBANK) && idx != uke_force_cb_idx) {
+ 		pr_info("UKE-POKE: wmask[ctxbank]: SILENCIADA la programacion del CB idx=%d (uke_write_mask bit8=0): NO se escriben CBAR/CBA2R/TCR/TTBR/MAIR/SCTLR del dominio nuevo\n",
+ 			idx);
+ 		pr_flush(500, false);
+@@ -1611,6 +1627,8 @@
+ 	}
+ 	UKE_K9_LOG("UKE-POKE: wmask[ctxbank]: ESCRIBO el CB idx=%d (reservado desde arriba; bit8=1) con CBAR/CBA2R/TCR/TTBR/MAIR/SCTLR\n",
+ 		idx);
++	if (idx == uke_force_cb_idx)
++		uke_force_cb_idx = -1;
+ 
+ 	stage1 = cfg->cbar != CBAR_TYPE_S2_TRANS;
+ 
+@@ -1866,6 +1884,22 @@
+ 			dev_name(dev), ret, start);
+ 		goto out_unlock;
+ 	}
++	/*
++	 * UKE-FIX-A1b: si este dominio es del SID del display, su CB se
++	 * programa aunque wmask bit8=0 (force-idx; resto de CB intactos).
++	 */
++	if (uke_disp_reclaim && uke_smmu_es_apps(smmu)) {
++		struct iommu_fwspec *uke_fw = dev_iommu_fwspec_get(dev);
++
++		if (uke_fw && uke_fw->num_ids > 0 &&
++		    (u16)FIELD_GET(ARM_SMMU_SMR_ID, uke_fw->ids[0]) == 0x1c00 &&
++		    (u16)FIELD_GET(ARM_SMMU_SMR_MASK, uke_fw->ids[0]) == 0x2) {
++			uke_force_cb_idx = ret;
++			pr_info("UKE-POKE: FIX-A1b: force-idx: dominio de %s (sid display) -> su CB idx=%d se programa (wmask bit8=0; resto intactos)\n",
++				dev_name(dev), ret);
++			pr_flush(500, false);
++		}
++	}
+ 
+ 	smmu_domain->smmu = smmu;
+ 
+@@ -2359,12 +2393,16 @@
+ 		idx = ret;
+ 
+ 		/*
+-		 * UKE-FIX-A1: reclaim del display (ver param). Solo si el
+-		 * claimant es el SID del display y hay entrada BL reutilizable.
+-		 * Sin param, sin smrs, o sin entrada del BL: idx intacto.
++		 * UKE-FIX-A1b: reclaim quirurgico (ver uke_disp_reclaim). Solo si
++		 * el claimant es el SID del display y su entrada existe en HW
++		 * (lectura SMR, segura #P9). Se reescribe la copia RAM al SID
++		 * display (R5: el hold de qcedev en ese idx es solo-RAM,
++		 * sid-disjunto y sin unbind: no hay cirugia de count), se
++		 * des-pinea SOLO ese idx y se arma force-idx. Sin entrada BL:
++		 * idx intacto, cero escrituras.
+ 		 */
+ 		if (uke_disp_reclaim && uke_smmu_es_apps(smmu) &&
+-		    sid == 0x1c00 && mask == 0x2 && smmu->smrs) {
++		    uke_sid_es_display(sid, mask) && smmu->smrs) {
+ 			int uke_r;
+ 
+ 			for (uke_r = 0; uke_r < (int)smmu->num_mapping_groups; uke_r++) {
+@@ -2378,16 +2416,21 @@
+ 					continue;
+ 				break;
+ 			}
+-			if (uke_r < (int)smmu->num_mapping_groups && uke_r != idx) {
+-				pr_info("UKE-POKE: FIX-A1: reclaim display: SMR(%d) del BL casa sid=0x%x mask=0x%x (pinado=%d): %s lo reutiliza en vez de idx=%d; se des-pinea y se reescribe a TRANS->CB nuevo (wmask 6+7+8)\n",
++			if (uke_r < (int)smmu->num_mapping_groups) {
++				pr_info("UKE-POKE: FIX-A1b: reclaim display: SMR(%d) del BL casa sid=0x%x mask=0x%x (pinado=%d, count=%d): %s programa SOLO este idx (find=%d; wmask 0x0, resto intacto)\n",
+ 					uke_r, sid, mask,
+ 					uke_pinado(smmu, uke_r) ? 1 : 0,
++					smmu->s2crs[uke_r].count,
+ 					dev_name(dev), idx);
+ 				pr_flush(500, false);
++				smmu->smrs[uke_r].id = sid;
++				smmu->smrs[uke_r].mask = mask;
++				smmu->smrs[uke_r].valid = true;
+ 				smmu->s2crs[uke_r].pinned = false;
++				uke_force_sme_idx = uke_r;
+ 				idx = uke_r;
+ 			} else {
+-				pr_info("UKE-POKE: FIX-A1: reclaim display: sin entrada BL reutilizable (r=%d idx=%d): se sigue con idx=%d (K8/K12)\n",
++				pr_info("UKE-POKE: FIX-A1b: reclaim display: sin entrada BL (r=%d idx=%d): se sigue con idx=%d (K8/K12, cero escrituras)\n",
+ 					uke_r, idx, idx);
+ 			}
+ 		}
+@@ -2555,7 +2598,12 @@
+ 		 */
+ 		if (uke_wmask_activo(smmu))
+ 			pr_flush(500, false);
+-		if (!uke_wmask_on(smmu, UKE_WMASK_ATT_SME)) {
++		if (idx == uke_force_sme_idx && uke_force_sme_idx >= 0) {
++			pr_info("UKE-POKE: FIX-A1b: force-idx: ESCRIBO el SME idx=%d dev=%s (wmask bit6=0 pero reclaim display; ajenos intactos)\n",
++				idx, dev_name(dev));
++			pr_flush(500, false);
++		}
++		if (!uke_wmask_on(smmu, UKE_WMASK_ATT_SME) && idx != uke_force_sme_idx) {
+ 			pr_info("UKE-POKE: wmask[attach_sme]: SILENCIADO write_sme idx=%d dev=%s (uke_write_mask bit6=0): el mapeo nuevo queda SOLO en RAM y el HW del BL intacto\n",
+ 				idx, dev_name(dev));
+ 			pr_flush(500, false);
+@@ -2677,7 +2725,12 @@
+ 		 */
+ 		if (uke_smmu_es_apps(smmu) && (uke_attach_log >= 1 || uke_wmask_activo(smmu)))
+ 			pr_flush(500, false);
+-		if (!uke_wmask_on(smmu, UKE_WMASK_INST_S2CR)) {
++		if (idx == uke_force_sme_idx && uke_force_sme_idx >= 0) {
++			pr_info("UKE-POKE: FIX-A1b: force-idx: ESCRIBO el S2CR idx=%d a TRANS->CB nuevo (wmask bit7=0 pero reclaim display)\n",
++				idx);
++			pr_flush(500, false);
++		}
++		if (!uke_wmask_on(smmu, UKE_WMASK_INST_S2CR) && idx != uke_force_sme_idx) {
+ 			pr_info("UKE-POKE: wmask[install_s2cr]: SILENCIADO el S2CR idx=%d (uke_write_mask bit7=0): el dominio queda atado en RAM y el HW sigue con el S2CR del BL\n",
+ 				idx);
+ 			pr_flush(500, false);
+@@ -2685,6 +2738,8 @@
+ 		}
+ 		UKE_K9_LOG("UKE-POKE: wmask[install_s2cr]: ESCRIBO el S2CR idx=%d (bit7=1)\n", idx);
+ 		arm_smmu_write_s2cr(smmu, idx);
++		if (idx == uke_force_sme_idx)
++			uke_force_sme_idx = -1;
+ 	}
+ }
+ 

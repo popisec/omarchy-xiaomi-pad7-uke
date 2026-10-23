@@ -1,0 +1,174 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -1706,6 +1706,23 @@
+ 		cfg->fmt = ARM_SMMU_CTX_FMT_AARCH64;
+ 
+ 	if (cfg->fmt == ARM_SMMU_CTX_FMT_NONE) {
++		/*
++		 * UKE-K13 (#P34): miga de la rama que el encargo K13 hipotetizo
++		 * (IDR2 sin bits PTFS -> fmt NONE). Verificado antes de compilar:
++		 * el apps-smmu real lee ID2=0x5111 (PTFS_4K bit12 + PTFS_64K bit14,
++		 * log K10 a 435 s), asi que cfg_probe SI pone FMT_AARCH64_4K/64K
++		 * y esta rama no deberia aparecer para el dominio del display.
++		 * Si aparece en consola, el -22 venia del fmt; si NO aparece y el
++		 * -22 persiste, la rama culpable esta en el core
++		 * (iommu_attach_device: grupo con != 1 dispositivo).
++		 */
++		pr_info("UKE-K13: init_domain_context(%s): ret -EINVAL fmt==NONE features_fmt=0x%lx (PTFS ausente en IDR2)\n",
++			dev_name(dev),
++			(unsigned long)(smmu->features & (ARM_SMMU_FEAT_FMT_AARCH64_64K |
++					  ARM_SMMU_FEAT_FMT_AARCH64_16K |
++					  ARM_SMMU_FEAT_FMT_AARCH64_4K |
++					  ARM_SMMU_FEAT_FMT_AARCH32_L |
++					  ARM_SMMU_FEAT_FMT_AARCH32_S)));
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
+@@ -1752,12 +1769,35 @@
+ 			smmu_domain->flush_ops = &arm_smmu_s2_tlb_ops_v1;
+ 		break;
+ 	default:
++		/* UKE-K13 (#P34): miga de rama imposible (stage fuera de S1/S2). */
++		pr_info("UKE-K13: init_domain_context(%s): ret -EINVAL stage=%d (rama default del switch)\n",
++			dev_name(dev), smmu_domain->stage);
+ 		ret = -EINVAL;
+ 		goto out_unlock;
+ 	}
+ 
++	/*
++	 * UKE-K13 (#P34): miga pedida por el encargo, tras la seleccion de fmt y
++	 * del formato io-pgtable (ias/oas ya finales). Valores de fmt: 0=NONE
++	 * 1=AARCH64 2=AARCH32_L 3=AARCH32_S. Con el IDR2=0x5111 medido (PTFS_4K+
++	 * PTFS_64K) lo esperado aqui es fmt=1 features_fmt=0x180 (4K+64K),
++	 * ias=36 oas=36 -> ARM_64_LPAE_S1 (CONFIG_IOMMU_IO_PGTABLE_LPAE=y).
++	 */
++	if (uke_smmu_es_apps(smmu))
++		pr_info("UKE-K13: init_domain_context(%s): fmt=%d features_fmt=0x%lx ias=%lu oas=%lu stage=%d\n",
++			dev_name(dev), cfg->fmt,
++			(unsigned long)(smmu->features & (ARM_SMMU_FEAT_FMT_AARCH64_64K |
++					  ARM_SMMU_FEAT_FMT_AARCH64_16K |
++					  ARM_SMMU_FEAT_FMT_AARCH64_4K |
++					  ARM_SMMU_FEAT_FMT_AARCH32_L |
++					  ARM_SMMU_FEAT_FMT_AARCH32_S)),
++			ias, oas, smmu_domain->stage);
++
+ 	ret = arm_smmu_alloc_context_bank(smmu_domain, smmu, dev, start);
+ 	if (ret < 0) {
++		/* UKE-K13 (#P34): -ENOSPC aqui = CB agotados; -EINVAL del reparto. */
++		pr_info("UKE-K13: init_domain_context(%s): alloc_context_bank rc=%d (start=%u)\n",
++			dev_name(dev), ret, start);
+ 		goto out_unlock;
+ 	}
+ 
+@@ -1787,8 +1827,13 @@
+ 
+ 	if (smmu->impl && smmu->impl->init_context) {
+ 		ret = smmu->impl->init_context(smmu_domain, &pgtbl_cfg, dev);
+-		if (ret)
++		if (ret) {
++			/* UKE-K13 (#P34): el impl qcom (qcom_smmu_init_context)
++			 * devuelve 0 siempre; si aqui hay error, es de otro impl. */
++			pr_info("UKE-K13: init_domain_context(%s): impl->init_context rc=%d\n",
++				dev_name(dev), ret);
+ 			goto out_clear_smmu;
++		}
+ 	}
+ 
+ 	if (smmu_domain->pgtbl_quirks)
+@@ -1796,6 +1841,10 @@
+ 
+ 	pgtbl_ops = alloc_io_pgtable_ops(fmt, &pgtbl_cfg, smmu_domain);
+ 	if (!pgtbl_ops) {
++		/* UKE-K13 (#P34): NULL aqui = -ENOMEM del io-pgtable (p. ej. ARMV7S
++		 * sin config); con LPAE=y y fmt=AARCH64 no deberia darse. */
++		pr_info("UKE-K13: init_domain_context(%s): alloc_io_pgtable_ops fmt=%d ias=%lu oas=%lu -> NULL\n",
++			dev_name(dev), fmt, ias, oas);
+ 		ret = -ENOMEM;
+ 		goto out_clear_smmu;
+ 	}
+--- a/drivers/gpu/drm/msm/msm_iommu.c
++++ b/drivers/gpu/drm/msm/msm_iommu.c
+@@ -723,6 +723,12 @@
+ 		.set_stall = msm_iommu_set_stall,
+ };
+ 
++static int msm_iommu_group_dev_count_cb(struct device *dev, void *data)
++{
++	(*((unsigned int *)data))++;
++	return 0;
++}
++
+ struct msm_mmu *msm_iommu_new(struct device *dev, unsigned long quirks)
+ {
+ 	struct iommu_domain *domain;
+@@ -750,6 +756,45 @@
+ 	mutex_init(&iommu->init_lock);
+ 
+ 	ret = iommu_attach_device(iommu->domain, dev);
++	if (ret)
++		dev_info(dev, "UKE-K13: msm_iommu_new: iommu_attach_device rc=%d\n",
++			 ret);
++	/*
++	 * UKE-K13 (#P34, Xiaomi Pad 7): el DT fusionado deja la MISMA banda de
++	 * display en dos dispositivos vivos a la vez: el mdss padre
++	 * (display-subsystem@ae00000, iommus desde el s231) y el
++	 * display-controller (display-controller@ae01000, iommus desde el s260)
++	 * llevan <&apps_smmu 0x1c00 0x2>. arm_smmu_find_sme() reutiliza el SME ya
++	 * reclamado (match exacto id/mask, arm-smmu.c:2107) y
++	 * arm_smmu_device_group() (arm-smmu.c:2884) mete a ambos en el MISMO
++	 * iommu group. iommu_attach_device() exige grupo de UN dispositivo
++	 * (iommu.c:2191: list_count_nodes(&group->devices) != 1 -> -EINVAL) y el
++	 * dpu moria en "dpu_kms_mmu_init failed: -22" SIN llegar a
++	 * arm_smmu_attach_dev (por eso el boot K12 no tenia migas "CB reservado"
++	 * del dominio del display). La banda 0x1c00 es UNA traduccion fisica
++	 * compartida: attacheo del GRUPO entero (iommu_attach_group no tiene el
++	 * check de count) es la semantica correcta. Los grupos de un solo
++	 * dispositivo (todos los demas targets y maestros) no entran al fallback.
++	 */
++	if (ret == -EINVAL) {
++		struct iommu_group *group = iommu_group_get(dev);
++		unsigned int ndev = 0;
++
++		if (group) {
++			iommu_group_for_each_dev(group, &ndev,
++						 msm_iommu_group_dev_count_cb);
++			if (ndev > 1) {
++				dev_info(dev,
++					 "UKE-K13: msm_iommu_new: grupo con %u dispositivos (mdss padre + display comparten banda 0x1c00/0x2) -> iommu_attach_group\n",
++					 ndev);
++				ret = iommu_attach_group(iommu->domain, group);
++				dev_info(dev,
++					 "UKE-K13: msm_iommu_new: iommu_attach_group rc=%d\n",
++					 ret);
++			}
++			iommu_group_put(group);
++		}
++	}
+ 	if (ret) {
+ 		iommu_domain_free(domain);
+ 		kfree(iommu);
+--- a/drivers/gpu/drm/msm/msm_kms.c
++++ b/drivers/gpu/drm/msm/msm_kms.c
+@@ -199,9 +199,21 @@
+ 		return ERR_PTR(-ENODEV);
+ 	}
+ 
++	/* UKE-K13 (#P34): deja en consola que dispositivo se usa para el vm del
++	 * KMS (el encargo K12 pedia distinguir mdp_dev vs mdss_dev) y el errno
++	 * intermedio de msm_iommu_disp_new si falla: con eso la escalera sabe si
++	 * el -22 nace aqui, en el attach por grupo o mas abajo. */
++	drm_info(dev, "UKE-K13: msm_kms_init_vm: iommu_dev=%s (mdp=%s mdss=%s)\n",
++		 dev_name(iommu_dev),
++		 device_iommu_mapped(mdp_dev) ? "mapeado" : "no",
++		 (mdss_dev && device_iommu_mapped(mdss_dev)) ? "mapeado" : "no");
++
+ 	mmu = msm_iommu_disp_new(iommu_dev, 0);
+-	if (IS_ERR(mmu))
++	if (IS_ERR(mmu)) {
++		drm_info(dev, "UKE-K13: msm_kms_init_vm: msm_iommu_disp_new(%s) rc=%pe\n",
++			 dev_name(iommu_dev), mmu);
+ 		return ERR_CAST(mmu);
++	}
+ 
+ 	vm = msm_gem_vm_create(dev, mmu, "mdp_kms",
+ 			       0x1000, 0x100000000 - 0x1000, true);

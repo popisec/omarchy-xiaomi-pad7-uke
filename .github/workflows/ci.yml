@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  higiene:
+    name: Higiene del repo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. Sin secretos en el arbol. Este repo publica volcados del aparato:
+      #    cualquier token o contrasena que se colara se publishia para siempre.
+      #    gitleaks se descarga de su release con la version fijada y se
+      #    verifica el sha256 (la accion Docker oficial no la acepta el
+      #    validador de workflows).
+      - name: Instalar gitleaks
+        run: |
+          set -euo pipefail
+          v=8.30.1
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${v}"
+          mkdir -p /tmp/gl && cd /tmp/gl
+          curl -sSfL "$base/gitleaks_${v}_linux_x64.tar.gz" -o "gitleaks_${v}_linux_x64.tar.gz"
+          curl -sSfL "$base/gitleaks_${v}_checksums.txt" -o "gitleaks_${v}_checksums.txt"
+          grep "gitleaks_${v}_linux_x64.tar.gz" "gitleaks_${v}_checksums.txt" | sha256sum -c -
+          tar -xzf "gitleaks_${v}_linux_x64.tar.gz" -C /usr/local/bin gitleaks
+          gitleaks version
+      - name: Escaneo de secretos (gitleaks)
+        run: gitleaks git . --config .gitleaks.toml --redact --verbose --no-banner
+
+      # 2. Nada binario ni del fabricante. Es la regla del propio proyecto
+      #    (ver .gitignore y la seccion "Que NO hay" del README): los blobs del
+      #    fabricante y las imagenes se cites por sha256, no se versionan.
+      - name: Sin binarios ni artefactos del fabricante versionados
+        run: |
+          mal=$(git ls-files | grep -Ei '\.(ko|o|so|cmd|mod\.c|bin|elf|mbn|mdt|img|simg|dtb|dtbo|acdb|qdb|fsm|dng|raw|tar|tar\.[a-z0-9]+|zip|apk|log|pem|key|gz|xz|zst|bz2|7z|iso|qcow2|deb|rpm|tgz)$' || true)
+          if [ -n "$mal" ]; then
+            echo "::error::Estos ficheros versionados violan la regla del proyecto:"
+            echo "$mal"
+            exit 1
+          fi
+          echo "OK: sin binarios versionados."
+
+      # 3. Nada de lo que solo tiene sentido en la maquina del autor.
+      #    Los patrones son GENERICOS a proposito: si la lista de nombres
+      #    prohibidos viviera aqui, el propio fichero de CI los publicaria.
+      - name: Sin rutas, hostnames ni credenciales del entorno original
+        run: |
+          # -a para que git grep NO se salte los ficheros que ve como
+          # binarios (un UTF-16 con un token dentro se escapaba).
+          # Solo se excluye el fichero del propio check, que lleva estos
+          # patrones como ejemplo: excluir tools/ entero era un escondite.
+          mal=""
+          mal+=$(git grep -aInP '/home/(?!omarchy\b|alarm\b|root\b|USUARIO\b)[a-z0-9_.-]+/proyectos' -- . ':(exclude)tools/check-privacidad.py' || true)
+          mal+=$(git grep -aInP 'ssh\s+(-J|--jump-host)\s+(?!PC-PORTATIL\b|SERVIDOR-01\b)[a-z0-9-]+' -- . ':(exclude)tools/check-privacidad.py' || true)
+          mal+=$(git grep -aInP '[a-z0-9-]+\.(?!tailnet-ejemplo\b)[a-z0-9-]+\.ts\.net' -- . ':(exclude)tools/check-privacidad.py' || true)
+          mal+=$(git grep -aInE '\bghp_[A-Za-z0-9]{20,}|BEGIN [A-Z ]*PRIVATE KEY' -- . ':(exclude)tools/check-privacidad.py' || true)
+          if [ -n "$mal" ]; then
+            echo "::error::Fuga de datos del entorno original:"
+            echo "$mal"
+            exit 1
+          fi
+          echo "OK: sin rutas privadas, hostnames reales ni claves."
+
+      # 4. El arbol versionado debe coincidir con el .gitignore. Si no, el
+      #    ignore se desincroniza y aparecen ficheros que la regla prohibe.
+      - name: El arbol versionado respeta el .gitignore
+        run: |
+          mal=$(git ls-files -ci --exclude-standard || true)
+          if [ -n "$mal" ]; then
+            echo "::error::Ficheros versionados que el .gitignore prohibe:"
+            echo "$mal"
+            exit 1
+          fi
+          echo "OK: .gitignore y arbol versionado coherentes."
+
+      # 5. Tamano: GitHub avisa a partir de 50 MiB por fichero.
+      - name: Ningun fichero por encima de 10 MiB
+        run: |
+          mal=$(git ls-files -z | xargs -0 -r du -b 2>/dev/null | awk '$1 > 10485760')
+          if [ -n "$mal" ]; then
+            echo "::error::Ficheros demasiado grandes:"
+            echo "$mal"
+            exit 1
+          fi
+          echo "OK: todos los ficheros por debajo de 10 MiB."
+
+      # 6. Las referencias a ficheros del repo (miles de citas "fichero:linea")
+      #    se rompen en silencio cuando se mueve o renombra algo. Las que ya
+      #    se sabian estan en tools/link-baseline.txt; solo se falla por las
+      #    nuevas, que si son un error de quien acabo de tocar el arbol.
+      - name: Las referencias a ficheros del repo no estan rotas
+        run: python3 tools/check-links.py
+
+      # 7. Ficheros duplicados. Hubo 73 .config de kernel para 16 contenidos
+      #    distintos (18 MB) y tres copias del protocolo del teclado. Ni el
+      #    .gitignore ni git lo avisan, asi que se comprueba aqui.
+      - name: No hay ficheros duplicados en el arbol
+        run: python3 tools/dupcheck.py
+
+      # 8. Los manifiestos de los despliegues: las FUENTES tienen que cuadrar.
+      #    Esto es lo que mas se rompio en silencio (un MANIFEST desfasado
+      #    IMPIDE instalar) y es comprobable en un clon limpio.
+      - name: Los manifiestos de los despliegues cuadran
+        run: python3 tools/check-manifests.py
+
+      # 9. Los gates completos de cada despliegue. Es INFORMATIVO: parte de
+      #    ellos necesita la tablet conectada o material local que no se
+      #    publica, asi que no puede bloquear la CI.
+      - name: Los gates de los despliegues (informativo)
+        continue-on-error: true
+        run: bash tools/deploy-check.sh
+
+      # 10. Datos del entorno del autor que los checks anteriores no cazan:
+      #     rutas con ~, /Users/, MACs no anonimizadas, IMEI, tokens de
+      #     Telegram/Discord, claves de Tailscale, cadenas de conexion con
+      #     credenciales, .netrc, y binarios disfrazados con extension de
+      #     texto. (El ruleset por defecto de gitleaks 8.30 se deja pasar
+      #     varios de estos formatos.)
+      - name: Sin datos del entorno del autor ni binarios disfrazados
+        run: python3 tools/check-privacidad.py
+
+      # 11. Los assets de los releases. Los checks de la CI miran el arbol
+      #     versionado: un asset COMPRIMIDO es invisible para ellos. Se
+      #     publico una imagen de rootfs con el firmware del fabricante, el
+      #     hash de la contrasena de root y las claves SSH del host, y aqui
+      #     no se vio. Este check cierra ese canal.
+      - name: Los assets de los releases no llevan material prohibido
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/check-assets.sh
+
+  shellcheck:
+    name: shellcheck (informativo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Instalar shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+      # Los scripts son heredados de un cuaderno de trabajo: shellcheck se
+      # ejecuta como aviso, no bloquea el merge.
+      - name: shellcheck
+        continue-on-error: true
+        run: |
+          find . -name '*.sh' -not -path './.git/*' -print0 \
+            | xargs -0 -r shellcheck -S warning || true

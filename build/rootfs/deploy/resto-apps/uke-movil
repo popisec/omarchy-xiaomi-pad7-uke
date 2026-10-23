@@ -1,0 +1,27 @@
+#!/bin/bash
+# uke-movil — controlar el móvil del dueño (Nothing Phone 2a) con scrcpy desde la uke. 22-oct-2026.
+# La tablet no ve la LAN (el router aísla los clientes WiFi) ni enruta la tailnet (tailscaled en userspace), y adb no sabe
+# de proxies: se abre un reenvío socat TEMPORAL 127.0.0.1:15555 -> <movil>:<puerto> por el proxy de tailscaled
+# (127.0.0.1:1055) solo mientras dura scrcpy. Nada persistente.
+#   uke-movil [host[:puerto]] [opciones de scrcpy]
+#   host por defecto: nothing-phone-2 (Tailscale). Puerto por defecto 5555: dejarlo fijo una vez con el móvil por USB
+#   en el PC: `adb tcpip 5555` (dura hasta reiniciar el móvil). Con «Depuración inalámbrica» el puerto es efímero:
+#   pásalo a mano (Ajustes → Opciones de desarrollador → Depuración inalámbrica) y empareja antes con `adb pair`.
+set -u
+case "${1:-}" in -h|--help) sed -n "2,10p" "$0"; exit 0 ;; esac
+DEST=${1:-nothing-phone-2:5555}; [ $# -gt 0 ] && shift
+case "$DEST" in *:*) ;; *) DEST="$DEST:5555" ;; esac
+LP=15555
+notify() { command -v notify-send >/dev/null && notify-send -a "Móvil" "$1" "${2:-}"; echo "$1 ${2:-}" >&2; }
+socat TCP-LISTEN:$LP,bind=127.0.0.1,reuseaddr,fork PROXY:127.0.0.1:${DEST%:*}:${DEST##*:},proxyport=1055 2>/dev/null &
+FWD=$!
+trap 'adb disconnect 127.0.0.1:$LP >/dev/null 2>&1; adb kill-server >/dev/null 2>&1; kill $FWD 2>/dev/null' EXIT
+sleep 0.5
+if ! timeout 15 adb connect 127.0.0.1:$LP | grep -q connected; then
+	notify "No llego al móvil ($DEST)" "¿Depuración por red activa? Mira uke-movil --help"; exit 1
+fi
+adb -s 127.0.0.1:$LP wait-for-device
+# Vídeo moderado para no cargar la WiFi; los toques en la ventana llegan al móvil como toques. El OSK de la tablet
+# escribe en la ventana de scrcpy como un teclado normal (scrcpy inyecta el texto en el móvil).
+scrcpy -s 127.0.0.1:$LP --video-bit-rate=6M --max-size=1600 --max-fps=60 --stay-awake --turn-screen-off \
+	--window-title="Móvil" --no-audio "$@"

@@ -1,0 +1,36 @@
+# firmware-wlan.sha256 — manifiesto de los 16 ficheros del WLAN (F3/A8).
+# Formato: salida de `sha256sum` (verificable con `sha256sum -c`), rutas
+# relativas a wifi-fw-stage/ del hermano (~/gpu-work/ramaa/s21/).
+#
+# PROCEDENCIA (28-sep-2026, medido en ESTA máquina, no copiado de memoria):
+#   cd wifi-fw-stage && find . -type f | sort | xargs sha256sum
+# Coincidencia con el ledger: SOLO 4 ficheros tienen sha citado en el proyecto
+# hermano y los 4 COINCIDEN (prefijos de #422 y #434):
+#   amss.bin  c42e06f534c07ffd… (#422:4704, #434:5377) ✓ + tamaño 7458880 ✓
+#   board.bin 2a63af3fec4a2405… (#422:4705, #434:5378) ✓ + tamaño 58180 ✓
+#   regdb.bin dfd788a430239111… (#422:4706)            ✓ + tamaño 24278 ✓
+#   wpss.mdt  e2d14e4f…         (#434:5377)            ✓
+# Los otros 12 (wpss.b00..b12) NO tienen sha publicado en el ledger: estos shas
+# son GENERADOS NUEVOS aquí (misma fuente que la tablet: el stage del que #424
+# §2(3) instaló los 16 "con sus sha verificados en la tablet"). Si el stage
+# cambiara, este manifiesto DEJA de valer: re-medir, no editar a mano.
+# NOTA de cita: el enunciado atribuía a "R-4" no depender de linux-firmware-qcom;
+# R-4 del REFUTADO.md:16 es "La UFS está muerta" (nada que ver con firmware).
+# La base real es OBJETIVOS.md:160-161 (16 ficheros ya instalados y verificados)
+# + #422 (rutas las fija el driver: ath11k/WCN6750/hw1.0 + qca6750/wpss.mdt).
+c42e06f534c07ffdaec3b265ff1e38b312741e35eb5fb21b5ca77995fab8d688  lib/firmware/ath11k/WCN6750/hw1.0/amss.bin
+2a63af3fec4a2405df339bc9629d65edac8f486dbd16180816a4d6a712fc27ba  lib/firmware/ath11k/WCN6750/hw1.0/board.bin
+dfd788a4302391118b45d6d350aeb71a4f51633fa4d7a0c7cdc2d2d330d606dc  lib/firmware/ath11k/WCN6750/hw1.0/regdb.bin
+2f0b37ad814da7e612bdd420c411a323367936efea2eea32f19c9b796244b0d4  lib/firmware/qca6750/wpss.b00
+3dd190536edda87cda85b69fcc7d03174e948daa3618ca5b9a5e902f4dd2d7d4  lib/firmware/qca6750/wpss.b01
+bcaff73b3436be65aa26cf06b5e5f3e4eef3b8b5a625cc78e9169e7c9b3f5dc0  lib/firmware/qca6750/wpss.b02
+b7a3b1f97ef810824c8660222d4deb8689de77ea809c6c9ed8d779ec48dfea1d  lib/firmware/qca6750/wpss.b03
+41870cea04a11339ed8e99324e33ff2119c8de23cb77d0ad3fc7b52de059f8c9  lib/firmware/qca6750/wpss.b04
+aae176b232881e8b9258e1844a9b946a4e4690b9bb5463b281cd1ba2b3ee1f14  lib/firmware/qca6750/wpss.b05
+2b9d868e0d776659f3741d9cce75f7239f4693596181657e420c5693979473a3  lib/firmware/qca6750/wpss.b06
+d7846f851ef64896a307db5b0e08249cfd9319f0769ec91988156d92833de9fa  lib/firmware/qca6750/wpss.b07
+0de7c47d174666be7f6a820951225ce0d50c97007aa186191e9ef25356efcb34  lib/firmware/qca6750/wpss.b08
+57464f648ec1a089770e642b7c35717bf9b925e65996ba5d7671e9c77321de13  lib/firmware/qca6750/wpss.b09
+26d0fc62bd7983c7c95c03079e751e8a3188a5965b7e0c4a101ad26331819a0c  lib/firmware/qca6750/wpss.b10
+54c223d5bd1b2702572950536126184dafaad0c88da96e5a596f00d59a6f7679  lib/firmware/qca6750/wpss.b12
+e2d14e4fbcf2acbfd3ae25d2a7bc501e34264a66ad3651c408f494231c07eed8  lib/firmware/qca6750/wpss.mdt

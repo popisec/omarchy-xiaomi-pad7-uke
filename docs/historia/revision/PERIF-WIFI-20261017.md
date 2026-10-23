@@ -1,0 +1,26 @@
+# PERIF-WIFI-20261017 — WCN6750: board data, firmware, regdb, árbol y plan
+
+Fecha: 17-oct-2026 · Frente WiFi/ath11k · Fuentes: `build/android/{bd_o82gl.elf,regdb_xiaomi.bin}` (cosecha o82gl), `build/gates/firmware-wlan.sha256` (payload 29-sep), árbol `build/kernel-pokes/k52-L16-tree/` (ath11k/pwrseq/PAS/pinctrl), config `k52L74.config`, kmsg Android vivo (`build/android/cosecha-20261017/01-dmesg.txt`) y adb lectura (`firmware_mnt/image/qca6750/`).
+
+## RESUMEN
+
+**1. Board data — bd_o82gl.elf SÍ es el BDF del uke y el payload actual lleva el equivocado.** El fichero es un ELF32 ARM wrapper objcopy (`_binary_tempDir_…`, 1 PT_LOAD en file 0x400, .data=0xE344=58180 B) sobre el BDF crudo. ath11k no exige magic "QCA" para el fichero api-1: `board.bin` se pasa tal cual por QMI y si empieza por `\x7fELF` se marca `BDF_TYPE_ELF` (qmi.c, `ath11k_qmi_load_bdf_qmi`). Prueba definitiva: el kmsg vendor (6,33 s) muestra icnss2 pidiendo `qca6750/bd_o82gl.elf` por request_firmware. PERO el `board.bin` staged (2a63af3f…) = payload de **bd_o82.elf** (otra variante); el de uke es **da424c03…** (payload de bd_o82gl.elf, extraíble con `dd skip=1024`). Procedimiento: `/lib/firmware/ath11k/WCN6750/hw1.0/board.bin` ← payload da424c03 (o el .elf entero: ath11k detecta ELF, board_size 256 KiB OK). board.id exacto no se puede leer sin el parser qcacld y no importa: api-1 ignora el id; saldrá en el primer boot (`qmi-chip-id/qmi-board-id` en dmesg). **No instalar el board-2.bin de linux-firmware** (solo cubre chip-id=1, board-ids 1-10/255 de QCM6490/sc7280): una colisión daría caldata ajena; sin board-2.bin ath11k cae determinista a board.bin.
+
+**2. Firmware — amss.bin y m3.bin NO se piden en AHB.** amss.bin solo lo usa MHI/PCI (mhi.c); m3.bin está fuera (`m3_fw_support=false`). La FW entera va en el WPSS: `/lib/firmware/qca6750/wpss.{mdt,b00-b10,b12}` vendor (PAS 6; ya en payload, wpss "levanta" #441; el wpss.qdb vendor no lo pide el flujo mainline). El amss.bin staged (kiwi/amss.bin, 7,4 MB) es peso muerto. linux-firmware (Arch, medido) solo trae board-2.bin + wpss.mdt→sc7280: su WPSS no sirve; el nuestro es el vendor (referencia senemos #1.39).
+
+**3. regdb — usar regdb_xiaomi.bin.** Con `supports_regdb=true` ath11k pide regdb antes del BDF (qmi.c 2987) por las mismas 3 vías (IE REGDB de board-2 → `bus=ahb` → `regdb.bin` raw, BDF_TYPE_REGDB); fallo no es fatal (retorno ignorado). El Android vivo pide `qca6750/regdb_xiaomi.bin` (= nuestro fca5bbfa…); el regdb.bin staged (dfd788a4) es el kiwi/regdb.bin genérico → sustituir. Destino: `…/WCN6750/hw1.0/regdb.bin`.
+
+**4. Árbol — todo lo necesario existe, sin icnss2.** ath11k tiene `ATH11K_HW_WCN6750_HW10` y of_match `qcom,wcn6750-wifi` (ahb.c); NO hay icnss2 en drivers (camino mainline = PAS remoteproc + ath11k_ahb; `cliffs-wpss-pas` ya en of_match). El docs/historia/revision/PIPELINE-PANEL-20261014/ports/0002-wifi-wcn6750.patch (ports/) NO está aplicado (ahb.c solo lleva el poke pwrseq); 0003wpss NO aplicar sin mx-supply (rompería el wpss vivo). k52L74: `ATH11K=m AHB=m PCI=m DEBUG/DEBUGFS=y`, `PWRSEQ_QCOM_WCN=m`, PAS/QRTR built-in (GO/NOGO 11-oct: GO 3/3).
+
+**5. egpio 156** — pin TLMM 156 es egpio (pinctrl-palawan PINGROUP(156,…,egpio); gestión en pinctrl-msm bits 11/12). WiFi no lo usa: es bt-enable del wifi-pmu; el poke L21 hace no-fatal su fallo y sigue sin él. Pendiente BT (hci_qca), fuera de P4.
+
+**6. PLAN.** (a) Aplicar 0002-wifi y desplegar DT por frags estilo s277 solo-wifi (nodo `&wifi` disabled: compatible xiaomi + 3 supplies smpb3/smpb1/smpb2 @984000/1856000/1256000 uV; `&remoteproc_wpss` cliffs + `qca6750/wpss.mdt` + cx-supply; módulos en blacklist + modprobe manual = cero wifi pre-userspace, evita wedge #601). (b) Repack payload: board.bin→da424c03, regdb.bin→fca5bbfa, sin amss/board-2; re-medir shas y `preparar-wifi-payload.sh --construir`. (c) Marcadores: "using board api 1" / "bdf_type 2"(ELF) / "fetched regdb" / server_arrive QMI / fw_ready / wlan0 / iw scan / SSH + uptime>300 s. (d) Riesgos: wedge frags (mitigado), 0003 sin mx (no aplicar), BDF/regdb mal emparejados (corregido aquí), colisión board-2 (no instalar).
+
+## Detalle (referencias rápidas)
+
+- shas: bd_o82gl.elf payload `da424c03ef32bc4f…` (58180 B) · regdb_xiaomi `fca5bbfaf5a9d490…` (24278 B) · staged actuales a sustituir: board.bin `2a63af3f…`=bd_o82.elf, regdb.bin `dfd788a4…`=kiwi/regdb.bin · amss staged `c42e06f5…`=kiwi/amss.bin (no se pide).
+- Código: core.c 1829-1920 (board api-2→api-1), qmi.c 2414-2462 (BDF_TYPE_ELF/REGDB), qmi.c 2987 (regdb no fatal), hw.c/core.h (`WCN6750/hw1.0`, `m3_fw_support=false`, `fixed_fw_mem=true`), mhi.c 351 (amss solo PCI), ahb.c 410-423+1178 (poke pwrseq), pinctrl-palawan.c 1395-1400 (pin 156 egpio), pwrseq-qcom-wcn.c poke L21 (`l21-wifi-btgpio.diff`).
+- Rutas ficheros: `/lib/firmware/ath11k/WCN6750/hw1.0/{board.bin,regdb.bin}` + `/lib/firmware/qca6750/wpss.{mdt,b00-b10,b12}`; `depmod` no aplica (fw, no módulos).
+- Vendidos correctos medidos en tabla (adb): `/vendor/firmware_mnt/image/qca6750/{bd_o82gl.elf,regdb_xiaomi.bin}` y `/vendor/firmware_mnt/image/kiwi/{amss.bin,regdb.bin,regdb_xiaomi.bin}`; BDF vivo con fw kiwi: "BDF VER is 0, FW and BDF ver check skipped" (sin gate de versión → compatible).
+
+Última actualización: 2026-10-17 (análisis estático PC + adb lectura Android vivo).

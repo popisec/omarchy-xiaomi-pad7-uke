@@ -1,0 +1,25 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -2308,6 +2308,19 @@
+ 	/* Use a known rate to bring up the GMU */
+-	clk_set_rate(gmu->core_clk, 200000000);
+-	clk_set_rate(gmu->hub_clk, adreno_is_a740_family(adreno_gpu) ?
+-		     200000000 : 150000000);
++	/* UKE-K65 (9-oct-2026, BARRIDO-FASE2): estado CX viable del vendor.
++	 * D1: GMU a 220M (tabla real ftbl_gpu_cc_gmu_clk_src; pedir 200M caia
++	 *     por floor a 19.2M XO). D2: hub a 200M (gpulist A735; pedir 150M
++	 *     sobre tabla {200M} daba -EINVAL y rate heredado XBL). D3: voto CX
++	 *     LOW_SVS explicito via OPP 220M (level 0x40 = LOW_SVS ->
++	 *     performance-state del genpd CX por _set_opp_level).
++	 *     Testigos pr_err (nivel 3: pasan el tope de consola K41).
++	 *     Sin tocar SYSRESET ni SMMU. Los rc NO abortan: el experimento
++	 *     debe medir D1/D2 aunque D3 falle. */
++	ret = clk_set_rate(gmu->core_clk, 220000000);
++	pr_err("UKE-K65: D1 gmu clk_set 220M rc=%d\n", ret);
++	ret = clk_set_rate(gmu->hub_clk, 200000000);
++	pr_err("UKE-K65: D2 hub clk_set 200M rc=%d\n", ret);
++	ret = dev_pm_opp_set_rate(gmu->dev, 220000000);
++	pr_err("UKE-K65: D3 cx LOW_SVS opp_set_rate 220M rc=%d\n", ret);
++	pr_flush(120, false);
+ 	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
+ 	if (ret) {

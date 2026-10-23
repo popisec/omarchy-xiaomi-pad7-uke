@@ -1,0 +1,578 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Overlay FASE 4 (display) para el arbol VENDOR cliffs7P (uke), estilo
+// configfs, igual que gpu-overlay.dts (fase 3). Crea el stack display
+// MAINLINE (qcom,palawan-mdss/dpu/dsi-ctrl/phy-4nm) porque el arbol vendor
+// solo trae el stack sde-kms vendor (nod qcom,mdss_mdp@ae00000 con
+// compatible "qcom,sde-kms" y hijos dsi con "qcom,dsi-ctrl-hw-v2.8"), que
+// el kernel mainline no puede usar. Nodo del panel: o82 42_02_0b dual-DSI
+// DSC (driver mainline panel-xiaomi-o82-dualdsi.c).
+//
+// Mismas reglas que el overlay GPU:
+//   - cells del vendor: reg 1/1, intc 3 cells (#interrupt-cells intc = 3).
+//   - targets por __symbols__ del vendor.
+//   - el root del DTB merged debe ser compatible "qcom,cliffsp" (UBWC) y
+//     los providers icc cliffs ya bindean (drivers/interconnect/qcom/palawan.c).
+//
+// DIFERENCIAS esquema vendor <-> mainline (documentadas, no inventadas):
+//   1. No existe "display-subsystem" vendor: el nodo mdss mainline se crea
+//      nuevo en /soc (los hijos dsi vendor son hermanos bajo /soc y quedan
+//      sin driver, sin conflicto de compatibles).
+//   2. mdss mainline exige el camino icc "mdp0-mem". El provider vendor
+//      mmss_noc ("qcom,cliffs-mmss_noc") NO esta en el match table del
+//      port icc (palawan.c solo cubre cliffs-aggre1/mc_virt/gem_noc/cnoc_cfg),
+//      asi que "mdp0-mem" se apunta a mc_virt con los IDs vendor (3=LLCC,
+//      512=EBI1): el voto DDR acaba en el mismo bcm (los comentarios del
+//      port icc dicen que los bcms solo estan en mc_virt). El camino
+//      "cpu-cfg" (opcional en msm_mdss.c) se omite.
+//   3. dispcc: el vendor usa "qcom,cliffs-dispcc","syscon"; se repite el
+//      truco del fragment@0 del overlay GPU (compatible mainline). La lista
+//      de clocks la marca el driver por INDICE (parent_data .index, sin
+//      clock-names): 16 entradas. Los padres DP (usb_dp_qmpphy) no existen
+//      en el DTB vendor -> se dejan en <0> (placeholders, como dp1/2/3 en
+//      palawan.dtsi); el DSI no los usa.
+//   4. apps_smmu vendor ("qcom,qsmmu-v500", compatible que mainline NO
+//      conoce) se repunta a "qcom,smmu-500","arm,mmu-500" (el stream 0x1c00
+//      del display ya viene en qcom,handoff-smrs del nodo vendor).
+//   5. rpmhpd no existe en el arbol vendor (allí es regulador de niveles):
+//      se omiten power-domains/required-opps de mdp/dsi/dispcc (MMCX queda
+//      votado por el rpmh-regulator vendor); el GDSC del display sale de
+//      dispcc (MDSS_GDSC = id 0).
+//   6. vddil8b (pmxr2230 L8B) va a 1.9 V en el DTBO stock (fragment@100):
+//      se repite aqui (min=max=1.9 V; el core aplica apply_uV).
+//
+// DESPUES de aplicar: drivers_probe de mdss/dpu/dsi/phy/panel o reboot.
+// El backlight es EXTERNO (Kinetic KTZ8866 por I2C, "bl_ctrl_external" del
+// vendor): el driver del panel NO registra backlight propio ni escribe DCS
+// 0x51 (el vendor jamas lo hace en este panel, ID 0x14); usa
+// drm_panel_of_backlight() sobre el phandle 'backlight' del panel
+// (fragment@9 -> ktz_bl_0, fragment@7). El comentario anterior que decia
+// "DCS 0x51 interno, ktz8866 no aplica" queda REFUTADO (ver
+// build/gates/revision/REV-KTZ8866-UKE-20261013.md §1 + dsi_panel_set_backlight
+// case 3 en build/vendor-re/decomp/dsi_panel_set_backlight.c:245-259).
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	/* Clocks de referencia que el dispcc mainline espera por indice */
+	fragment@0 {
+		target-path = "/soc/clocks";
+		__overlay__ {
+			bi_tcxo_div2: bi-tcxo-div2-clk {
+				compatible = "fixed-factor-clock";
+				#clock-cells = <0>;
+				clocks = <&rpmhcc 0>;	/* RPMH_CXO_CLK */
+				clock-mult = <1>;
+				clock-div = <2>;
+			};
+
+			bi_tcxo_ao_div2: bi-tcxo-ao-div2-clk {
+				compatible = "fixed-factor-clock";
+				#clock-cells = <0>;
+				clocks = <&rpmhcc 1>;	/* RPMH_CXO_CLK_A */
+				clock-mult = <1>;
+				clock-div = <2>;
+			};
+		};
+	};
+
+	/* dispcc vendor -> mainline (igual que gpucc en el overlay GPU) */
+	fragment@1 {
+		target = <&dispcc>;
+		__overlay__ {
+			compatible = "qcom,palawan-dispcc";
+			clocks = <&bi_tcxo_div2>,		/* 0  bi_tcxo */
+				 <&bi_tcxo_ao_div2>,		/* 1  bi_tcxo_ao */
+				 <&gcc 20>,			/* 2  GCC_DISP_AHB_CLK */
+				 <&sleep_clk>,			/* 3  sleep_clk */
+				 <&mdss_dsi0_phy_ml 0>,		/* 4  dsi0 byte pll */
+				 <&mdss_dsi0_phy_ml 1>,		/* 5  dsi0 pixel pll */
+				 <&mdss_dsi1_phy_ml 0>,		/* 6  dsi1 byte pll */
+				 <&mdss_dsi1_phy_ml 1>,		/* 7  dsi1 pixel pll */
+				 <0>, <0>,			/* 8,9  dp0 (no hay qmppphy en vendor) */
+				 <0>, <0>, <0>, <0>, <0>, <0>;	/* 10-15 dp1/2/3 */
+			#clock-cells = <1>;
+			#reset-cells = <1>;
+			#power-domain-cells = <1>;
+		};
+	};
+
+	/* apps_smmu vendor -> mainline (mainline no conoce "qcom,qsmmu-v500") */
+	fragment@2 {
+		target = <&apps_smmu>;
+		__overlay__ {
+			compatible = "qcom,smmu-500", "arm,mmu-500";
+		};
+	};
+
+	/* L8B: 1.8 V (base vendor) -> 1.9 V como el DTBO stock (fragment@100) */
+	fragment@3 {
+		target = <&L8B>;
+		__overlay__ {
+			regulator-min-microvolt = <1900000>;
+			regulator-max-microvolt = <1900000>;
+		};
+	};
+
+	/* Reguladores GPIO del panel (vsp +5.8 V en TLMM 74, vsn -5.8 V en
+	 * TLMM 75; valores del fragmento@98 del DTBO vendor). AVDD (5.5 V en
+	 * pm8550ve GPIO 8) no la consume el nodo del panel en el DTBO vendor
+	 * (la enciende el driver vendor a nivel de placa) y queda como TODO
+	 * si la pantalla no enciende sin ella.
+	 */
+	fragment@4 {
+		target-path = "/soc";
+		__overlay__ {
+			display_panel_vsp: regulator-display-vsp {
+				compatible = "regulator-fixed";
+				regulator-name = "display_panel_vsp";
+				regulator-min-microvolt = <5800000>;
+				regulator-max-microvolt = <5800000>;
+				regulator-enable-ramp-delay = <233>;
+				gpio = <&tlmm 74 0>;
+				enable-active-high;
+				regulator-boot-on;
+			};
+
+			display_panel_vsn: regulator-display-vsn {
+				compatible = "regulator-fixed";
+				regulator-name = "display_panel_vsn";
+				regulator-min-microvolt = <5800000>;
+				regulator-max-microvolt = <5800000>;
+				regulator-enable-ramp-delay = <233>;
+				gpio = <&tlmm 75 0>;
+				enable-active-high;
+				regulator-boot-on;
+			};
+		};
+	};
+
+	/* Pinctrl del reset del panel (TLMM GPIO 2), valores del fragmento@86
+	 * del DTBO vendor: activo bias-disable ds8; suspend bias-pull-down ds2.
+	 */
+	fragment@5 {
+		target = <&tlmm>;
+		__overlay__ {
+			sde_dsi_active: sde-dsi-active {
+				dsi0_reset_active: dsi0-reset-active {
+					pins = "gpio2";
+					function = "gpio";
+					drive-strength = <8>;
+					bias-disable;
+				};
+			};
+
+			sde_dsi_suspend: sde-dsi-suspend {
+				dsi0_reset_suspend: dsi0-reset-suspend {
+					pins = "gpio2";
+					function = "gpio";
+					drive-strength = <2>;
+					bias-pull-down;
+				};
+			};
+		};
+	};
+
+	/* Stack display mainline completo. Arbol 1:1 con el de palawan.dtsi
+	 * del fork (mismos compatibles, regs y clocks), convertido a cells
+	 * vendor (reg 1/1) y sin rpmhpd. El panel o82 (compatible
+	 * "xiaomi,uke-o82-4202-0b") cuelga de dsi0 como hijo, con un port
+	 * extra hacia dsi1 (dual-DSI bonded: qcom,dual-dsi-mode + master-dsi
+	 * en dsi0; el reloj de dsi1 sale del PLL de dsi0, como en elish).
+	 */
+	fragment@6 {
+		target-path = "/soc";
+		__overlay__ {
+			mdss_ml: display-subsystem@ae00000 {
+				compatible = "qcom,palawan-mdss";
+				reg = <0xae00000 0x1000>;
+				reg-names = "mdss";
+
+				interrupts = <0 83 4>;	/* GIC_SPI 83, level high */
+
+				clocks = <&dispcc 2>,	/* DISP_CC_MDSS_AHB_CLK */
+					 <&gcc 21>,		/* GCC_DISP_HF_AXI_CLK */
+					 <&dispcc 61>;	/* DISP_CC_MDSS_MDP_CLK */
+
+				resets = <&dispcc 0>;	/* DISP_CC_MDSS_CORE_BCR */
+
+				/* Workaround icc (ver cabecera, punto 2): el mainline
+				 * correcto seria mmss_noc MASTER_MDP -> mc_virt EBI1
+				 * + gem_noc APPSS -> config_noc DISPLAY_CFG; el port
+				 * icc no cubre cliffs-mmss_noc y el voto DDR acaba en
+				 * mc_virt en cualquier caso. IDs = numeracion vendor.
+				 */
+				interconnects = <&mc_virt 3 &mc_virt 512>;
+				interconnect-names = "mdp0-mem";
+
+				power-domains = <&dispcc 0>;	/* MDSS_GDSC */
+
+				iommus = <&apps_smmu 0x1c00 0x2>;
+
+				interrupt-controller;
+				#interrupt-cells = <1>;
+
+				#address-cells = <1>;
+				#size-cells = <1>;
+				ranges;
+
+				status = "okay";
+
+				mdss_mdp_ml: display-controller@ae01000 {
+					compatible = "qcom,palawan-dpu";
+					reg = <0xae01000 0x8f000>,
+					      <0xaeb0000 0x3000>;
+					reg-names = "mdp",
+						    "vbif";
+
+					interrupts-extended = <&mdss_ml 0>;
+
+					clocks = <&gcc 21>,		/* nrt_bus */
+						 <&dispcc 2>,	/* iface */
+						 <&dispcc 64>,	/* lut */
+						 <&dispcc 61>,	/* core */
+						 <&dispcc 73>;	/* vsync */
+					clock-names = "nrt_bus",
+						      "iface",
+						      "lut",
+						      "core",
+						      "vsync";
+
+					assigned-clocks = <&dispcc 73>;
+					assigned-clock-rates = <19200000>;
+
+					operating-points-v2 = <&mdp_opp_ml>;
+
+					/* sin power-domains: rpmhpd no existe en el
+					 * arbol vendor (cabecera, punto 5) */
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+
+							dpu_intf1_out: endpoint {
+								remote-endpoint = <&mdss_dsi0_in>;
+							};
+						};
+
+						port@1 {
+							reg = <1>;
+
+							dpu_intf2_out: endpoint {
+								remote-endpoint = <&mdss_dsi1_in>;
+							};
+						};
+					};
+
+					mdp_opp_ml: opp-table {
+						compatible = "operating-points-v2";
+
+						opp-200000000 {
+							opp-hz = /bits/ 64 <200000000>;
+						};
+						opp-325000000 {
+							opp-hz = /bits/ 64 <325000000>;
+						};
+						opp-375000000 {
+							opp-hz = /bits/ 64 <375000000>;
+						};
+						opp-514000000 {
+							opp-hz = /bits/ 64 <514000000>;
+						};
+					};
+				};
+
+				mdss_dsi0_ml: dsi@ae94000 {
+					compatible = "qcom,palawan-dsi-ctrl", "qcom,mdss-dsi-ctrl";
+					reg = <0xae94000 0x400>;
+					reg-names = "dsi_ctrl";
+
+					interrupts-extended = <&mdss_ml 4>;
+
+					clocks = <&dispcc 4>,	/* byte */
+						 <&dispcc 7>,	/* byte_intf */
+						 <&dispcc 66>,	/* pixel */
+						 <&dispcc 56>,	/* core */
+						 <&dispcc 2>,	/* iface */
+						 <&gcc 21>;		/* bus */
+					clock-names = "byte",
+						      "byte_intf",
+						      "pixel",
+						      "core",
+						      "iface",
+						      "bus";
+
+					assigned-clocks = <&dispcc 5>,	/* BYTE0_CLK_SRC */
+							  <&dispcc 67>;	/* PCLK0_CLK_SRC */
+					assigned-clock-parents = <&mdss_dsi0_phy_ml 0>,
+								 <&mdss_dsi0_phy_ml 1>;
+
+					operating-points-v2 = <&mdss_dsi_opp_ml>;
+
+					phys = <&mdss_dsi0_phy_ml>;
+					phy-names = "dsi";
+
+					vdda-supply = <&L4B>;	/* pmxr2230 L4, 1.2 V (vendor vdda-1p2) */
+
+					qcom,dual-dsi-mode;
+					qcom,master-dsi;
+					/* broadcast del vendor: los comandos se sincronizan
+					 * en los dos enlaces */
+					qcom,sync-dual-dsi;
+
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					status = "okay";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+
+							mdss_dsi0_in: endpoint {
+								remote-endpoint = <&dpu_intf1_out>;
+							};
+						};
+
+						port@1 {
+							reg = <1>;
+
+							mdss_dsi0_out: endpoint {
+								data-lanes = <0 1 2 3>;
+								remote-endpoint = <&panel_in_0>;
+							};
+						};
+					};
+
+					/* Panel o82 42_02_0b, dual-DSI DSC video
+					 * (qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid del
+					 * DTBO vendor). Sin nodo backlight: el brillo va
+					 * por DCS 0x51 y lo registra el driver.
+					 */
+					panel@0 {
+						compatible = "xiaomi,uke-o82-4202-0b";
+						reg = <0>;
+
+						vddil8b-supply = <&L8B>;
+						vsp-supply = <&display_panel_vsp>;
+						vsn-supply = <&display_panel_vsn>;
+
+						/* GPIO 2, reset activo a nivel bajo (secuencia
+						 * vendor: 0 10ms / 1 3ms / 0 3ms / 1 15ms) */
+						reset-gpios = <&tlmm 2 1>;
+
+						pinctrl-names = "default", "sleep";
+						pinctrl-0 = <&sde_dsi_active>;
+						pinctrl-1 = <&sde_dsi_suspend>;
+
+						ports {
+							#address-cells = <1>;
+							#size-cells = <0>;
+
+							port@0 {
+								reg = <0>;
+
+								panel_in_0: endpoint {
+									remote-endpoint = <&mdss_dsi0_out>;
+								};
+							};
+
+							port@1 {
+								reg = <1>;
+
+								panel_in_1: endpoint {
+									remote-endpoint = <&mdss_dsi1_out>;
+								};
+							};
+						};
+					};
+
+					mdss_dsi_opp_ml: opp-table {
+						compatible = "operating-points-v2";
+
+						opp-187500000 {
+							opp-hz = /bits/ 64 <187500000>;
+						};
+						opp-300000000 {
+							opp-hz = /bits/ 64 <300000000>;
+						};
+						opp-358000000 {
+							opp-hz = /bits/ 64 <358000000>;
+						};
+					};
+				};
+
+				mdss_dsi0_phy_ml: phy@ae95000 {
+					compatible = "qcom,palawan-dsi-phy-4nm", "qcom,sm8650-dsi-phy-4nm";
+					reg = <0xae95000 0x200>,
+					      <0xae95200 0x280>,
+					      <0xae95500 0x400>;
+					reg-names = "dsi_phy",
+						    "dsi_phy_lane",
+						    "dsi_pll";
+
+					clocks = <&dispcc 2>,	/* iface */
+						 <&rpmhcc 0>;		/* ref (bi_tcxo) */
+					clock-names = "iface",
+						      "ref";
+
+					#clock-cells = <1>;
+					#phy-cells = <0>;
+
+					vdds-supply = <&L2B>;	/* pmxr2230 L2, 0.88-0.95 V (vendor vdda-0p9) */
+
+					status = "okay";
+				};
+
+				mdss_dsi1_ml: dsi@ae96000 {
+					compatible = "qcom,palawan-dsi-ctrl", "qcom,mdss-dsi-ctrl";
+					reg = <0xae96000 0x400>;
+					reg-names = "dsi_ctrl";
+
+					interrupts-extended = <&mdss_ml 5>;
+
+					clocks = <&dispcc 8>,	/* byte */
+						 <&dispcc 11>,	/* byte_intf */
+						 <&dispcc 68>,	/* pixel */
+						 <&dispcc 58>,	/* core */
+						 <&dispcc 2>,	/* iface */
+						 <&gcc 21>;		/* bus */
+					clock-names = "byte",
+						      "byte_intf",
+						      "pixel",
+						      "core",
+						      "iface",
+						      "bus";
+
+					/* DSI1 es esclavo: usa el PLL de DSI0 (bonded) */
+					assigned-clocks = <&dispcc 9>,	/* BYTE1_CLK_SRC */
+							  <&dispcc 69>;	/* PCLK1_CLK_SRC */
+					assigned-clock-parents = <&mdss_dsi0_phy_ml 0>,
+								 <&mdss_dsi0_phy_ml 1>;
+
+					operating-points-v2 = <&mdss_dsi_opp_ml>;
+
+					phys = <&mdss_dsi1_phy_ml>;
+					phy-names = "dsi";
+
+					vdda-supply = <&L4B>;
+
+					qcom,dual-dsi-mode;
+
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					status = "okay";
+
+					ports {
+						#address-cells = <1>;
+						#size-cells = <0>;
+
+						port@0 {
+							reg = <0>;
+
+							mdss_dsi1_in: endpoint {
+								remote-endpoint = <&dpu_intf2_out>;
+							};
+						};
+
+						port@1 {
+							reg = <1>;
+
+							mdss_dsi1_out: endpoint {
+								data-lanes = <0 1 2 3>;
+								remote-endpoint = <&panel_in_1>;
+							};
+						};
+					};
+				};
+
+				mdss_dsi1_phy_ml: phy@ae97000 {
+					compatible = "qcom,palawan-dsi-phy-4nm", "qcom,sm8650-dsi-phy-4nm";
+					reg = <0xae97000 0x200>,
+					      <0xae97200 0x280>,
+					      <0xae97500 0x400>;
+					reg-names = "dsi_phy",
+						    "dsi_phy_lane",
+						    "dsi_pll";
+
+					clocks = <&dispcc 2>,
+						 <&rpmhcc 0>;
+					clock-names = "iface",
+						      "ref";
+
+					#clock-cells = <1>;
+					#phy-cells = <0>;
+
+					vdds-supply = <&L2B>;
+
+					status = "okay";
+				};
+			};
+		};
+	};
+	/* KTZ8866: backlight externo del panel o82 (bl_ctrl_external).
+	 * Stock DTBO frag@105/106: ktz8866@11 en DOS buses I2C
+	 * (compatible "ktz,ktz8866", reg <0x11>, sin mas props).
+	 * El panel ata ktz_bl_0 (fragment@9). Si en la tablet solo hay un
+	 * chip fisico (pendiente: i2cdetect en se0/se12), el nodo fantasma
+	 * probea igual (el probe vendor no hace I/O) y se borra el sobrante.
+	 */
+
+	/* fragment@7: KTZ8866 en qupv3_se0_i2c (stock frag@105) */
+	fragment@7 {
+		target = <&qupv3_se0_i2c>;
+
+		__overlay__ {
+			status = "okay";
+
+			ktz_bl_0: ktz8866@11 {
+				compatible = "ktz,ktz8866";
+				reg = <0x11>;
+				status = "okay";
+			};
+		};
+	};
+
+	/* fragment@8: KTZ8866 en qupv3_se12_i2c (stock frag@106) */
+	fragment@8 {
+		target = <&qupv3_se12_i2c>;
+
+		__overlay__ {
+			status = "okay";
+
+			ktz_bl_1: ktz8866@11 {
+				compatible = "ktz,ktz8866";
+				reg = <0x11>;
+				status = "okay";
+			};
+		};
+	};
+
+	/* fragment@9: el panel usa el backlight externo (antes: sin nodo
+	 * backlight + DCS 0x51 interno del driver, que el vendor no usa). */
+	fragment@9 {
+		target-path = "/soc/display-subsystem@ae00000/dsi@ae94000/panel@0";
+
+		__overlay__ {
+			backlight = <&ktz_bl_0>;
+		};
+	};
+
+	/* fragment@10: vci/L19 2,6 V del panel o82 (Android vci-supply=0x150,
+	 * init 2,6 V, rango 2,6-3,544 V; stock2-Cliffs7P-uke.dts:6956).
+	 * Sin esto el voto opcional del driver es NULL (L27-vci-absent). */
+	fragment@10 {
+		target-path = "/soc/display-subsystem@ae00000/dsi@ae94000/panel@0";
+
+		__overlay__ {
+			vci-supply = <&L19B>;
+		};
+	};
+};

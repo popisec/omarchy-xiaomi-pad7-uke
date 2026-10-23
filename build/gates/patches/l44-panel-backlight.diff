@@ -1,0 +1,147 @@
+--- panel-xiaomi-o82-dualdsi.c.orig
++++ panel-xiaomi-o82-dualdsi.c.l44
+@@ -19,7 +19,6 @@
+  * every command to both links (the vendor uses broadcast mode).
+  */
+ 
+-#include <linux/backlight.h>
+ #include <linux/uke-poke.h>
+ #include <linux/delay.h>
+ #include <linux/gpio/consumer.h>
+@@ -36,13 +35,13 @@
+ 
+ #include <video/mipi_display.h>
+ 
+-/* Vendor: qcom,mdss-dsi-bl-min-level = <4>, bl-max-level = <0xfff> (12 bit,
+- * written through DCS 0x51, "bl_ctrl_external" = no PWM).
++/* Brillo: EXTERNO (Kinetic KTZ8866 por I2C, "bl_ctrl_external" del vendor).
++ * El vendor NUNCA escribe DCS 0x51 en este panel (ID 0x14):
++ * dsi_panel_set_backlight() case 3 llama a ktz8866_backlight_update_status().
++ * El phandle 'backlight' del DT resuelve al KTZ y el core DRM lo enciende en
++ * drm_panel_enable() (tras el modeset ~= delay_until_first_frame del vendor).
++ * Los niveles min/max/init viven en el driver KTZ + DT stock, no aqui.
+  */
+-#define O82_BL_MIN_LEVEL	4
+-#define O82_BL_MAX_LEVEL	0xfff
+-/* Vendor: qcom,mdss-brightness-init-level = <0x133>. */
+-#define O82_BL_INIT_LEVEL	0x133
+ /* Vendor: qcom,supply-enable-load of the three panel supply entries. */
+ #define O82_SUPPLY_ENABLE_LOAD_UA	300000
+ 
+@@ -59,7 +58,6 @@
+ 	 * asevera sus lineas al arrancar su parte tactil. Aqui se registran
+ 	 * como esd-err-gpios (s266) y se arma una irq por linea. */
+ 	struct gpio_descs *esd_gpios;
+-	struct backlight_device *backlight;
+ };
+ 
+ struct o82_panel_desc {
+@@ -397,8 +395,9 @@
+ 		goto err;
+ 	}
+ 
+-	pr_info("UKE-P82: prepare: backlight_enable...\n");
+-	backlight_enable(ctx->backlight);
++	/* Sin backlight_enable aqui: el core DRM enciende el KTZ externo en
++	 * drm_panel_enable(), tras el modeset (equivale al
++	 * "delay_until_first_frame" del vendor). */
+ 	pr_info("UKE-P82: prepare: COMPLETO\n");
+ 
+ 	return 0;
+@@ -423,7 +422,8 @@
+ 		pr_info("UKE-P82-INHERIT: unprepare SALTADO (panel heredado sigue vivo)\n");
+ 		return 0;
+ 	}
+-	backlight_disable(ctx->backlight);
++	/* Sin backlight_disable aqui: el core DRM ya apago el KTZ en
++	 * drm_panel_disable(), antes de llamar a este unprepare. */
+ 
+ 	/* Vendor off command, en BROADCAST a los dos links (como el init):
+ 	 * 0x28 + 20 ms, 0x10 + 100 ms, 0x4f + 0 ms. Si solo se apaga el link
+@@ -495,51 +495,8 @@
+ 	.get_modes = o82_get_modes,
+ };
+ 
+-/* Brightness goes through DCS 0x51 (12 bits, MSB first) on both links;
+- * there is no PWM ("bl_ctrl_external"). The vendor sets control register
+- * 0x53 = 0x24 in the init sequence, so no extra control write is needed.
+- */
+-static int o82_bl_update_status(struct backlight_device *bl)
+-{
+-	uke_poke("K47-pan-bl");
+-	struct o82_panel *ctx = bl_get_data(bl);
+-	int level;
+-	u16 brightness;
+-	int ret = 0, i;
+-
+-	level = clamp(backlight_get_brightness(bl),
+-		      (int)O82_BL_MIN_LEVEL, (int)O82_BL_MAX_LEVEL);
+-	brightness = level;
+-
+-	for (i = 0; i < 2 && !ret; i++) {
+-		if (!ctx->dsi[i])
+-			break;
+-		ret = mipi_dsi_dcs_set_display_brightness_large(ctx->dsi[i],
+-								brightness);
+-	}
+-
+-	return ret;
+-}
+-
+-static const struct backlight_ops o82_bl_ops = {
+-	.options = BL_CORE_SUSPENDRESUME,
+-	.update_status = o82_bl_update_status,
+-};
+-
+-static struct backlight_device *
+-o82_create_backlight(struct o82_panel *ctx)
+-{
+-	struct device *dev = &ctx->dsi[0]->dev;
+-	const struct backlight_properties props = {
+-		.type = BACKLIGHT_RAW,
+-		.brightness = O82_BL_INIT_LEVEL,
+-		.max_brightness = O82_BL_MAX_LEVEL,
+-		.scale = BACKLIGHT_SCALE_NON_LINEAR,
+-	};
+-
+-	return devm_backlight_device_register(dev, dev_name(dev), dev, ctx,
+-					      &o82_bl_ops, &props);
+-}
++/* Backlight externo: ver cabecera (KTZ8866 por I2C). El core DRM lo maneja
++ * via ctx->panel.backlight (drm_panel_of_backlight en el probe). */
+ 
+ /*
+  * Full-panel modes (both links, 3200x2136). Per-link timings from the
+@@ -768,10 +725,28 @@
+ 
+ 	ctx->panel.prepare_prev_first = true;
+ 
+-	ctx->backlight = o82_create_backlight(ctx);
+-	if (IS_ERR(ctx->backlight))
+-		return dev_err_probe(dev, PTR_ERR(ctx->backlight),
+-				     "failed to create backlight\n");
++	/* Backlight externo (KTZ8866): el DT trae 'backlight = <&ktz_bl_0>'.
++	 * El core DRM lo enciende/apaga en enable/disable (tras el modeset).
++	 *
++	 * L44 (14-oct) — NO BLOQUEANTE (dev_warn, no fallo), heredado de L39b
++	 * (13-oct, variante "L40"). Motivo: si el KTZ aun no probeo (orden de
++	 * probe, I2C tardio), drm_panel_of_backlight devuelve -EPROBE_DEFER o
++	 * NULL y un fallo duro dejaria al panel entero sin probar (sin card1,
++	 * sin medida del enlace DSI). Con el aviso el panel sigue (backlight NULL-safe).
++	 * OJO (critica L44): drm_panel_of_backlight es ONE-SHOT -- si el KTZ probea
++	 * despues, el panel queda sin luz hasta su re-probe; el criterio PASA exige
++	 * que el aviso de backlight ausente NO aparezca en dmesg.
++	 * NOTA L44 vs L39b: el comentario original decia "este port no tiene
++	 * I2C (i2c-adapter vacio)"; desde L43 el bus existe (i2c-2, KTZ en
++	 * 0x11, ciclo #617 VERDE), asi que el aviso cubre ORDEN de probe, no
++	 * ausencia de bus. Cuando el enlace KTZ este verificado en vivo, esto
++	 * se puede endurecer a fallo.
++	 */
++	ret = drm_panel_of_backlight(&ctx->panel);
++	if (ret < 0 || !ctx->panel.backlight)
++		dev_warn(dev, "sin backlight externo (KTZ8866): ret=%d bl=%p; "
++			     "el panel sigue sin luz propia hasta que el KTZ probee.\n",
++			ret, ctx->panel.backlight);
+ 
+ 	drm_panel_add(&ctx->panel);
+ 

@@ -1,0 +1,118 @@
+msm.separate_gpu_kms=1 loglevel=6 kpti=0 log_buf_len=256K swiotlb=noforce loop.max_part=7 pcie_ports=compat irqaffinity=0-2 cpufreq.default_governor=performance sysctl.kernel.sched_pelt_multiplier=4 kasan=off cgroup.memory=nokmem,nosocket disable_dma32=on kernel.panic_on_rcu_stall=1 fw_devlink.strict=1 service_locator.enable=1 rcupdate.rcu_expedited=1 rcu_nocbs=0-7 no-steal-acc printk.console_no_auto_verbose=0 can.stats_timer=0 ftrace_dump_on_oops firmware_class.path=/vendor/firmware_mnt/image,/vendor/firmware_mnt/image/kiwi,/vendor/vm-system/oemvm/boot,/vendor/vm-system/trustedvm/boot,/vendor/firmware,/vendor/firmware/wlan/qca_cld/kiwi_v2 pci-msm-drv.pcie_sm_regs=0x1D07000,0x1040,0x1048,0x3000,0x1 video=vfb:640x400,bpp=32,memsize=3072000 swinfo.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user mtdoops.fingerprint=uke:14/OS3.0.303.0.WOZEUXM:user bootconfig rdinit=/ukeinit panic=10 memmap=0x1A12800$0xE3940000 console=tty0 fbcon=map:0 hung_task_timeout_secs=20 hung_task_panic=1 watchdog_thresh=10 console=ttyGS0,115200 fw_devlink=permissive clk_ignore_unused pd_ignore_unused arm-smmu.disable_bypass=0 arm_smmu.uke_smr_max=0 arm_smmu.uke_keep_boot=1 arm_smmu.uke_attach_log=2 arm_smmu.uke_reset_mask=12 memmap=0x2B00000$0xE3940000 loglevel=4 msm.uke_gmu_shared=0 arm_smmu.uke_kgsl_keep=0 hung_task_panic=0 printk.always_kmsg_dump=0 plymouth.enable=0 msm.uke_s3_stage=3 msm.uke_rescue=1 msm.uke_probe_hold_ms=5000 iomem=relaxed arm_smmu.uke_disp_reclaim=1 regulator_ignore_unused bootinfo.pureason=0x800001 bootinfo.pdreason=0x2 msm_sharedmem.cma_already_panic=0 debug_ext.initrd_size=62921 spidev.bufsiz=16384 hwid.hwid_value=1638400 hwid.project=11 hwid.build_adc=51239 hwid.project_adc=81 msm_drm.dsi_display0=qcom,mdss_dsi_o82_42_02_0b_dualdsi_dsc_vid: msm_drm.oled_wp=99807e msm_drm.debugpolicy=0x20 msm_drm.build_id=c3 rootwait ro init=/init silent_boot.mode=nonsilent log_buf_len=2M loglevel=6 console=ttynull block2mtd.block2mtd=/dev/block/by-name/oops,2097152 mtdoops.mtddev=0 mtdoops.record_size=2097152 mtdoops.dump_oops=1 printk.
+Linux uke-arch 7.2.0-rc2-palawan #1 SMP PREEMPT Fri Oct 10 12:00:00 CEST 2026 aarch64 GNU/Linux
+MemTotal:        7555512 kB
+MemFree:         6958140 kB
+MemAvailable:    7133392 kB
+Buffers:           16424 kB
+Cached:           324264 kB
+SwapCached:            0 kB
+Active:            81584 kB
+Inactive:         304676 kB
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda32      7.9G  1.9G  5.7G  25% /
+devtmpfs        3.4G     0  3.4G   0% /dev
+tmpfs           3.7G     0  3.7G   0% /dev/shm
+tmpfs           1.5G  2.6M  1.5G   1% /run
+tmpfs           3.7G     0  3.7G   0% /tmp
+none            1.0M     0  1.0M   0% /run/credentials/systemd-journald.service
+none            1.0M     0  1.0M   0% /run/credentials/systemd-resolved.service
+none            1.0M     0  1.0M   0% /run/credentials/systemd-networkd.service
+none            1.0M     0  1.0M   0% /run/credentials/serial-getty@ttyGS0.service
+none            1.0M     0  1.0M   0% /run/credentials/getty@tty1.service
+tmpfs           738M  4.0K  738M   1% /run/user/0
+               total        used        free      shared  buff/cache   available
+Mem:           7.2Gi       412Mi       6.6Gi        35Mi       368Mi       6.8Gi
+Swap:             0B          0B          0B
+ 00:16:15 up 30 min,  3 users,  load average: 2.03, 1.99, 1.23
+aoss-0 48900
+cpuss-0 56400
+cpu-1-3-1 57600
+cpu-2-0-0 55200
+cpu-2-0-1 53600
+cpu-2-0-2 53600
+aoss-1 48900
+cpu-0-0-0 54100
+cpu-0-1-0 55300
+cpu-0-2-0 57300
+nsphvx-0 47700
+nsphvx-1 46500
+cpuss-1 60700
+nsphmx-0 45000
+nsphmx-1 46100
+gpuss-0 44600
+gpuss-1 45300
+gpuss-2 48100
+gpuss-3 45700
+video 49300
+ddr 48900
+camera-0 48900
+camera-1 46500
+cpu-1-0-0 54000
+aoss-2 49200
+mdmss-0 47200
+mdmss-1 46000
+mdmss-2 45600
+mdmss-3 46000
+qcom-battmgr-bat 53500000
+cpu-1-0-1 55600
+cpu-1-1-0 56400
+cpu-1-1-1 57600
+cpu-1-2-0 54800
+cpu-1-2-1 57600
+cpu-1-3-0 56800
+== /sys/class/power_supply/qcom-battmgr-bat
+/sys/class/power_supply/qcom-battmgr-bat/uevent:DEVTYPE=power_supply
+/sys/class/power_supply/qcom-battmgr-bat/uevent:OF_NAME=qcom,pmic_glink
+/sys/class/power_supply/qcom-battmgr-bat/uevent:OF_FULLNAME=/soc/qcom,pmic_glink
+/sys/class/power_supply/qcom-battmgr-bat/uevent:OF_COMPATIBLE_0=qcom,pmic-glink
+/sys/class/power_supply/qcom-battmgr-bat/uevent:OF_COMPATIBLE_N=1
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_NAME=qcom-battmgr-bat
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_TYPE=Battery
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_STATUS=Charging
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_CHARGE_TYPE=Fast
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_HEALTH=Good
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_PRESENT=1
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_TECHNOLOGY=40
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_CYCLE_COUNT=8788
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_VOLTAGE_MAX=4460000
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_VOLTAGE_NOW=4354651
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_VOLTAGE_OCV=4392014
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_CURRENT_NOW=675309
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_POWER_NOW=51246
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_CHARGE_COUNTER=3
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_CAPACITY=99
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_TEMP=535000
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_TIME_TO_EMPTY_AVG=-1
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_TYPE=Battery
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_INTERNAL_RESISTANCE=33188
+/sys/class/power_supply/qcom-battmgr-bat/uevent:POWER_SUPPLY_STATE_OF_HEALTH=100
+== /sys/class/power_supply/qcom-battmgr-usb
+/sys/class/power_supply/qcom-battmgr-usb/uevent:DEVTYPE=power_supply
+/sys/class/power_supply/qcom-battmgr-usb/uevent:OF_NAME=qcom,pmic_glink
+/sys/class/power_supply/qcom-battmgr-usb/uevent:OF_FULLNAME=/soc/qcom,pmic_glink
+/sys/class/power_supply/qcom-battmgr-usb/uevent:OF_COMPATIBLE_0=qcom,pmic-glink
+/sys/class/power_supply/qcom-battmgr-usb/uevent:OF_COMPATIBLE_N=1
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_NAME=qcom-battmgr-usb
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_TYPE=USB
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_ONLINE=1
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_VOLTAGE_MAX=5000000
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_VOLTAGE_NOW=5190000
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_CURRENT_MAX=500000
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_CURRENT_NOW=362000
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_INPUT_CURRENT_LIMIT=100000
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_TYPE=USB
+/sys/class/power_supply/qcom-battmgr-usb/uevent:POWER_SUPPLY_USB_TYPE=Unknown [SDP] DCP CDP ACA C PD PD_DRP PD_PPS BrickID
+== /sys/class/power_supply/qcom-battmgr-wls
+/sys/class/power_supply/qcom-battmgr-wls/uevent:DEVTYPE=power_supply
+/sys/class/power_supply/qcom-battmgr-wls/uevent:OF_NAME=qcom,pmic_glink
+/sys/class/power_supply/qcom-battmgr-wls/uevent:OF_FULLNAME=/soc/qcom,pmic_glink
+/sys/class/power_supply/qcom-battmgr-wls/uevent:OF_COMPATIBLE_0=qcom,pmic-glink
+/sys/class/power_supply/qcom-battmgr-wls/uevent:OF_COMPATIBLE_N=1
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_NAME=qcom-battmgr-wls
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_TYPE=Wireless
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_ONLINE=0
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_VOLTAGE_MAX=0
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_VOLTAGE_NOW=5183000
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_CURRENT_MAX=0
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_CURRENT_NOW=362000
+/sys/class/power_supply/qcom-battmgr-wls/uevent:POWER_SUPPLY_TYPE=Wireless

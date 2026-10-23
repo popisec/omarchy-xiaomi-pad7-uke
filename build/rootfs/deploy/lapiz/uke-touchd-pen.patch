@@ -1,0 +1,150 @@
+--- tactil/uke-touchd.py
++++ tactil/uke-touchd-pen.py
+@@ -49,6 +49,19 @@
+                                                       n, self.speed, 0, 8, 0, 0, 0, 0, 0))
+         fcntl.ioctl(self.fd, self._msg, tr)
+ 
++    def write_regs(self, addr, payload):
++        """set_page + escritura [addr&0x7F|0x80, payload...] (como uke-touch-fwload.py); lo usa uke_pen.PenChip."""
++        tx = self.tx
++        tx[0], tx[1], tx[2] = 0xFF, (addr >> 15) & 0xFF, (addr >> 7) & 0xFF
++        tx[3] = 0
++        self._xfer(4)
++        tx[0] = (addr & 0x7F) | 0x80
++        for i, b in enumerate(payload):
++            tx[1 + i] = b
++        self._xfer(1 + len(payload))
++        for i in range(len(payload) + 1):                  # read() restaura tx[0..2]; el resto del buffer debe quedar a cero
++            tx[i] = 0
++
+     def read(self, addr, n, off=0):
+         """Lee n bytes en addr; devuelve bytes desde el desplazamiento off (evita copiar lo que no se usa)."""
+         tx = self.tx
+@@ -214,6 +227,7 @@
+     # --hold-ms tras levantarlo, todas. En reposo duerme entre frames y vacia los flancos acumulados de una vez.
+     ap.add_argument("--idle-div", type=int, default=3, help="en reposo, en reposo, frames procesados = 180/N por segundo (N=3: 60 Hz)")
+     ap.add_argument("--hold-ms", type=int, default=500, help="ritmo completo durante este tiempo tras el ultimo toque")
++    ap.add_argument("--pen", action="store_true", help="modo lapiz (uke_pen): activa el chip si el lapiz esta conectado y despegado")
+     a = ap.parse_args()
+ 
+     def to_screen(x, y):
+@@ -229,6 +243,25 @@
+ 
+     spi = Spi()
+     ui = UInput(SCR_W, SCR_H)
++    stop_req = []
++    rt = None                    # PenRuntime: NINGUNA excepcion del modo lapiz sale de el; al primer fallo se desactiva y el tactil sigue
++    if a.pen:
++        try:
++            sys.path.append("/usr/local/share/uke/lapiz")
++            import uke_pen
++            rt = uke_pen.PenRuntime(spi, EVENT_BUF, SCR_W, SCR_H, _ioc, to_screen, log=log)
++            if rt.dead:
++                rt = None
++            else:
++                log("modo lapiz activo: socket /run/uke-lapiz.sock")
++                import signal
++
++                def _term(*_):
++                    stop_req.append(1)                 # solo un indicador: el bucle apaga el lapiz ENTRE transferencias SPI
++                signal.signal(signal.SIGTERM, _term)
++        except Exception as e:                         # noqa: BLE001
++            log("modo lapiz NO disponible (%r): el tactil sigue sin lapiz" % (e,))
++            rt = None
+     tr = thp_algo.Tracker()
+     gfd = None
+     if not a.no_irq:
+@@ -252,6 +285,10 @@
+     elif a.no_fwload:
+         loaded_gen = gen
+     poller = select.poll()
++    pen_fd = None
++    if rt is not None:
++        pen_fd = rt.fileno()
++        poller.register(pen_fd, select.POLLIN)
+     if gfd is not None:
+         poller.register(gfd, select.POLLIN)
+     if sfd is not None:
+@@ -259,7 +296,7 @@
+     period_ms = int(1000 / a.hz)
+     mut = array.array("H")
+     good = bad = idle = 0
+-    last_log = last_frame = last_touch = time.monotonic()
++    last_log = last_frame = last_touch = last_irq = time.monotonic()
+     was_down = False
+     hold = a.hold_ms / 1000.0
+     idle_period = a.idle_div / 180.0                    # el chip da ~180 frames/s (medido 19-oct)
+@@ -278,6 +315,16 @@
+                 next_idle = max(next_idle + idle_period, time.monotonic())
+             else:
+                 next_idle = t
++        if stop_req:
++            if rt is not None:
++                rt.shutdown()                                   # BF 04 00 00 00 si estaba activo; nunca 7B 00 ni 7C
++            sys.exit(0)
++        if rt is not None and rt.dead:                          # el lapiz se desactivo solo: fuera su fd (evita un poll() en bucle con POLLNVAL)
++            try:
++                poller.unregister(pen_fd)
++            except (KeyError, ValueError):
++                pass
++            rt = None
+         evs = poller.poll(500 if gfd is not None else period_ms)
+         now = time.monotonic()
+         irq = gfd is None
+@@ -293,6 +340,10 @@
+             elif fd == gfd:
+                 os.read(gfd, 48 * 16)                           # vaciar eventos de flanco
+                 irq = True
++            elif rt is not None and fd == rt.fileno():
++                rt.on_socket(now)
++        if rt is not None:
++            rt.set_ready(bool(ready) and (loaded_gen == gen or a.no_fwload), now)
+         if not ready:
+             continue
+         if loaded_gen != gen and not a.no_fwload:
+@@ -300,11 +351,16 @@
+             if load_fw():
+                 loaded_gen = gen
+                 tr.reset()
++                if rt is not None:
++                    rt.resync(now)
+                 last_frame = time.monotonic()
+             else:
+                 time.sleep(2)
+             continue
+         if not irq:
++            if rt is not None:                                  # sin IRQ tambien hay que vigilar: chip mudo con modo lapiz (20-oct)
++                rt.tick(now)
++                rt.silence(now, last_irq)
+             # sin IRQ en 3 s con el panel listo: comprobar si el chip perdio el firmware (reset no notificado)
+             if now - last_frame > 3 and not a.no_fwload:
+                 if not fw_alive(spi):
+@@ -312,10 +368,17 @@
+                     loaded_gen = None
+                 last_frame = now
+             continue
+-        last_frame = now
++        last_frame = last_irq = now
+         F = spi.read(EVENT_BUF, THP_OFF + 0x40 + 2 * thp_algo.ROWS * thp_algo.COLS, THP_OFF)
+         fid, mag, nid, nmag = struct.unpack_from("<H2xH2xH2xH", F, 4)
+-        if mag != thp_algo.MAGIC or nmag != (~thp_algo.MAGIC & 0xFFFF) or nid != (~fid & 0xFFFF):
++        if rt is not None and rt.handles(F):
++            good += 1
++            if was_down:                                        # un dedo apoyado al empezar la rafaga de lapiz se suelta (revision I1)
++                ui.frame([]); was_down = False
++            tr.reset()                                          # SIEMPRE olvidar base y toques en una rafaga de lapiz: la rejilla 4bf posterior puede traer otra linea base y la vieja nunca se readapta (si no, toque fantasma y pellizco muerto)
++            rt.on_frame(F, now)
++            last_touch = now                                    # con lapiz: ritmo completo (240 Hz)
++        elif mag != thp_algo.MAGIC or nmag != (~thp_algo.MAGIC & 0xFFFF) or nid != (~fid & 0xFFFF):
+             bad += 1
+         else:
+             good += 1
+@@ -334,6 +397,8 @@
+                 was_down = bool(pts)
+                 if was_down:
+                     last_touch = now
++        if rt is not None:
++            rt.tick(now)
+         if now - last_log > 30:
+             log("30 s: frames validos %d (reposo rapido %d), cabecera mala %d%s" % (
+                 good, idle, bad, "  <- sin firmware?" if good == 0 else ""))

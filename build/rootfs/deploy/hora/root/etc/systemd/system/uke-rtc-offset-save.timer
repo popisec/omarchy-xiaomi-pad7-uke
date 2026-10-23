@@ -1,0 +1,7 @@
+[Unit]
+Description=uke: guardar el desfase hora real - RTC cada 30 min (recoge las correcciones de chrony)
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=30min
+[Install]
+WantedBy=timers.target

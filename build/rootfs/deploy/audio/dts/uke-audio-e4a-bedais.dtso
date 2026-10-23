@@ -1,0 +1,30 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e4a-bedais.dtso — ETAPA E4a: DAIs de BACKEND de q6apm (sin DMA, sin SMMU).
+ * Parte 1 de la division de uke-audio-e4-dais.dtso (18-oct-2026). BORRADOR del PC, NO probado en la tablet.
+ *
+ *   bedais (qcom,q6apm-lpass-dais): registra el componente ASoC con los DAIs de backend (CODEC_DMA, I2S, DP) que usara la tarjeta
+ *   (q6dsp_audio_ports_set_config); el probe NO accede a hardware ni a memoria compartida (q6apm-lpass-dais.c:300-318).
+ *
+ * OBSOLETO (18-oct, oops de E4c): bedais/dais viven ahora DENTRO de uke-audio-e2d-gpr-ports (padre correcto). Este overlay aparte crea el dispositivo con padre NULL
+ * y NO sirve con una tarjeta. Se conserva solo como referencia de E4a/E4b (medidos sin tarjeta).
+ *
+ * Requiere e2d (cuelga de service@3). Etiqueta uke_q6apmbedai: la usa e5-card.
+ * Riesgo: nulo para el ADSP/SMMU (solo crea un dispositivo y registra un componente). Es un nodo hijo de service@3 anadido tras el probe de
+ * q6apm: of_platform_populate marco el padre OF_POPULATED_BUS, asi que of_platform_notify crea el platform device al vuelo (medido igual con e3 bajo /soc).
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr/service@3";
+
+		__overlay__ {
+			uke_q6apmbedai: bedais {
+				compatible = "qcom,q6apm-lpass-dais";
+				#sound-dai-cells = <1>;
+			};
+		};
+	};
+};

@@ -1,0 +1,27 @@
+## sesion-20261020d/20261020-144206 evmon 8091.9-8141.2 tool_in 2 tool_out 2 onsets BLE 6
+  onset 8091.862  en_rango_ya=True  primera herramienta-in tras onset-3s: -0.00 s
+  onset 8096.916  en_rango_ya=True  primera herramienta-in tras onset-3s: +39.09 s
+  onset 8099.610  en_rango_ya=False  primera herramienta-in tras onset-3s: +36.40 s
+  onset 8104.939  en_rango_ya=False  primera herramienta-in tras onset-3s: +31.07 s
+  onset 8107.115  en_rango_ya=False  primera herramienta-in tras onset-3s: +28.89 s
+  onset 8135.920  en_rango_ya=False  primera herramienta-in tras onset-3s: +0.09 s
+## sesion-20261020d/20261020-145504 evmon 8360.9-8371.4 tool_in 1 tool_out 1 onsets BLE 2
+  onset 8360.924  en_rango_ya=False  primera herramienta-in tras onset-3s: +0.01 s
+  onset 8369.103  en_rango_ya=True  primera herramienta-in tras onset-3s: ninguna
+## sesion-20261020d/20261020-145932 evmon 8773.2-8780.3 tool_in 2 tool_out 2 onsets BLE 2
+  onset 8772.476  en_rango_ya=False  primera herramienta-in tras onset-3s: +0.69 s
+  onset 8777.431  en_rango_ya=True  primera herramienta-in tras onset-3s: -0.34 s
+## sesion-20261020-d/ultima evmon 9441.8-9456.7 tool_in 3 tool_out 3 onsets BLE 5
+  onset 9441.773  en_rango_ya=False  primera herramienta-in tras onset-3s: +0.00 s
+  onset 9446.909  en_rango_ya=True  primera herramienta-in tras onset-3s: -0.18 s
+  onset 9451.813  en_rango_ya=True  primera herramienta-in tras onset-3s: -0.36 s
+  onset 9453.105  en_rango_ya=True  primera herramienta-in tras onset-3s: -1.65 s
+  onset 9454.403  en_rango_ya=True  primera herramienta-in tras onset-3s: -2.95 s
+## sesion-20261020c/20261020-143806 evmon 7326.5-7349.7 tool_in 4 tool_out 4 onsets BLE 4
+  onset 7326.457  en_rango_ya=False  primera herramienta-in tras onset-3s: +0.01 s
+  onset 7327.987  en_rango_ya=True  primera herramienta-in tras onset-3s: -1.52 s
+  onset 7328.755  en_rango_ya=True  primera herramienta-in tras onset-3s: -2.29 s
+  onset 7348.333  en_rango_ya=True  primera herramienta-in tras onset-3s: -0.16 s
+## sesion-20261020b/20261020-115800 evmon 1037.2-1164.6 tool_in 1 tool_out 1 onsets BLE 1
+  onset 1162.510  en_rango_ya=False  primera herramienta-in tras onset-3s: +0.04 s
+## sesion-20261020/20261020-095013 evmon 433.4-450.3 tool_in 2 tool_out 2 onsets BLE 0

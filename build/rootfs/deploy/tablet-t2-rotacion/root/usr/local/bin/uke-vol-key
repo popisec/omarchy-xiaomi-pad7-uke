@@ -1,0 +1,23 @@
+#!/bin/sh
+# uke-vol-key up|down — teclas de volumen de la uke. 18-oct-2026 (fase T2).
+# Vol+ y Vol- a la vez (dentro de 250 ms) = uke-rotate next; una sola = volumen como siempre (con 250 ms de retardo
+# para poder distinguir). Tras rotar se ignora todo durante 1,5 s (la pareja mantenida no rota en bucle).
+D=${XDG_RUNTIME_DIR:-/tmp}/uke-volkey
+mkdir -p "$D"
+k=$1; [ "$k" = up ] && o=down || o=up
+now() { date +%s%N | cut -b1-13; }   # ms
+t=$(now); echo "$t" >"$D/$k"
+sleep 0.25
+tn=$(now)
+to=$(cat "$D/$o" 2>/dev/null || echo 0)
+dead=$(cat "$D/dead" 2>/dev/null || echo 0)
+if [ $((t - to)) -lt 250 ] && [ $((t - to)) -gt -250 ]; then
+	( flock -n 8 || exit 0
+	  d=$(cat "$D/dead" 2>/dev/null || echo 0)
+	  [ $((tn - d)) -lt 1500 ] && exit 0
+	  echo "$tn" >"$D/dead"
+	  exec /usr/local/bin/uke-rotate next ) 8>"$D/lock"
+	exit 0
+fi
+[ $((tn - dead)) -lt 1500 ] && exit 0
+[ "$k" = up ] && exec omarchy-audio-output-volume raise || exec omarchy-audio-output-volume lower

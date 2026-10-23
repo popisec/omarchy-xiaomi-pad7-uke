@@ -1,0 +1,50 @@
+# Maintainer: omarchy-uke project
+# Firmware de la GPU Adreno 732 (SM7675) para la Xiaomi Pad 7 "uke".
+#
+# Origen de los blobs: volcado del vendor de ESTA tablet
+# (proyectos/ubuntu-uke/stock/firmware/ = vendor_a:/firmware).
+# NO son los del repo firmware-qualcomm-qrd8635 del fork: sqe y zap
+# difieren en contenido (uke-staging/firmware/README.md del proyecto
+# hermano, medido 11-sep-2026). El GMU es byte-identico en ambas fuentes.
+# Blobs propietarios de Qualcomm/Xiaomi: uso interno del proyecto.
+#
+# Rutas que instala y por que (kernel 7.2.0-rc2-palawan+, driver msm):
+#  - qcom/gen71100_gmu.bin , qcom/gen71100_sqe.fw
+#      a6xx_catalog.c:1621-1622 (chip 0x43030b00), via adreno_request_fw()
+#      (adreno_gpu.c:531-) que prueba primero "qcom/<nombre>".
+#  - qcom/uke/gen71100_zap.mbn
+#      xiaomi-uke.dts:555 (&gpu_zap_shader firmware-name), peticion directa
+#      con request_firmware_direct (adreno_gpu.c:75-78), sin fallback.
+#  - qcom/palawan/gen71100_zap.mbn
+#      lamma-qrd.dts:631 (misma ruta del zap para la placa de referencia).
+#  - qcom/gen71100_zap.mbn
+#      fallback del zapfw del catalogo (a6xx_catalog.c:1630) via
+#      adreno_request_fw() cuando el DT no trae firmware-name.
+#  - gen71100_{gmu.bin,sqe.fw,zap.mbn} en la raiz de /usr/lib/firmware
+#      ubicacion "legacy" sin prefijo: el proyecto hermano midio que sin
+#      estos el fw_load del GMU se cuelga en vez de dar error
+#      (LECCIONES.md, SESION-24SEP-GPU.md ronda 24-sep).
+pkgname=uke-gpu-firmware
+pkgver=1
+pkgrel=1
+pkgdesc="Adreno 732 GPU firmware for Xiaomi Pad 7 (uke) - vendor blobs"
+arch=('any')
+url="file://~/proyectos/ubuntu-uke/stock/firmware"
+license=('custom')
+source=('gen71100_gmu.bin'
+        'gen71100_sqe.fw'
+        'gen71100_zap.mbn')
+sha256sums=('435c7bac9a328b8a100df930b84b65b4d579e42be44785d0e60e3729291bb864'
+            'b6df660d109504dbea5a266910b037a33d893a11c6de52f524a5fd112008c401'
+            '0c86e4ae6ed618101949965df451510a3216e0f0de1aef4920bd1888a15ea8e6')
+
+package() {
+  install -Dm644 gen71100_gmu.bin "$pkgdir/usr/lib/firmware/qcom/gen71100_gmu.bin"
+  install -Dm644 gen71100_sqe.fw  "$pkgdir/usr/lib/firmware/qcom/gen71100_sqe.fw"
+  install -Dm644 gen71100_zap.mbn "$pkgdir/usr/lib/firmware/qcom/uke/gen71100_zap.mbn"
+  install -Dm644 gen71100_zap.mbn "$pkgdir/usr/lib/firmware/qcom/palawan/gen71100_zap.mbn"
+  install -Dm644 gen71100_zap.mbn "$pkgdir/usr/lib/firmware/qcom/gen71100_zap.mbn"
+  install -Dm644 gen71100_gmu.bin "$pkgdir/usr/lib/firmware/gen71100_gmu.bin"
+  install -Dm644 gen71100_sqe.fw  "$pkgdir/usr/lib/firmware/gen71100_sqe.fw"
+  install -Dm644 gen71100_zap.mbn "$pkgdir/usr/lib/firmware/gen71100_zap.mbn"
+}

@@ -1,0 +1,68 @@
+# Parche para Megapixels 1.8.3 (https://gitlab.com/megapixels-org/Megapixels).
+# Derivado de Megapixels, que es GPL-3.0-or-later; este parche hereda esa licencia.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+--- a/data/debayer.frag
++++ b/data/debayer.frag
+@@ -60,10 +60,8 @@
+ 
+         // Some crude blacklevel correction to make the preview a bit nicer, this
+         // should be an uniform
+-        vec3 corrected = color - 0.02;
+-
+-        // Apply the color matrices
+-        // vec3 corrected = color_matrix * color2;
++        // uke: matriz de color (CCM x balance de blancos) activada; Megapixels la tenia comentada (preview sin WB: verdoso)
++        vec3 corrected = max(color_matrix * (color - 0.02), vec3(0.0001));
+ 
+         // Fast SRGB estimate. See https://mimosa-pudica.net/fast-gamma/
+         vec3 srgb_color =
+--- a/src/gles2_debayer.c
++++ b/src/gles2_debayer.c
+@@ -172,6 +172,18 @@
+         glUniform1f(self->uniform_padding_ratio, padding_ratio);
+ }
+ 
++/* uke: cambia la matriz de color (fila mayor) sin reconfigurar el debayer; la usa el balance de blancos por software */
++void
++gles2_debayer_set_matrix(GLES2Debayer *self, const float *matrix)
++{
++        GLfloat transposed[9];
++        for (int i = 0; i < 3; ++i)
++                for (int j = 0; j < 3; ++j)
++                        transposed[i + j * 3] = matrix[j + i * 3];
++        glUseProgram(self->program);
++        glUniformMatrix3fv(self->uniform_color_matrix, 1, GL_FALSE, transposed);
++}
++
+ void
+ gles2_debayer_process(GLES2Debayer *self, GLuint dst_id, GLuint source_id)
+ {
+--- a/src/gles2_debayer.h
++++ b/src/gles2_debayer.h
+@@ -20,4 +20,6 @@
+                              const float *colormatrix,
+                              const uint8_t blacklevel);
+ 
++void gles2_debayer_set_matrix(GLES2Debayer *self, const float *matrix);
++
+ void gles2_debayer_process(GLES2Debayer *self, GLuint dst_id, GLuint source_id);
+--- a/src/process_pipeline.c
++++ b/src/process_pipeline.c
+@@ -467,6 +467,16 @@
+                      image);
+         check_gl();
+ 
++        {
++                /* uke: CCM (la del DCP si hay; si no, I + 0,4 (generica de OmniVision - I), APROXIMADA, filas que suman 1) x diag(WB) */
++                static const float uke_ccm[9] = { 1.248f, -0.180f, -0.068f, -0.112f, 1.208f, -0.096f, -0.020f, -0.248f, 1.268f };
++                const float *ccm = camera->previewmatrix[0] != 0 ? camera->previewmatrix : uke_ccm;
++                float m[9];
++                for (int r = 0; r < 3; ++r)
++                        for (int c = 0; c < 3; ++c)
++                                m[r * 3 + c] = ccm[r * 3 + c] * balance[c];
++                gles2_debayer_set_matrix(gles2_debayer, m);
++        }
+         gles2_debayer_process(
+                 gles2_debayer, output_buffer->texture_id, input_texture);
+         check_gl();

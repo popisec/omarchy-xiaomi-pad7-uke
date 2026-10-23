@@ -1,0 +1,14 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+@@ -1792,6 +1792,11 @@
+ 	clk_set_rate(gmu->core_clk, 200000000);
+ 	clk_set_rate(gmu->hub_clk, adreno_is_a740_family(adreno_gpu) ?
+ 		     200000000 : 150000000);
++	/* UKE-L4c (BISECT-L4): D3-SOLO SIN D1 SIN D2 (sub-hunk de k65).
++	 * Cierra la celda D3∧¬(D1∨D2∨K64). Testigo UKE-K65 original. */
++	ret = dev_pm_opp_set_rate(gmu->dev, 220000000);
++	pr_err("UKE-K65: D3 cx LOW_SVS opp_set_rate 220M rc=%d\n", ret);
++	pr_flush(120, false);
+ 	ret = clk_bulk_prepare_enable(gmu->nr_clocks, gmu->clocks);
+ 	if (ret) {
+ 		uke_poke("H3-clkFAIL");

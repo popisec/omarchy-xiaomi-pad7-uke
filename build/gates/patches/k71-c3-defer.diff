@@ -1,0 +1,144 @@
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+@@ -12,11 +12,110 @@
+ 
+ #include <linux/bitfield.h>
+ #include <linux/devfreq.h>
++#include <linux/module.h>	/* UKE-C3: module_param_cb del trigger */
++#include <linux/pm_runtime.h>	/* UKE-C3: get/put del bring-up manual */
++#include <linux/printk.h>	/* UKE-C3: pr_err/pr_flush (este fichero tenia 0) */
++#include <linux/workqueue.h>	/* UKE-C3: FIRE diferido a proceso */
+ #include <linux/pm_domain.h>
+ #include <linux/soc/qcom/llcc-qcom.h>
+ 
+ #define GPU_PAS_ID 13
+ 
++/* UKE-C3 (9-oct-2026, PLAN-C3 S1-S2): enables diferidos tras USB.
++ * El resume GMU falla con -EAGAIN sin tocar HW (cubre C1, D1, enables, K64,
++ * env_probe, G10/G8, S0-S4, HFI: todo queda tras el punto de corte) y el boot
++ * sigue a USB/SSH (mismo estado final que k52b2/stage0, probado). El bring-up
++ * real se dispara a mano con USB vivo: `echo 1 >
++ * /sys/module/msm/parameters/uke_c3_fire` (sysfs, no debugfs: el debugfs de
++ * adreno solo existe tras un load con exito). El bind queda INTACTO a
++ * proposito: fallarlo mataria component_bind_all = todo el DRM (sin card0,
++ * sin KMS, sin camino de FIRE). `echo 0 > .../uke_c3_fire` con la GPU arriba
++ * la libera (put) y re-arma el defer. Solo desarmar (`uke_c3_defer=0`) tambien
++ * vale: el siguiente open de card0 corre el camino original (fallback).
++ */
++static int uke_c3_defer = 1;
++module_param(uke_c3_defer, int, 0644);
++MODULE_PARM_DESC(uke_c3_defer,
++	"UKE (C3): 1 (defecto)=resume GMU diferido (-EAGAIN, boot sigue a USB); 0=resume real.");
++
++static int uke_c3_fire;
++static int uke_c3_state; /* 0=armado 1=disparando 2=GPU arriba 3=hw_init fallo */
++static struct msm_gpu *uke_c3_gpu;
++static struct work_struct uke_c3_fire_work;
++
++static void uke_c3_fire_fn(struct work_struct *work)
++{
++	struct msm_gpu *gpu = uke_c3_gpu;
++	int ret;
++
++	uke_poke("C3-firing");
++	pr_err("UKE-C3: FIRE: bring-up manual con USB vivo (defer=%d)\n",
++	       uke_c3_defer);
++	pr_flush(120, false);
++	if (!gpu) {
++		pr_err("UKE-C3: FIRE abortado: el bind no corrio (sin gpu)\n");
++		pr_flush(120, false);
++		uke_c3_state = 0;
++		return;
++	}
++	uke_c3_defer = 0;
++	/* Replica de adreno_load_gpu() menos fw (ya cargado en cada open
++	 * fallido del boot) y menos OPP/debugfs: enable+resume+hw_init. Un
++	 * ciclo suspend/resume tampoco recarga fw: el FIRE es fiel. */
++	if (gpu->pdev->dev.power.disable_depth)
++		pm_runtime_enable(&gpu->pdev->dev);
++	ret = pm_runtime_get_sync(&gpu->pdev->dev);
++	pr_err("UKE-C3: FIRE resume rc=%d (testigos Z4/H*/S* = camino real)\n",
++	       ret);
++	pr_flush(120, false);
++	if (ret) {
++		uke_c3_state = 0;
++		uke_c3_defer = 1;
++		return;
++	}
++	mutex_lock(&gpu->lock);
++	ret = msm_gpu_hw_init(gpu);
++	mutex_unlock(&gpu->lock);
++	pr_err("UKE-C3: FIRE hw_init rc=%d (%s)\n", ret,
++	       ret ? "FALLO" : "GPU ARRIBA (ref retenida)");
++	pr_flush(120, false);
++	uke_poke(ret ? "C3-hwFAIL" : "C3-hwOK");
++	uke_c3_state = ret ? 3 : 2;
++	/* Sin put: la ref queda retenida para inspeccionar la GPU. */
++}
++
++static int uke_c3_fire_set(const char *val, const struct kernel_param *kp)
++{
++	int ret = param_set_int(val, kp);
++
++	if (ret)
++		return ret;
++	if (uke_c3_fire == 1) {
++		if (uke_c3_state == 2) {
++			pr_err("UKE-C3: FIRE ignorado (GPU ya arriba)\n");
++		} else {
++			uke_c3_state = 1;
++			schedule_work(&uke_c3_fire_work);
++			pr_err("UKE-C3: FIRE encolado (mirar con dmesg -w)\n");
++		}
++	} else if (uke_c3_fire == 0 && uke_c3_state == 2 && uke_c3_gpu) {
++		pm_runtime_put_sync(&uke_c3_gpu->pdev->dev);
++		uke_c3_defer = 1;
++		uke_c3_state = 0;
++		pr_err("UKE-C3: RELEASE: GPU suspendida, defer re-armado\n");
++	}
++	uke_c3_fire = 0;
++	return 0;
++}
++
++static const struct kernel_param_ops uke_c3_fire_ops = {
++	.set = uke_c3_fire_set,
++	.get = param_get_int,
++};
++module_param_cb(uke_c3_fire, &uke_c3_fire_ops, &uke_c3_fire, 0644);
++MODULE_PARM_DESC(uke_c3_fire,
++	"UKE (C3): escribir 1=bring-up real en workqueue; 0=libera GPU y re-arma defer.");
++
+ static u64 a6xx_gmu_get_timestamp(struct msm_gpu *gpu)
+ {
+ 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
+@@ -2135,6 +2234,18 @@
+ 	struct a6xx_gpu *a6xx_gpu = to_a6xx_gpu(adreno_gpu);
+ 	int ret;
+ 
++	/* UKE-C3 (PLAN-C3 S1): stub del diferido. Antes de needs_hw_init,
++	 * trace, locks y PM: cero contacto con HW. -EAGAIN = el unwind probado
++	 * de k52b2/stage0 (load_gpu->NULL, boot sigue). NO fingir exito: con
++	 * return 0 seguirian devfreq/llc/hw_init sobre dominios apagados. */
++	if (uke_c3_defer) {
++		pr_err("UKE-C3: DEFER resume diferido (GMU apagado, boot sigue) defer=%d\n",
++		       uke_c3_defer);
++		pr_flush(120, false);
++		uke_poke("C3-defer");
++		return -EAGAIN;
++	}
++	uke_poke("C3-live");
+ 	gpu->needs_hw_init = true;
+ 
+ 	trace_msm_gpu_resume(0);
+@@ -2791,6 +2902,11 @@
+ 	/* Set up the preemption specific bits and pieces for each ringbuffer */
+ 	a6xx_preempt_init(gpu);
+ 
++	/* UKE-C3 (PLAN-C3 S2): stash para el trigger manual tras USB. */
++	uke_c3_gpu = gpu;
++	INIT_WORK(&uke_c3_fire_work, uke_c3_fire_fn);
++	pr_err("UKE-C3: ARMED (defer=%d): resume diferido, boot a USB/SSH; trigger: echo 1 > /sys/module/msm/parameters/uke_c3_fire\n",
++	       uke_c3_defer);
+ 	return gpu;
+ }
+ 

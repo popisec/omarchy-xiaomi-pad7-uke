@@ -1,0 +1,11 @@
+# Unidad de USUARIO (omarchy): ~/.config/systemd/user/uke-pen-sync.path — NO instalada.
+# uke-rotate escribe ~/.local/state/uke-rotate/deg tras cada rotacion correcta: eso dispara uke-pen-sync.service.
+[Unit]
+Description=Seguir la rotacion de la pantalla con el lapiz (uke)
+
+[Path]
+PathChanged=%S/uke-rotate/deg
+Unit=uke-pen-sync.service
+
+[Install]
+WantedBy=default.target

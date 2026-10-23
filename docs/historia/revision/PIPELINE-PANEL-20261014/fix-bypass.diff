@@ -1,0 +1,83 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -435,6 +435,22 @@
+ module_param_cb(uke_protect_smr0, &uke_protect_smr0_ops, &uke_protect_smr0, 0644);
+ MODULE_PARM_DESC(uke_protect_smr0,
+ 	"UKE (K5): 1 = si find_sme elige un indice con smrs[idx].valid del bootloader (vivo), escribe en un indice libre alto en vez de tocar el vivo; 0 (defecto) = comportamiento K4. Solo apps-smmu.");
++/*
++ * UKE-FIX-A2 (14-oct-2026, sesion FIX): BYPASS discriminante del display.
++ * Igual reclaim que FIX-A1 (localiza la entrada BL del SID 0x1c00/0x2 por
++ * lectura SMR y la reutiliza), pero install_s2crs la lleva a S2CR_TYPE_BYPASS
++ * en vez de TRANS: el fetch del cmd-DMA lee PA directa y NO debe matar.
++ * Si el DCS completa (basura) => causa-traduccion confirmada; si la muerte es
++ * identica => la causa NO es la traduccion. Diagnostico de 1 ciclo (el
++ * scanout exige traduccion). Requiere uke_write_mask con bits 6+7 (el CB69 de
++ * bit8 sobra pero se deja 0x1C0 para igual setup que A1). Mutuamente
++ * excluyente con uke_disp_reclaim (no aplicar fix-smmu.diff + este).
++ */
++static bool uke_disp_bypass;
++
++module_param(uke_disp_bypass, bool, 0644);
++MODULE_PARM_DESC(uke_disp_bypass,
++	"UKE (FIX-A2): 1 = la entrada reclamada del display (0x1c00/0x2) va a BYPASS un ciclo. Solo diagnostico.");
+ 
+ /*
+  * Bitmap de indices ya preservados por uke_attach_log=2: evita que un segundo
+@@ -2342,6 +2358,41 @@
+ 		idx = ret;
+ 
+ 		/*
++		 * UKE-FIX-A2: reclaim del display (ver param). Solo si el
++		 * claimant es el SID del display y hay entrada BL reutilizable.
++		 * Sin param, sin smrs, o sin entrada del BL: idx intacto.
++		 */
++		if (uke_disp_bypass && uke_smmu_es_apps(smmu) &&
++		    sid == 0x1c00 && mask == 0x2 && smmu->smrs) {
++			int uke_r;
++
++			for (uke_r = 0; uke_r < (int)smmu->num_mapping_groups; uke_r++) {
++				u32 uke_h = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(uke_r));
++
++				if (!FIELD_GET(ARM_SMMU_SMR_VALID, uke_h))
++					continue;
++				if ((u16)FIELD_GET(ARM_SMMU_SMR_ID, uke_h) != sid)
++					continue;
++				if ((u16)uke_smr_mask_leido(uke_h) != mask)
++					continue;
++				break;
++			}
++			if (uke_r < (int)smmu->num_mapping_groups && uke_r != idx) {
++				pr_info("UKE-POKE: FIX-A2: reclaim display: SMR(%d) del BL casa sid=0x%x mask=0x%x (pinado=%d): %s lo reutiliza en vez de idx=%d; se des-pinea y se reescribe a TRANS->CB nuevo (luego BYPASS en install)
++",
++					uke_r, sid, mask,
++					uke_pinado(smmu, uke_r) ? 1 : 0,
++					dev_name(dev), idx);
++				pr_flush(500, false);
++				smmu->s2crs[uke_r].pinned = false;
++				idx = uke_r;
++			} else {
++				pr_info("UKE-POKE: FIX-A2: reclaim display: sin entrada BL reutilizable (r=%d idx=%d): se sigue con idx=%d (K8/K12)\n",
++					uke_r, idx, idx);
++			}
++		}
++
++		/*
+ 		 * UKE-SMMU-K8: HANDOFF por indice y por DT. Si find_sme ha
+ 		 * devuelto un indice PINADO (por el barrido: SMR VALID=1 vivo del
+ 		 * BL, hoy solo idx 0 sid 0x60 UFS), este maestro hereda el mapeo
+@@ -2590,6 +2643,15 @@
+ 				idx);
+ 			continue;
+ 		}
++		/*
++		 * UKE-FIX-A2: fuerza BYPASS en la(s) entrada(s) del display.
++		 * Va ANTES del early-continue de igualdad para que el tipo
++		 * quede reflejado en la miga y en la escritura.
++		 */
++		if (uke_disp_bypass && uke_smmu_es_apps(smmu) && fwspec &&
++		    (u16)FIELD_GET(ARM_SMMU_SMR_ID, fwspec->ids[i]) == 0x1c00 &&
++		    (u16)FIELD_GET(ARM_SMMU_SMR_MASK, fwspec->ids[i]) == 0x2)
++			type = S2CR_TYPE_BYPASS;
+ 		if (type == s2cr[idx].type && cbndx == s2cr[idx].cbndx)
+ 			continue;
+ 

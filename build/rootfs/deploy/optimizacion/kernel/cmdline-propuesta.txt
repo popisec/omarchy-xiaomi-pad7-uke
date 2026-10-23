@@ -1,0 +1,12 @@
+# cmdline actual (extracto relevante) -> propuesta. NO aplicado. Un flash por grupo, ledger antes, <=2 escrituras/dia.
+# GRUPO A (riesgo bajo-medio, un flash junto con el .config):
+#   + cpuidle.governor=teo
+#   + audit=0
+#   + cpufreq.default_governor=schedutil           (sustituye a =performance; evita rafaga a maximo hasta que corre uke-perfil)
+#   - sched_pelt_multiplier=4 no-steal-acc kasan=off can.stats_timer=0 service_locator.enable=1   (sin efecto: el sysctl no existe)
+#   - duplicados: loglevel, log_buf_len, fw_devlink.strict (el ultimo gana)
+# GRUPO B (medio; un flash aparte; vigila pantalla y GPU):
+#   + fw_devlink.sync_state=timeout deferred_probe_timeout=30       (hace que icc/rpmh-regulator llamen a sync_state y suelten los votos del bootloader)
+#   Si la pantalla no sale o la GPU no arranca: volver al boot anterior (par bueno en SHA-BUENOS.txt).
+# GRUPO C (alto; de uno en uno, techo 3 ciclos por hipotesis): quitar regulator_ignore_unused, luego clk_ignore_unused, luego pd_ignore_unused.
+# Condicional a prueba RUNTIME previa: si 'echo 0 > /sys/kernel/rcu_expedited' baja los IPI1 >30 %, quitar rcupdate.rcu_expedited=1.

@@ -1,0 +1,17 @@
+=== /sys/kernel/iommu_groups/0:  type=DMA
+1d84000.ufshc
+=== /sys/kernel/iommu_groups/1:  type=DMA
+a600000.ssusb
+=== /sys/kernel/iommu_groups/2:  type=DMA
+a00000.qcom,gpi-dma
+=== /sys/kernel/iommu_groups/3:  type=DMA
+ac0000.qcom,qupv3_0_geni_se
+=== /sys/kernel/iommu_groups/4:  type=DMA
+800000.qcom,gpi-dma
+=== /sys/kernel/iommu_groups/5:  type=DMA
+8c0000.qcom,qupv3_1_geni_se
+=== /sys/kernel/iommu_groups/6:  type=DMA
+17110040.qcom,wcn6750
+=== /sys/kernel/iommu_groups/7:  type=DMA
+ae01000.display-controller
+ls: cannot access '/sys/kernel/debug/iommu*': No such file or directory

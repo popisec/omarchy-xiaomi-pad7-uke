@@ -1,0 +1,76 @@
+# DELTA DOCUMENTADO L46 -> L47 (migas del enable-path). YA APLICADO al arbol vivo
+# (commit ea6f744; NO re-aplicar: duplicaria pokes). Gate valido = el del repack
+# (7 tags x1). Puntos verificados por CRITICA-L47.md §1.1.
+# ---
+--- a/drivers/gpu/drm/msm/msm_atomic.c
++++ b/drivers/gpu/drm/msm/msm_atomic.c
+@@ -11,6 +11,7 @@
+ #include "msm_drv.h"
+ #include "msm_gem.h"
+ #include "msm_kms.h"
++#include <linux/uke-poke.h>
+ 
+ /*
+  * Helpers to control vblanks while we flush.. basically just to ensure
+@@ -212,6 +213,7 @@
+ 
+ void msm_atomic_commit_tail(struct drm_atomic_commit *state)
+ {
++	uke_poke("K47-atom-tail");
+ 	struct drm_device *dev = state->dev;
+ 	struct msm_drm_private *priv = dev->dev_private;
+ 	struct msm_kms *kms = priv->kms;
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+@@ -440,6 +440,7 @@
+ 
+ static void dpu_kms_enable_commit(struct msm_kms *kms)
+ {
++	uke_poke("K47-kms-en-commit");
+ 	struct dpu_kms *dpu_kms = to_dpu_kms(kms);
+ 	pm_runtime_get_sync(&dpu_kms->pdev->dev);
+ }
+@@ -1138,6 +1139,7 @@
+ 
+ static int dpu_kms_hw_init(struct msm_kms *kms)
+ {
++	uke_poke("K47-dpu-hw-in");
+ 	struct dpu_kms *dpu_kms;
+ 	struct drm_device *dev;
+ 	int rc = -EINVAL;
+@@ -1455,6 +1457,7 @@
+ 
+ static int __maybe_unused dpu_runtime_resume(struct device *dev)
+ {
++	uke_poke("K47-dpu-res");
+ 	int rc = -1;
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct msm_drm_private *priv = platform_get_drvdata(pdev);
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder.c
+@@ -1340,6 +1340,7 @@
+ static void dpu_encoder_virt_atomic_enable(struct drm_encoder *drm_enc,
+ 					struct drm_atomic_commit *state)
+ {
++	uke_poke("K47-enc-en");
+ 	struct dpu_encoder_virt *dpu_enc = NULL;
+ 	int ret = 0;
+ 	struct drm_display_mode *cur_mode = NULL;
+--- a/drivers/gpu/drm/msm/dsi/dsi_manager.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_manager.c
+@@ -137,6 +137,7 @@
+ dsi_mgr_phy_enable(int id,
+ 		   struct msm_dsi_phy_shared_timings shared_timings[DSI_MAX])
+ {
++	uke_poke("K47-mgr-phy-en");
+ 	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
+ 	struct msm_dsi *mdsi = dsi_mgr_get_dsi(DSI_CLOCK_MASTER);
+ 	struct msm_dsi *sdsi = dsi_mgr_get_dsi(DSI_CLOCK_SLAVE);
+@@ -278,6 +279,7 @@
+ 
+ static void dsi_mgr_bridge_pre_enable(struct drm_bridge *bridge)
+ {
++	uke_poke("K47-brg-pre-en");
+ 	int id = dsi_mgr_bridge_get_id(bridge);
+ 	struct msm_dsi *msm_dsi = dsi_mgr_get_dsi(id);
+ 	struct msm_dsi *msm_dsi1 = dsi_mgr_get_dsi(DSI_1);

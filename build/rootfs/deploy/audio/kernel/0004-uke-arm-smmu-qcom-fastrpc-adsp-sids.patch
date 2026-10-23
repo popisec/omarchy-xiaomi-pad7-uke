@@ -1,0 +1,28 @@
+BORRADOR DE E2b (18-oct-2026) — NO APLICADO a ningun arbol. Parche 4 de la serie de audio; se aplica DESPUES de 0002. REQUIERE FLASH.
+
+iommu/arm-smmu-qcom: admitir los SIDs de los compute-cb de FastRPC del ADSP en la lista blanca de la uke
+
+Motivo (AUDIO-E2b-INVESTIGACION-20261018.md): el PD de audio del ADSP lo crea `audioadsprpcd audiopd` por FastRPC
+(`createstaticpd:audiopd`, logcat de Android); el driver mainline fastrpc necesita al menos un compute-cb con `iommus`.
+SIDs de sm8650.dtsi:4517-4561 (cb 3..7 del ADSP; los de Android cb10-14 son los mismos): <0x1003 0x80><0x1043 0x20>,
+<0x1004 0x80><0x1044 0x20>, <0x1005 0x80><0x1045 0x20>, <0x1006 0x80><0x1046 0x20>, <0x1007 0x40><0x1067 0><0x1087 0>.
+arm_smmu_of_xlate() los codifica como id | mascara<<16: 0x801003 0x201043 0x801004 0x201044 0x801005 0x201045 0x801006 0x201046
+0x401007 0x1067 0x1087. Comprobado contra la tabla qcom,actlr del apps-smmu vivo (31 entradas): ninguno casa, asi que la
+comprobacion de ACTLR posterior no los rechaza. NO compilado como kernel (sin toolchain aarch64 completa), NO probado.
+Riesgo: primera DMA de FastRPC; un SID mal montado puede tumbar el ADSP y, con recovery_disabled=true, tambien la carga.
+
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-10-18 11:33:10.315546833 +0200
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c	2026-10-18 11:33:10.367743432 +0200
+@@ -841,7 +841,11 @@
+ 		if (sid != 0x40 && sid != 0xb6 &&
+ 		    !((sid == 0x60 || sid == 0xa3 || sid == 0x423 ||
+ 		       sid == 0x436 || sid == 0x11400 ||
+-		       sid == 0x801001 || sid == 0x1061) &&
++		       sid == 0x801001 || sid == 0x1061 ||
++		       /* FastRPC ADSP compute-cb 3..7 (sm8650.dtsi:4517-4561), see 0004 */
++		       sid == 0x801003 || sid == 0x201043 || sid == 0x801004 || sid == 0x201044 ||
++		       sid == 0x801005 || sid == 0x201045 || sid == 0x801006 || sid == 0x201046 ||
++		       sid == 0x401007 || sid == 0x1067 || sid == 0x1087) &&
+ 		      of_device_is_compatible(smmu->dev->of_node, "qcom,sm7675-boot-smmu")))
+ 			return dev_err_probe(dev, -EOPNOTSUPP, "outside Uke boot SMMU scope\n");
+ 		/* None of these streams has an ACTLR override in OEM Cliffs DT. */

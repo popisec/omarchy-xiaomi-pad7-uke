@@ -1,0 +1,82 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e9a-card-fs19xx-wcd-capture.dtso — ETAPA M0 del MICROFONO: tarjeta combinada «UKE» = altavoces TDM con los 4 FS19xx (como e8b) + CAPTURA del WCD9395.
+ * BORRADOR del PC (20-oct-2026), NO probado en la tablet. Informe: build/gates/revision/MICROFONO-20261020.md (los micros son ANALOGICOS, AMIC en el WCD9395 por SoundWire TX).
+ *
+ * Es ALTERNATIVA a e8b/e8a/e7a/e7b/e5-card (mismo modelo "UKE": solo UNA tarjeta a la vez; descargar uke_audio_e8b antes de cargar uke_audio_e9a).
+ * Requiere, en este orden: e2d (gpr/q6apm), e3 (pines LPI: SWR TX gpio0-2/14, reset WCD gpio12, TDM1), e5-codec (macros LPASS, SoundWire RX/TX, WCD9395: ETAPA DE MAS RIESGO,
+ * ver su cabecera), e7-amps-i2c y uke_fs19xx.ko (los 4 amplificadores).
+ *
+ * Enlaces:
+ *   - tdm-playback-dai-link: como e8b (PRIMARY_TDM_RX_0 -> uke,fs19xx-codec).
+ *   - wcd-capture-dai-link: TX_CODEC_DMA_TX_3 <- txmacro <- SWR TX <- WCD9395 (como sm8650-qrd.dts: `WCD Capture`; backend de Android CODEC_DMA-LPAIF_RXTX-TX-3).
+ * SIN "WCD Playback" a proposito (no hace falta para grabar y evita tocar la ruta RX del WCD/USB-C).
+ * audio-routing: solo la parte de captura de sm8650-qrd.dts:102-106 / e5-card (AMICn -> MIC BIASn del vendor: AMIC1->1, AMIC2->2, AMIC3->3, AMIC4->3, AMIC5->4;
+ * TX SWR_INPUTn <- ADCn_OUTPUT).
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
+
+/ {
+	fragment@0 {
+		target-path = "/";
+
+		__overlay__ {
+			uke_fs19xx_e9a: fs19xx-codec {
+				compatible = "uke,fs19xx-codec";
+				#sound-dai-cells = <0>;
+			};
+
+			uke_sound_e9a: sound {
+				compatible = "qcom,sm8650-sndcard", "qcom,sm8450-sndcard";
+				model = "UKE";
+				pinctrl-names = "default";
+				pinctrl-0 = <&uke_tdm1_active>;
+
+				audio-routing = "AMIC1", "MIC BIAS1",
+						"AMIC2", "MIC BIAS2",
+						"AMIC3", "MIC BIAS3",
+						"AMIC4", "MIC BIAS3",
+						"AMIC5", "MIC BIAS4",
+						"TX SWR_INPUT0", "ADC1_OUTPUT",
+						"TX SWR_INPUT1", "ADC2_OUTPUT",
+						"TX SWR_INPUT2", "ADC3_OUTPUT",
+						"TX SWR_INPUT3", "ADC4_OUTPUT";
+
+				tdm-playback-dai-link {
+					link-name = "TDM-LPAIF_VA-RX-PRIMARY";
+
+					cpu {
+						sound-dai = <&uke_q6apmbedai PRIMARY_TDM_RX_0>;
+					};
+
+					codec {
+						sound-dai = <&uke_fs19xx_e9a>;
+					};
+
+					platform {
+						sound-dai = <&uke_q6apm>;
+					};
+				};
+
+				wcd-capture-dai-link {
+					link-name = "WCD Capture";
+
+					cpu {
+						sound-dai = <&uke_q6apmbedai TX_CODEC_DMA_TX_3>;
+					};
+
+					codec {
+						sound-dai = <&uke_wcd939x 1>, <&uke_swr2 0>, <&uke_txmacro 0>;
+					};
+
+					platform {
+						sound-dai = <&uke_q6apm>;
+					};
+				};
+			};
+		};
+	};
+};

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "uke.bateria",
+  "name": "Bateria exacta (uke)",
+  "version": "1.0.0",
+  "author": "uke",
+  "description": "% con decimales, W instantaneos, tiempo estimado y selector de perfil (Ahorro/Equilibrado/Rendimiento)",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "Bateria exacta",
+    "description": "% exacto, vatios, tiempo restante y perfil de energia",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

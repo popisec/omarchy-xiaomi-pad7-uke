@@ -1,0 +1,37 @@
+#!/bin/bash
+# uke-pen-sync — hace que el nodo «uke Focus Pen» siga la rotacion de DSI-1 fijada por uke-rotate. 20-oct-2026. NO instalado.
+#   uke-pen-sync            lee ~/.local/state/uke-rotate/{deg,touchmap}[,penmap] y aplica input.tablet.{output,transform}
+#   uke-pen-sync --dry-run  imprime la orden de hyprctl sin ejecutarla
+#   uke-pen-sync --status   muestra lo que Hyprland tiene ahora (input:tablet:*)
+# El lapiz usa el MISMO espacio de coordenadas que el tactil (uke_pen.to_screen = el de uke-touchd, 3200x2136 del panel sin rotar),
+# asi que por defecto usa el MISMO mapa monitor->transform que el tactil (touchmap). Si en la tablet se ve que el lapiz va girado
+# distinto del dedo, `echo "0 1 2 3" > ~/.local/state/uke-rotate/penmap` (indice = transform del monitor, valor = transform del lapiz).
+# Entorno (para pruebas): UKE_ROTATE_STATE, HYPRCTL, MON.
+set -u
+MON=${MON:-DSI-1}
+HYPRCTL=${HYPRCTL:-hyprctl}
+ST=${UKE_ROTATE_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/uke-rotate}
+mode=apply
+case ${1:-} in --dry-run) mode=dry ;; --status) mode=status ;; "") ;; *) echo "uso: uke-pen-sync [--dry-run|--status]"; exit 2 ;; esac
+
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}
+if [ "$mode" != dry ] && [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+	HYPRLAND_INSTANCE_SIGNATURE=$(ls -t "$XDG_RUNTIME_DIR/hypr" 2>/dev/null | head -1); export HYPRLAND_INSTANCE_SIGNATURE
+fi
+
+if [ "$mode" = status ]; then
+	for o in output transform region_size; do "$HYPRCTL" getoption "input:tablet:$o" | head -1; done
+	exit 0
+fi
+
+deg=$(cat "$ST/deg" 2>/dev/null); case $deg in 0|90|180|270) ;; *) deg=0 ;; esac
+map=$(cat "$ST/penmap" 2>/dev/null); [ -n "$map" ] || map=$(cat "$ST/touchmap" 2>/dev/null); [ -n "$map" ] || map="0 1 2 3"
+case $deg in 0) tf=0 ;; 90) tf=1 ;; 180) tf=2 ;; 270) tf=3 ;; esac
+i=0; ptf=
+for w in $map; do [ $i = "$tf" ] && ptf=$w; i=$((i + 1)); done
+case ${ptf:-$tf} in 0|1|2|3) ptf=${ptf:-$tf} ;; *) echo "uke-pen-sync: mapa invalido: $map" >&2; exit 1 ;; esac
+
+cmd="hl.config({input={tablet={output=\"$MON\",transform=$ptf}}})"
+if [ "$mode" = dry ]; then echo "$HYPRCTL eval '$cmd'"; exit 0; fi
+"$HYPRCTL" eval "$cmd" >/dev/null || { echo "uke-pen-sync: hyprctl eval fallo" >&2; exit 1; }
+echo "uke-pen-sync: tablet -> $MON transform $ptf (monitor $deg grados)"

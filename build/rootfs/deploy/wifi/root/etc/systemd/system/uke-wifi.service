@@ -1,0 +1,46 @@
+[Unit]
+Description=uke: WiFi WCN6750 (rails RF + WPSS + ath11k_ahb + wpa_supplicant + DHCP) al arranque
+Documentation=file:///etc/uke/LEEME file:///usr/local/sbin/uke-wifi-up.sh file:///usr/local/sbin/uke-bootguard
+# SERVICIO NORMAL (enabled) con dos protecciones, en lugar del antiguo "armado de un solo uso":
+#  1) INTERRUPTORES manuales, sin reflashear (ver /etc/uke/LEEME):
+#       touch /etc/uke/no-wifi     -> no arranca el WiFi
+#       touch /etc/uke/safe-mode   -> ni WiFi ni escritorio
+#  2) GUARDA automatica (uke-bootguard, ExecCondition): si el intento anterior no llego a 'ok'
+#     (el guion de arranque del WiFi no volvio: cuelgue + reset fisico) -> fallo; con 2 seguidos se omite solo.
+#     Antes el flag armed evitaba el bucle de resets que se come los reintentos del slot; ahora
+#     lo evita esta guarda sin perder el WiFi cuando todo va bien.
+#     El 'ok' se da en cuanto uke-wifi-up.sh VUELVE (ExecStartPost/ExecStopPost), no a los 180 s: el escritorio
+#     arranca justo despues (After=), y asi un cuelgue del GMU no se le cuenta tambien al WiFi.
+# La blacklist de /etc/modprobe.d/blacklist-ath11k.conf SE QUEDA (REGLAS §1.9): solo bloquea la autocarga
+# por modalias; el guion hace modprobe por nombre.
+ConditionPathExists=!/etc/uke/no-wifi
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionPathExists=/usr/lib/firmware/uke-wifi-fw.sha256
+ConditionPathExists=/usr/local/sbin/uke-bootguard
+ConditionKernelVersion=*senemos*
+# Despues de la carga (qrtr/ADSP, orden probado en v2/v3) y de sshd/networkd: si el WPSS se lleva la
+# tablet por delante, al menos el canal SSH (usb0) ya existia. NO depende de network-online.target.
+After=local-fs.target systemd-udevd.service systemd-udev-trigger.service systemd-networkd.service sshd.service uke-carga.service
+Wants=systemd-udevd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=300
+# 2 = AMARILLO (wlan0 existe pero aun no asocia): wpa_supplicant sigue reintentando, no es un fallo
+SuccessExitStatus=2
+# exit 1 = omitir sin fallo (interruptor/guarda); 0 = adelante
+ExecCondition=/usr/local/sbin/uke-bootguard begin wifi
+ExecStart=/usr/local/sbin/uke-wifi-up.sh --service
+# el guion volvio (VERDE/AMARILLO): el bring-up del WPSS no colgo la tablet -> limpia el 'pending' YA
+ExecStartPost=/usr/local/sbin/uke-bootguard ok wifi
+# no hay RTC: con la red recien arriba, chrony vuelve a resolver el pool y mide ya (si no, espera su reintento)
+ExecStartPost=-/usr/bin/chronyc refresh
+ExecStartPost=-/usr/bin/chronyc burst 4/4
+# idem si el guion fallo sin colgar (exit 3/4) y en el apagado ordenado
+ExecStopPost=/usr/local/sbin/uke-bootguard ok wifi
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

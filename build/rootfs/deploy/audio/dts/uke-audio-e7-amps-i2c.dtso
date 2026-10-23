@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e7-amps-i2c.dtso — ETAPA E7 (altavoces), paso previo: encender el bus I2C de los 4 amplificadores FS19xx.
+ * ESBOZO DE E0 (18-oct-2026): compila y se aplica con fdtoverlay, NO probado en la tablet. NO USAR ANTES DE E7.
+ *
+ * Alternativa EN CALIENTE al parche kernel/0001-uke-abl-admit-qup1-i2c4-amps.patch. Hoy el DT vivo trae
+ * /soc/qcom,qupv3_1_geni_se@8c0000/i2c@88c000 con status="disabled" porque uke_scope_qup_buses() de uke-abl.c lo apaga
+ * (en el DT de Android esta "ok"). El informe AUDIO-SENEMOS §6 E7 decia que habilitarlo exige FLASH; este overlay
+ * muestra que NO hace falta para PROBAR el bus (INFERIDO, sin probar: of_reconfig_get_state_change() crea el platform
+ * device al pasar de disabled a okay, informe §7.8, y el bus usa los mismos SMMU/NoC/GPI que el bus KTZ que ya funciona;
+ * medido en el PC: interconnects identicos a los de i2c@890000, DMA GPI1 SE3 con la misma ruta OEM).
+ * Para dejarlo permanente (y validado "fail closed" al arranque) es el parche 0001.
+ *
+ * Lo que ocurre al aplicarlo: i2c-qcom-geni sondea el bus (pide canales GPI tx/rx de la SE3, pinmux gpio44/45 =
+ * qup1_se3_l0/l1) y el core I2C registra los cuatro clientes `foursemi,fs16xx` en 0x34-0x37 SIN driver (no existe
+ * ninguno): no se escribe nada en los amplificadores ni se tocan sus reset/IRQ. Velocidad: el vendor no declara
+ * `clock-frequency`, queda la de por defecto (100 kHz); el FS19xx admite mas, pero no se ha verificado cual usa Android.
+ *
+ * CORREGIDO 18-oct-2026 tras E8-1 (medido en la tablet): con SOLO status="okay" el nucleo crea el dispositivo `88c000.i2c` pero `geni_i2c` NO lo enlaza
+ * (ni difiere) porque el nodo conserva la forma del DT de Android que uke_abl NO reescribe para este bus:
+ *   - compatible "qcom,i2c-geni" (el driver mainline solo casa "qcom,geni-i2c", como el bus KTZ i2c@890000 ya reescrito),
+ *   - clock-names "se-clk" (el driver pide "se"),
+ *   - dmas de 6 celdas por entrada <gpi 0 3 3 0x40 2> (gpi-dma tiene #dma-cells = 3: la 2.a entrada se leeria desplazada).
+ * Este overlay los pone en la forma del KTZ (dmas hacia &gpi_dma1 = gpi-dma@800000, canal 0/1, SE 3, protocolo I2C 3) y deja `status` en un fragmento
+ * APARTE y posterior, para que el dispositivo se cree ya con las propiedades correctas. Se aplica quitando antes el overlay anterior (rmmod uke_audio_e7i2c).
+ * `clocks = <gcc 0x5c>` se deja (INFERIDO valido: el KTZ usa 0x5e para SE4 con el mismo gcc, paso 2). NOTA: el parche kernel 0001 NO hace esta reescritura
+ * (su validador exige compat qcom,i2c-geni): para la via permanente hay que anadirsela o seguir usando este overlay.
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@88c000";
+
+		__overlay__ {
+			compatible = "qcom,geni-i2c";
+			clock-names = "se";
+			dmas = <&gpi_dma1 0 3 3>, <&gpi_dma1 1 3 3>;
+		};
+	};
+
+	fragment@1 {
+		target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@88c000";
+
+		__overlay__ {
+			status = "okay";
+		};
+	};
+};

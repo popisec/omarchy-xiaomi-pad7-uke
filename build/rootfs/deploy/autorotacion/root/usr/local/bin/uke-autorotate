@@ -1,0 +1,60 @@
+#!/bin/bash
+# uke-autorotate — rotacion automatica: escucha monitor-sensor (iio-sensor-proxy) y llama a uke-rotate. 18-oct-2026 (T7/R6).
+#   uke-autorotate run            demonio (lo lanza la unidad de usuario uke-autorotate.service)
+#   uke-autorotate lock [grados]  bloquea la rotacion (opcional: fija antes esa orientacion con uke-rotate)
+#   uke-autorotate unlock         desbloquea y aplica de inmediato la orientacion actual del sensor
+#   uke-autorotate toggle|status
+# Estado: $XDG_STATE_HOME/uke-autorotate/{lock,last}. Config opcional: /etc/uke/autorotate.conf (ver el README).
+# Nada aqui toca el ADSP ni fastrpc: solo habla con iio-sensor-proxy por D-Bus (monitor-sensor) y con uke-rotate.
+set -u
+ROTATE=${UKE_ROTATE:-/usr/local/bin/uke-rotate}
+MONITOR=${UKE_AUTOROTATE_MONITOR:-monitor-sensor}
+MAP_normal=0 MAP_left_up=90 MAP_bottom_up=180 MAP_right_up=270   # orientacion de iio-sensor-proxy -> grados de uke-rotate
+SETTLE=${UKE_AUTOROTATE_SETTLE:-0.8}    # s sin cambios antes de rotar (descarta el vaiven al coger la tablet)
+RETRY=${UKE_AUTOROTATE_RETRY:-10}       # s antes de relanzar monitor-sensor si sale o no hay sensor
+CONF=${UKE_AUTOROTATE_CONF:-/etc/uke/autorotate.conf}
+# shellcheck disable=SC1090
+[ -r "$CONF" ] && . "$CONF"
+ST=${XDG_STATE_HOME:-$HOME/.local/state}/uke-autorotate
+mkdir -p "$ST"
+log() { echo "uke-autorotate: $*" >&2; }
+locked() { [ -e "$ST/lock" ]; }
+deg_of() {   # $1 = orientacion iio ("left-up"...) -> grados, o vacio si no se conoce
+	local k=${1//-/_}; local v="MAP_$k"; echo "${!v:-}"
+}
+apply() {    # $1 = orientacion iio
+	local deg; deg=$(deg_of "$1")
+	[ -n "$deg" ] || { log "orientacion desconocida '$1' (undefined/ignorada)"; return 0; }
+	echo "$1" >"$ST/last"
+	locked && { log "bloqueado: ignoro $1"; return 0; }
+	"$ROTATE" "$deg" >/dev/null || log "uke-rotate $deg fallo"
+}
+run() {
+	local pending="" line orient
+	trap 'kill $(jobs -p) 2>/dev/null' EXIT
+	while :; do
+		command -v "$MONITOR" >/dev/null || { log "no esta $MONITOR"; sleep "$RETRY"; continue; }
+		# --accel: solo el acelerometro. Salida: "    Accelerometer orientation changed: left-up"
+		while :; do
+			if read -r -t "$SETTLE" line; then
+				case $line in
+				*"Accelerometer orientation changed: "*) pending=${line##*: }; pending=${pending//[[:space:]]/} ;;
+				*"No accelerometer"*) log "iio-sensor-proxy no ve acelerometro (PD de sensores caido?)" ;;
+				esac
+			elif [ $? -gt 128 ]; then   # timeout: asentado
+				[ -n "$pending" ] && { apply "$pending"; pending=""; }
+			else
+				break                    # EOF: monitor-sensor termino
+			fi
+		done < <("$MONITOR" --accel 2>&1)
+		log "monitor-sensor termino; reintento en ${RETRY}s"; sleep "$RETRY"
+	done
+}
+case ${1:-} in
+run) run ;;
+lock) [ -n "${2:-}" ] && "$ROTATE" "$2"; : >"$ST/lock"; echo "rotacion bloqueada" ;;
+unlock) rm -f "$ST/lock"; o=$(cat "$ST/last" 2>/dev/null); [ -n "$o" ] && apply "$o"; echo "rotacion desbloqueada" ;;
+toggle) if locked; then "$0" unlock; else "$0" lock; fi ;;
+status) if locked; then echo "bloqueada"; else echo "automatica"; fi; echo "ultima orientacion del sensor: $(cat "$ST/last" 2>/dev/null || echo -)" ;;
+*) echo "uso: uke-autorotate run|lock [grados]|unlock|toggle|status"; exit 2 ;;
+esac

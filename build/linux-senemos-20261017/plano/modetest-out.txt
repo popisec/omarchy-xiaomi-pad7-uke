@@ -1,0 +1,42 @@
+1792267327.833173713
+---
+freq: 119.88Hz
+freq: 119.97Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 119.99Hz
+freq: 120.04Hz
+freq: 119.97Hz
+freq: 120.04Hz
+freq: 119.99Hz
+freq: 119.99Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.01Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 119.96Hz
+freq: 120.03Hz
+freq: 119.97Hz
+freq: 120.02Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.07Hz
+freq: 119.96Hz
+freq: 119.97Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.00Hz
+freq: 120.07Hz
+opened device `MSM Snapdragon DRM` on driver `msm-kms` (version 1.13.0 at 0)
+setting mode 3200x2136-120.00Hz on connectors 36, crtc 79

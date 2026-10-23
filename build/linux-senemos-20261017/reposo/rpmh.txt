@@ -1,0 +1,230 @@
+=== cmd-db
+-r-------- 1 root root 0 Jan  1  1970 /sys/kernel/debug/cmd-db
+Command DB DUMP
+Slave ARC (v16.0)
+-------------------------
+0x30000: cx.lvl [00 00 10 00 40 00 80 00 c0 00 00 01 40 01 80 01 a0 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30004: cx.tmr
+0x30010: mx.lvl [00 00 10 00 40 00 80 00 c0 00 e0 00 00 01 40 01 80 01 a0 01 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30014: mx.tmr
+0x30020: ebi.lvl [00 00 10 00 30 00 40 00 80 00 c0 00 00 01 40 01 80 01 a0 01 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30024: ebi.tmr
+0x30030: lcx.lvl [00 00 10 00 38 00 40 00 80 00 c0 00 00 01 80 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30034: lcx.tmr
+0x30040: lmx.lvl [00 00 10 00 38 00 40 00 80 00 c0 00 00 01 80 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30044: lmx.tmr
+0x30050: gfx.lvl [00 00 38 00 40 00 80 00 c0 00 e0 00 00 01 40 01 80 01 90 01 a0 01 b0 01 c0 01 00 00 00 00 00 00]
+0x30054: gfx.tmr
+0x30060: mss.lvl [00 00 38 00 40 00 80 00 c0 00 00 01 40 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30064: mss.tmr
+0x30070: ddr.lvl [00 00 20 00 80 00 a0 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30074: ddr.tmr
+0x30080: mmcx.lvl [00 00 38 00 40 00 80 00 c0 00 00 01 40 01 80 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30084: mmcx.tmr
+0x30090: nsp.lvl [00 00 38 00 40 00 80 00 c0 00 00 01 40 01 80 01 a0 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x30094: nsp.tmr
+0x300a0: mxc.lvl [00 00 10 00 40 00 80 00 c0 00 e0 00 00 01 40 01 80 01 a0 01 00 00 00 00 00 00 00 00 00 00 00 00]
+0x300a4: mxc.tmr
+0x300b0: lnoc.lvl [00 00 20 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x300b4: lnoc.tmr
+0x300c0: nsp2.lvl [00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x300c4: nsp2.tmr
+0x300d0: xo.lvl [00 00 20 00 50 00 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00]
+0x300d4: xo.tmr
+Slave ARC (v16.0)
+-------------------------
+0x00000: cx.mol [40 00]
+0x00000: mx.mol [40 00]
+0x00000: ebi.mol [80 00]
+0x00000: lcx.mol [38 00]
+0x00000: lmx.mol [00 01]
+0x00000: gfx.mol [38 00]
+0x00000: mss.mol [38 00]
+0x00000: ddr.mol [a0 00]
+0x00000: mmcx.mol [38 00]
+0x00000: nsp.mol [38 00]
+0x00000: mxc.mol [40 00]
+0x00000: lnoc.mol [20 00]
+0x00000: nsp2.mol [00 00]
+0x00000: xo.mol [80 00]
+Slave BCM (v16.0)
+-------------------------
+0x50000: MC0 [40 16 40 00 10 00 00 00]
+0x5006c: MC1 [40 16 40 00 10 00 00 00]
+0x50074: MC2 [40 16 40 00 10 00 00 00]
+0x5007c: MC3 [40 16 40 00 10 00 00 00]
+0x50058: MC4 [40 16 40 00 10 00 00 00]
+0x50004: SH0 [40 16 40 00 40 00 01 00]
+0x50008: SH1 [40 16 40 00 40 00 01 00]
+0x5000c: SH2 [40 16 40 00 10 00 01 00]
+0x50070: SH3 [40 16 40 00 40 00 01 00]
+0x50078: SH4 [40 16 40 00 40 00 01 00]
+0x5005c: SH5 [40 16 40 00 40 00 01 00]
+0x50010: SN0 [50 16 08 00 10 00 03 00]
+0x50014: SN1 [50 16 08 00 10 00 03 00]
+0x50018: SN2 [50 16 08 00 10 00 03 00]
+0x5001c: SN3 [50 16 08 00 08 00 03 00]
+0x50020: SN4 [50 16 08 00 10 00 03 00]
+0x50024: SN5 [50 16 08 00 08 00 03 00]
+0x50028: MM0 [b0 db 23 00 40 00 04 00]
+0x5002c: MM1 [b0 db 23 00 40 00 04 00]
+0x50030: CN0 [e0 22 02 00 04 00 05 00]
+0x50060: CN1 [e0 22 02 00 04 00 05 00]
+0x50034: CE0 [ff 1e 00 00 08 00 06 00]
+0x50038: IP0 [28 00 00 00 08 00 07 00]
+0x5003c: QUP0 [14 00 00 00 04 00 08 00]
+0x50040: QUP1 [14 00 00 00 04 00 08 00]
+0x50044: CO0 [10 a1 3f 00 40 00 09 00]
+0x50048: LP0 [00 9f 24 00 40 00 0a 00]
+0x5004c: ALC [01 00 00 00 00 00 0b 00]
+0x50068: ACV [01 00 00 00 00 00 0c 00]
+Slave VRM (v1.0)
+-------------------------
+0x46800: vrm.aoss [03 b1 00 00]
+0x46804: vrm.soc [03 b1 00 00]
+0x46808: vrm.wlan [03 b1 00 00]
+0x45000: clka1 [02 61 00 00]
+0x45000: rfclka1 [02 61 00 00]
+0x45100: clka2 [02 62 00 00]
+0x45100: rfclka2 [02 62 00 00]
+0x45200: clka6 [02 66 00 00]
+0x45200: vrm.xob [02 66 00 00]
+0x45300: clka7 [02 67 00 00]
+0x45400: clka8 [02 68 00 00]
+0x40000: smpb1 [01 0b 00 00]
+0x40100: smpb2 [01 0d 00 00]
+0x40200: smpb3 [01 0f 00 00]
+0x40400: smpb4 [01 11 00 00]
+0x40400: vrm.gfx [01 11 00 00]
+0x40500: ldob1 [01 3a 00 00]
+0x40600: ldob2 [01 3b 00 00]
+0x40700: ldob3 [01 3c 00 00]
+0x41000: ldob4 [01 3d 00 00]
+0x41000: vrm.qlnk [01 3d 00 00]
+0x41100: ldob5 [01 3e 00 00]
+0x41a00: ldob7 [01 40 00 00]
+0x41a00: vrm.qf [01 40 00 00]
+0x41b00: ldob8 [01 41 00 00]
+0x40800: ldob9 [01 42 00 00]
+0x40900: ldob10 [01 43 00 00]
+0x41c00: ldob11 [01 44 00 00]
+0x41f00: ldob12 [01 45 00 00]
+0x42000: ldob13 [01 46 00 00]
+0x42100: ldob14 [01 47 00 00]
+0x43300: ldob15 [01 48 00 00]
+0x42200: ldob16 [01 49 00 00]
+0x42300: ldob17 [01 4a 00 00]
+0x42400: ldob18 [01 4b 00 00]
+0x42500: ldob19 [01 4c 00 00]
+0x42600: ldob20 [01 4d 00 00]
+0x42700: ldob21 [01 4e 00 00]
+0x42800: ldob22 [01 4f 00 00]
+0x42900: ldob23 [01 50 00 00]
+0x40300: bobb1 [01 6c 00 00]
+0x43400: smpc1 [01 17 00 00]
+0x43400: vrm.cx [01 17 00 00]
+0x43500: smpc2 [01 19 00 00]
+0x43500: vrm.nsp [01 19 00 00]
+0x43600: smpc6 [01 21 00 00]
+0x43600: vrm.mxc [01 21 00 00]
+0x40a00: ldoc1 [01 52 00 00]
+0x40b00: ldoc2 [01 53 00 00]
+0x40b00: vrm.lmx [01 53 00 00]
+0x41200: ldoc3 [01 54 00 00]
+0x43700: smpd6 [01 2d 00 00]
+0x43700: vrm.mmcx [01 2d 00 00]
+0x43800: smpd8 [01 31 00 00]
+0x43800: vrm.mx [01 31 00 00]
+0x40c00: ldod1 [01 55 00 00]
+0x43900: ldod2 [01 56 00 00]
+0x43900: vrm.lcx [01 56 00 00]
+0x41300: ldod3 [01 57 00 00]
+0x43a00: smpe1 [01 00 00 00]
+0x43b00: smpe2 [01 00 00 00]
+0x43c00: smpe3 [01 37 00 00]
+0x40d00: ldoe1 [01 58 00 00]
+0x40e00: ldoe2 [01 59 00 00]
+0x40f00: ldoe3 [01 5a 00 00]
+0x41d00: ldoe4 [01 5b 00 00]
+0x41400: ldoe5 [01 5c 00 00]
+0x41500: ldoe6 [01 5d 00 00]
+0x42a00: ldoe7 [01 5e 00 00]
+0x43d00: smpi1 [01 39 00 00]
+0x43d00: vrm.ebi [01 39 00 00]
+0x43e00: clkha2 [01 62 00 00]
+0x14800: bclplmb0 [00 b2 00 00]
+0x74800: bclplmh0 [00 b3 00 00]
+0x39c00: vrm.apc0 [00 23 00 00]
+0x39f00: vrm.apc1 [00 25 00 00]
+=== mailbox_summary
+406000.qcom,ipcc:
+   0: c300000.power-controller
+   1: soc:qcom,smp2p-adsp
+   2: soc:qcom,smp2p-cdsp
+   3: soc:qcom,smp2p-modem
+   4: soc:qcom,smp2p-wpss
+443000.qcom,ipcc_compute_l0:
+=== remoteproc
+/sys/class/remoteproc/*  
+=== ls rpmh/aoss
+ls: cannot access '/sys/kernel/debug/qcom_socinfo': No such file or directory
+/sys/kernel/debug/qcom_aoss:
+total 0
+drwxr-xr-x  2 root root 0 Jan  1  1970 .
+drwx------ 45 root root 0 Jan  1  1970 ..
+--w-------  1 root root 0 Jan  1  1970 ddr_frequency_mhz
+--w-------  1 root root 0 Jan  1  1970 prevent_aoss_sleep
+--w-------  1 root root 0 Jan  1  1970 prevent_cx_collapse
+--w-------  1 root root 0 Jan  1  1970 prevent_ddr_collapse
+=== opp
+8c0000.qcom,qupv3_1_geni_se-890000.i2c
+ac0000.qcom,qupv3_0_geni_se-a80000.i2c
+ae00000.display-subsystem-ae01000.display-controller
+ae00000.display-subsystem-ae94000.dsi
+ae00000.display-subsystem-ae96000.dsi
+cpu0
+cpu1
+cpu2
+cpu3
+cpu4
+cpu5
+cpu6
+cpu7
+soc-1d84000.ufshc
+=== ls regulator
+139004.qcom,gdsc-gcc_usb30_prim_gdsc
+177004.qcom,gdsc-gcc_ufs_phy_gdsc
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl-pm_v6c_s1_level
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl-pm_v6c_s1_level_ao
+17a00000.rsc:drv@2:rpmh-regulator-cxlvl-pm_v6c_s1_mmcx_sup_level
+17a00000.rsc:drv@2:rpmh-regulator-lcxlvl-pm_v8_l2_level
+17a00000.rsc:drv@2:rpmh-regulator-ldob12-pmxr2230_l12
+17a00000.rsc:drv@2:rpmh-regulator-ldob17-pmxr2230_l17
+17a00000.rsc:drv@2:rpmh-regulator-ldob2-pmxr2230_l2
+17a00000.rsc:drv@2:rpmh-regulator-ldob4-pmxr2230_l4
+17a00000.rsc:drv@2:rpmh-regulator-ldob5-pmxr2230_l5
+17a00000.rsc:drv@2:rpmh-regulator-ldob7-pmxr2230_l7
+17a00000.rsc:drv@2:rpmh-regulator-ldob8-pmxr2230_l8
+17a00000.rsc:drv@2:rpmh-regulator-ldod1-pm_v8_l1
+17a00000.rsc:drv@2:rpmh-regulator-ldod3-pm_v8_l3
+17a00000.rsc:drv@2:rpmh-regulator-lmxlvl-pm_v6c_l2_level
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-pm_v8_s6_level
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-pm_v8_s6_level_ao
+17a00000.rsc:drv@2:rpmh-regulator-mmcxlvl-pm_v8_s6_level_so
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-pm_v6c_s6_gfx_voter_level
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-pm_v6c_s6_level
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-pm_v6c_s6_level_ao
+17a00000.rsc:drv@2:rpmh-regulator-mxclvl-pm_v6c_s6_mmcx_voter_level
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl-pm_v8_s8_level
+17a00000.rsc:drv@2:rpmh-regulator-mxlvl-pm_v8_s8_level_ao
+17a00000.rsc:drv@2:rpmh-regulator-smpb1-pmxr2230_s1
+17a00000.rsc:drv@2:rpmh-regulator-smpb2-pmxr2230_s2
+17a00000.rsc:drv@2:rpmh-regulator-smpb3-pmxr2230_s3
+19e000.qcom,gdsc-gcc_ufs_mem_phy_gdsc
+camera_front_avdd_ldo
+camera_wide_avdd_ldo
+display_panel_vsn
+display_panel_vsp
+reg-dummy-regulator-dummy
+regulator_summary
+supply_map

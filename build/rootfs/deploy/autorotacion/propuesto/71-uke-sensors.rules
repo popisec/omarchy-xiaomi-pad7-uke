@@ -1,0 +1,3 @@
+# El PD de sensores cuelga de /dev/fastrpc-adsp*. El 80-iio-sensor-proxy.rules de Arch solo declara luz y brujula.
+# ACCEL_MOUNT_MATRIX: PLACEHOLDER identidad; se mide en R5 (ssccli --sensor accelerometer en 4 posturas).
+SUBSYSTEM=="misc", KERNEL=="fastrpc-adsp*", ENV{IIO_SENSOR_PROXY_TYPE}+="ssc-accel ssc-proximity", ENV{ACCEL_MOUNT_MATRIX}="1, 0, 0; 0, 1, 0; 0, 0, 1"

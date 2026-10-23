@@ -1,0 +1,26 @@
+# Todo el repo es texto con finales de linea LF. Sin esto, clonar en Windows
+# (o editar con un editor que use CRLF) convierte los .sh/.py/.patch y rompe
+# las diferencias de los parches del kernel.
+* text=auto eol=lf
+
+# Los parches se guardan byte-exactos: su contexto tiene que coincidir con el
+# codigo al que se aplican, sin normalizacion de finales de linea.
+*.patch -text
+*.diff -text
+
+# Artefactos binarios (no deberian estar versionados: ver .gitignore y la
+# seccion "Que NO hay" del README, pero por si acaso).
+*.ko binary
+*.o binary
+*.so binary
+*.img binary
+*.bin binary
+*.elf binary
+*.mbn binary
+*.mdt binary
+*.acdb binary
+*.fsm binary
+*.dtb binary
+*.dtbo binary
+*.raw binary
+*.dng binary

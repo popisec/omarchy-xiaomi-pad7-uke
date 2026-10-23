@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-cam-lens.dtso -- VCM CN3927V de la trasera como lente V4L2 (modulo uke_dw9714) y enlace lens-focus del OV13B10. Ciclo 21, 22-oct-2026.
+ * Se aplica DESPUES de uke-cam-rear y ANTES de cargar uke_ov13b10 (el sensor lee lens-focus al registrarse). Direccion 0x0c medida en el
+ * ciclo 18 (escaneo por lectura). Sustituye a uke-cam-vcm (no cargar los dos). Requiere uke_rpmh_ldob14 (l14).
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/qcom,cci0@ac15000/i2c-bus@1";
+
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			uke_rear_vcm: lens@c {
+				compatible = "uke,cn3927v";
+				reg = <0x0c>;
+				vcc-supply = <&pmxr2230_l14>;
+				vio-supply = <&pmxr2230_l20>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/soc/qcom,cci0@ac15000/i2c-bus@1/camera@10";
+
+		__overlay__ {
+			lens-focus = <&uke_rear_vcm>;
+		};
+	};
+};

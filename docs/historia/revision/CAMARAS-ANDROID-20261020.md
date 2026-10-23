@@ -1,0 +1,28 @@
+# Cámaras — captura de Android con la cámara trasera abierta (20-oct-2026) y qué desbloquea
+
+Orden relayed: «captura en solo lectura lo que te desbloquee el frame RAW y el SMMU del IFE (debugfs con la cámara abierta: clk_summary, regulator_summary, genpd, interconnect_summary; SID/CB; dmesg cam_*; dumpsys media.camera) y la háptica». Tablet en Android (adb serie SERIE0001, Magisk), batería 63 %. Datos en `build/android/camara-20261020/` (RESUMEN.md allí). **Nada escrito en el hardware, sin reinicios.**
+
+## 1. Lo que Android hace al abrir la trasera (dmesg `CAM_INFO`, 22:02:23–22:02:25 hora de la tablet)
+- Sensor `o82_ofilm_ov13b10_wide_i`, `sensor_id 0xd42`, `slave_addr 0x20`; modo **4208×3120 (0x1070×0xc30) a 30 fps**, «NORMAL TYPE3PD».
+- **CSIPHY1 ↔ CSID2 ↔ IFE[2]** («Acquired Single IFE[2] with [17 pix] [3 pd] [3 rdi]»); `CAM_START_PHYDEV: 1, CSID:2, Type: DPHY, combo 0, cphy+dphy 0, skew_en 0, sec_mode 0, **Datarate 1 120 000 000**` (= 1120 Mbps/lane: exactamente el modo 4208×3120 de 4 lanes del driver mainline `ov13b10`).
+- **`lane_reg_addr 0x1014, lane_assign 0x3210, lane_enable 0xd5`**: asignación de lanes **identidad (0,1,2,3)** ⇒ `data-lanes = <1 2 3 4>` del overlay es correcto. **Cierra la laguna «nº de lanes / lane map» (R4)**: 4 lanes D-PHY, sin cruce.
+- El flash (`cam-flash`) y el actuador (`cam-actuator`) se enlazan al mismo link; direcciones I²C del VCM/EEPROM **siguen sin aparecer** (el debugfs `camera/cci/cci0/*` solo da `name/property/{index,type,reg_addr_type=2,reg_data_type=1}`; los ficheros `registers_func`/`monitor_func` **no se leyeron** porque podrían disparar lecturas I²C).
+
+## 2. Interconnect (lo que el SMMU/NoC necesita) — `abierta/interconnect_summary.txt` vs `cerrada/`
+Con la preview: `ac13000.qcom,cam-cpas` vota en los nodos `llcc_mc`/`ebi`: **40 000 kB/s** (config/AHB), **1 076 755 kB/s** (CAMNOC HF) y **2 097 kB/s** (SF), y por los nodos de IFE: **`llcc_mc_cam_ife_2` y `ebi_cam_ife_2` = 737 494 kB/s (avg = peak)** (el IFE2, el de la trasera). Los QTB (`14d2000.cam_hf_qtb`, `1451000.sf_qtb`) aparecen con **0/0**: solo hace falta que su camino exista, el ancho de banda lo vota cam-cpas. El DDR agregado pasa a ~12,6 GB/s con la cámara (display + cvp + cam). **Consecuencia (riesgo S2 del informe 0046):** Linux no emite esos votos (la capa ICC cliffs de senemos es solo USB/display); para un frame suelto de 2104×1560 (¼ del flujo) el DDR ya está alto por DCVS y es razonable probar sin ellos, pero 4208×3120 a 30 fps son ~0,74 GB/s.
+
+## 3. Relojes de cámara con la trasera activa (`abierta/clk_summary.txt`)
+- GCC: **`gcc_camera_hf_axi_clk` y `gcc_camera_sf_axi_clk` enabled** (propietario cam-cpas) — los registra gcc-cliffs y camss los pide por `gcc_axi_hf`. AHB/XO de GCC no aparecen (los fuerza el probe OEM: lo que hace nuestro `ungate`).
+- camcc: `cam_cc_pll0` **1,2 GHz** (como el nuestro tras `ungate`), `pll9` 960 MHz, `pll1` 664 MHz; `mclk0` 19,2 MHz; `cci_0_clk` 37,5 MHz; **`cphy_rx_clk_src` 19,2 MHz** (con `csiphy1_clk`, `csid_csiphy_rx_clk`: **el reloj de datos del PHY va a XO, no a 400 MHz**) y **`csi1phytimer_clk` 400 MHz** (el timer sí); `ife_2_clk_src` 19,2 MHz (al arrancar), `csid_clk` 19,2 MHz; `slow_ahb` 80 MHz, `fast_ahb` 300 MHz, `core_ahb`/`cpas_ahb` 80 MHz; ICP 240 MHz, IPE nps 166 MHz (ISP propietario, no se usa). **Implicación:** el recurso camss sm8650 pide 400 MHz a `csiphyN_clk`; en Android es 19,2 MHz (XO): es un punto a vigilar si el PHY no engancha (hipótesis H-PHY).
+
+## 4. Rieles (`abierta/regulator_summary.txt`)
+`pmxr2230_l20` **1800 mV** (límites 1620–3544 mV; el nuestro nace a 1,62 V y el módulo lo sube a 1,8 V: correcto), `pmr735a_l6` 1200 mV, `pmxr2230_l14` (VCM) 2800 mV, `camera_wide_avdd_ldo` 2800 mV (frontal apagado), `pmxr2230_s2` 1256 mV, `pmxr2230_bob` 3296 mV, `pm_v6c_l3` (frontal) idle 1200 mV; `pm_v6c_s6_mmcx_voter_level` 2 usuarios. GPIO con la trasera activa: `gpio14` (reset) **out high**, `gpio79` (avdd) out high, `gpio64` (MCLK0) función 1, `gpio72/73` (CCI) función 1; `gpio3`/`gpio160` (frontal) sin cambios.
+
+## 5. SMMU — lo que NO da Android
+El SID/ACTLR/context bank del IFE **no se imprimen** (ni `cam_smmu_cb_dump` está activado: `camera/smmu/cb_dump_enable` es un interruptor de escritura y **no se tocó**; `fatal_pf_mask` y `disable_buf_tracking` tampoco). No hay `iommu/` en debugfs (solo `iommu-test`, con ficheros de prueba que no se usaron). El parche 0046 se basa por tanto en el DT OEM (`qcom,actlr 0x800/0x20 → 0x1`) y en el patrón del display, no en un volcado de Android; **sigue sin haber un dato de contraste del banco de contexto real**.
+
+## 6. Háptica / vibración (`vibracion/android-haptica.txt`)
+`cmd vibrator_manager list` → **«No vibrator found»**; `pm list features` sin `android.hardware.vibrator`; sin `/sys/class/leds/vibrator`, sin `timed_output`; solo `sys.haptic.dfs.support=false`. Los ajustes de Android (`haptic_feedback_enabled=1`, `vibrate_on=1`, intensidades=2, `keyboard_vibration_enabled=1`, `charging_vibration_enabled=1`) son **valores por defecto de software**, no prueba de hardware. **Fase 2: cierre «SIN MOTOR»** con evidencia directa de la API de Android (más la de 19-oct: `Vibrators:` vacío, `ignored_unsupported`, `motor_not_support=true`, sin HAL). No hay trabajo de driver. (Si el dueño nota que la tablet vibra físicamente, anular este cierre.)
+
+## 7. Estado de lo que se pedía
+Capturado: clk/regulator/genpd/interconnect (cerrada vs abierta), dmesg `cam_*`, `dumpsys media.camera` con la trasera activa (2 MB, incluye metadatos de modos), GPIO, haptica. **No capturado (no existe en este Android):** SID/CB de cámara, QTB. La app se cerró con HOME; la tablet sigue en Android a la espera de que audio decida la vuelta a Linux.

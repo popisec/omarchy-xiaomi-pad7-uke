@@ -1,0 +1,29 @@
+#!/bin/sh
+# uke-susp-log — gancho de systemd-sleep: una fila por suspension en /var/log/uke-bateria/suspensiones.csv (log permanente, 22-oct-2026).
+# pre: guarda hora, charge_counter, wakeup_sources, /proc/interrupts y (si esta cargado qcom_stats) los contadores de reposo del SoC.
+# post: duracion, delta de carga (uAh/h y mW aprox. a 3,9 V), estado (cargando/descarga), IRQ que desperto, fuentes de despertar con eventos,
+#       IRQ que mas saltaron durante la suspension y delta de qcom_stats (aosd/cxsd/ddr: cuenta y ms). Nunca falla (exit 0).
+# Revertir: bateria/deploy.sh revert (o borrar este fichero).
+D=/run/uke-susp; OUT=/var/log/uke-bateria/suspensiones.csv; B=/sys/class/power_supply/qcom-battmgr-bat
+WS=/sys/kernel/debug/wakeup_sources; QS=/sys/kernel/debug/qcom_stats
+qs() { for f in aosd cxsd ddr; do [ -r $QS/$f ] && awk -v n=$f '/Count/{c=$2} /Accumulated Duration/{t=$3} END{printf "%s %s %s\n", n, c, t}' $QS/$f; done; }
+case "$1" in
+pre)
+	mkdir -p $D
+	{ date +%s; cat $B/charge_counter; cat $B/status; } > $D/bat 2>/dev/null
+	cat $WS > $D/ws 2>/dev/null; cat /proc/interrupts > $D/irq 2>/dev/null; qs > $D/qs 2>/dev/null ;;
+post)
+	[ -r $D/bat ] || exit 0
+	mkdir -p /var/log/uke-bateria
+	[ -s $OUT ] || echo "ts_pre,ts_post,susp_s,uah_pre,uah_post,uAh_h,mW_aprox,estado_pre,estado_post,wakeup_irq,despertar_por,fuentes,irq_top,qcom_stats" > $OUT
+	t0=$(sed -n 1p $D/bat); u0=$(sed -n 2p $D/bat); s0=$(sed -n 3p $D/bat); t1=$(date +%s); u1=$(cat $B/charge_counter 2>/dev/null); s1=$(cat $B/status 2>/dev/null)
+	irq=$(cat /sys/power/pm_wakeup_irq 2>/dev/null); por=$(grep -E "^ *${irq:-x}:" /proc/interrupts | awk '{print $NF}')
+	fu=$(cat $WS 2>/dev/null | awk 'NR==FNR{a[$1]=$3;next} FNR>1 && ($1 in a) && $3>a[$1] {printf "%s:%d ", $1, $3-a[$1]}' $D/ws - | cut -c1-300)
+	it=$(cat /proc/interrupts | awk 'function s(){t=0;for(i=2;i<=9;i++)if($i~/^[0-9]+$/)t+=$i;return t} NR==FNR{a[$1]=s();next} {d=s()-a[$1]; if(d>0)print d, $1 $NF}' $D/irq - | sort -rn | head -5 | awk '{printf "%s=%s ", $2, $1}')
+	q=$(qs | awk 'NR==FNR{c[$1]=$2;t[$1]=$3;next} {printf "%s:+%d/+%dms ", $1, $2-c[$1], ($3-t[$1])/1000}' $D/qs - 2>/dev/null)
+	dt=$((t1 - t0)); [ $dt -gt 0 ] || dt=1
+	r=$(( (u0 - u1) * 3600 / dt )); mw=$(( r * 39 / 10000 ))
+	echo "$t0,$t1,$dt,$u0,$u1,$r,$mw,$s0,$s1,$irq,$por,\"$fu\",\"$it\",\"$q\"" >> $OUT
+	rm -rf $D ;;
+esac
+exit 0

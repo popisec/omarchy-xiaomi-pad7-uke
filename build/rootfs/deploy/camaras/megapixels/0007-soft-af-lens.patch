@@ -1,0 +1,258 @@
+# Parche para Megapixels 1.8.3 (https://gitlab.com/megapixels-org/Megapixels).
+# Derivado de Megapixels, que es GPL-3.0-or-later; este parche hereda esa licencia.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+--- a/src/device.h
++++ b/src/device.h
+@@ -56,6 +56,9 @@
+ const struct media_v2_pad *mp_device_get_pad(const MPDevice *device, uint32_t id);
+ const struct media_v2_pad *mp_device_get_pads(const MPDevice *device);
+ size_t mp_device_get_num_pads(const MPDevice *device);
++/* uke: enlace auxiliar (sensor -> lente/flash) que sale de una entidad; NULL si no hay */
++const struct media_v2_link *mp_device_find_ancillary_link(const MPDevice *device,
++                                                          uint32_t source_entity_id);
+ const struct media_v2_link *mp_device_find_entity_link(const MPDevice *device,
+                                                        uint32_t entity_id);
+ const struct media_v2_link *mp_device_find_link_from(const MPDevice *device,
+--- a/src/device.c
++++ b/src/device.c
+@@ -296,11 +296,15 @@
+ mp_device_find_entity_interface(const MPDevice *device, uint32_t entity_id)
+ {
+         // Find the interface through the link
+-        const struct media_v2_link *link = mp_device_find_link_to(device, entity_id);
+-        if (!link) {
+-                return NULL;
++        /* uke: solo enlaces de INTERFAZ; una lente tiene ademas un enlace auxiliar (sensor -> lente) que llega a la misma
++         * entidad y, si salia primero, se devolvia el sensor como «interfaz» (NULL): la lente no se encontraba */
++        for (size_t i = 0; i < device->num_links; ++i) {
++                const struct media_v2_link *link = &device->links[i];
++                if (link->sink_id == entity_id &&
++                    (link->flags & MEDIA_LNK_FL_LINK_TYPE) == MEDIA_LNK_FL_INTERFACE_LINK)
++                        return mp_device_get_interface(device, link->source_id);
+         }
+-        return mp_device_get_interface(device, link->source_id);
++        return NULL;
+ }
+ 
+ const struct media_v2_interface *
+@@ -373,6 +377,17 @@
+ }
+ 
+ const struct media_v2_link *
++mp_device_find_ancillary_link(const MPDevice *device, uint32_t source_entity_id)
++{
++        for (size_t i = 0; i < device->num_links; ++i) {
++                if ((device->links[i].flags & MEDIA_LNK_FL_LINK_TYPE) == MEDIA_LNK_FL_ANCILLARY_LINK &&
++                    device->links[i].source_id == source_entity_id)
++                        return &device->links[i];
++        }
++        return NULL;
++}
++
++const struct media_v2_link *
+ mp_device_find_link_from(const MPDevice *device, uint32_t source)
+ {
+         for (int i = 0; i < device->num_links; ++i) {
+--- a/src/io_pipeline.c
++++ b/src/io_pipeline.c
+@@ -13,6 +13,8 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include <sys/ioctl.h>
++#include <stdlib.h>
++#include <linux/videodev2.h>
+ 
+ struct media_link_info {
+         unsigned int source_entity_id;
+@@ -40,6 +42,7 @@
+         bool has_auto_focus_start;
+ 
+         bool soft_ae; /* uke: sin EXPOSURE_AUTO en el sensor -> AE por software */
++        int lens_fd; /* uke: subdev de la lente (enlace auxiliar), -1 si no hay; AF por contraste por software */
+ 
+         // unsigned int entity_id;
+         // enum v4l2_buf_type type;
+@@ -95,6 +98,8 @@
+ static struct control_state desired_controls = {};
+ static struct control_state current_controls = {};
+ static float uke_wb_r = 1.6f, uke_wb_b = 1.6f; /* uke: AWB por software (gris medio por canal), ganancias R y B sobre G */
++struct camera_info;
++static void uke_af_start(struct camera_info *info);
+ 
+ static bool flash_enabled = false;
+ 
+@@ -256,6 +261,20 @@
+                         exit(EXIT_FAILURE);
+                 }
+ 
++                /* uke: lente asociada al sensor por un enlace auxiliar (dw9714 en la trasera) */
++                info->lens_fd = -1;
++                {
++                        const struct media_v2_link *al =
++                                mp_device_find_ancillary_link(dev_info->device, entity->id);
++                        const struct media_v2_interface *li =
++                                al ? mp_device_find_entity_interface(dev_info->device, al->sink_id) : NULL;
++                        char lpath[260];
++                        if (li && mp_find_device_path(li->devnode, lpath, 260)) {
++                                info->lens_fd = open(lpath, O_RDWR);
++                                printf("uke: lente de %s en %s (fd %d)\n", config->dev_name, lpath, info->lens_fd);
++                        }
++                }
++
+                 info->fd = open(info->dev_fname, O_RDWR);
+                 if (info->fd == -1) {
+                         g_printerr("Could not open %s: %s\n",
+@@ -301,6 +320,8 @@
+                             info->camera, V4L2_CID_AUTO_FOCUS_START, NULL)) {
+                         info->has_auto_focus_start = true;
+                 }
++                if (info->lens_fd >= 0)
++                        info->has_auto_focus_start = true; /* uke: el toque en el preview lanza el AF por software */
+ 
+                 /* uke: OV13B10/OV08D10 no tienen 3A; el modo «auto» de Megapixels no hacia nada (fotos de interior oscuras) */
+                 info->soft_ae = !mp_camera_query_control(info->camera, V4L2_CID_EXPOSURE_AUTO, NULL);
+@@ -537,7 +558,10 @@
+         struct camera_info *info = &cameras[camera->index];
+ 
+         if (want_focus) {
+-                start_focus(info);
++                if (info->lens_fd >= 0)
++                        uke_af_start(info); /* uke: AF por software con la lente */
++                else
++                        start_focus(info);
+                 want_focus = false;
+         }
+ 
+@@ -579,12 +603,117 @@
+  */
+ static int uke_ae_frame;
+ 
++/*
++ * uke (0007): autofoco por contraste por software con la lente del enlace auxiliar (VCM CN3927V, subdev dw9714, focus_absolute 0..1023).
++ * Barrido grueso (13 posiciones) + fino (+-64 en 6), 2 tramas de espera tras cada movimiento; contraste de pixeles del mismo color en el
++ * 50 % central, normalizado por el brillo. La AE se pausa durante el barrido. Se lanza al abrir la camara (cuando la AE se ha asentado)
++ * y al tocar el preview.
++ */
++static int uke_af_state; /* 0 parado, 1 grueso, 2 fino */
++static int uke_af_idx, uke_af_wait, uke_af_best, uke_af_lo, uke_af_pending = -1;
++static double uke_af_bestv, uke_af_minv;
++static int uke_af_last_cam = -1;
++
+ static void
+-uke_soft_ae(const MPBuffer *buffer)
++uke_set_focus(int fd, int pos)
++{
++        struct v4l2_control c = { .id = V4L2_CID_FOCUS_ABSOLUTE, .value = pos };
++        if (ioctl(fd, VIDIOC_S_CTRL, &c) == -1)
++                printf("uke-af: VIDIOC_S_CTRL %d: %s\n", pos, strerror(errno));
++}
++
++static double
++uke_sharpness(const MPBuffer *buffer)
++{
++        uint32_t row_bytes = mp_pixel_format_width_to_bytes(mode.pixel_format, mode.width);
++        uint32_t bpl = row_bytes + mp_pixel_format_width_to_padding(mode.pixel_format, mode.width);
++        bool p10 = mp_pixel_format_bits_per_pixel(mode.pixel_format) == 10;
++        double s = 0, b = 1;
++        for (uint32_t y = mode.height / 4 & ~1u; y + 2 < mode.height * 3 / 4; y += 4) {
++                const uint8_t *r = buffer->data + (size_t)y * bpl, *r2 = r + 2 * (size_t)bpl;
++                for (uint32_t x = row_bytes / 4; x + 5 < row_bytes * 3 / 4; x += p10 ? 5 : 4) {
++                        /* pixeles del mismo color: +2 en la fila y +2 filas */
++                        s += abs(r[x] - r[x + 2]) + abs(r[x + 1] - r[x + 3]) + abs(r[x] - r2[x]) + abs(r[x + 1] - r2[x + 1]);
++                        b += r[x] + r[x + 1] + r[x + 2] + r[x + 3];
++                }
++        }
++        return s / b;
++}
++
++static void
++uke_af_start(struct camera_info *info)
++{
++        if (info->lens_fd < 0)
++                return;
++        uke_af_state = 1;
++        uke_af_idx = 0;
++        uke_af_bestv = -1;
++        uke_af_minv = 1e30;
++        uke_af_best = 0;
++        uke_af_wait = 2;
++        uke_set_focus(info->lens_fd, 0);
++        printf("uke-af: barrido\n");
++}
++
++static void
++uke_soft_af(const MPBuffer *buffer)
+ {
+         struct camera_info *info = &cameras[camera->index];
+-        if (!info->soft_ae || ++uke_ae_frame % 3)
++        if (info->lens_fd < 0)
+                 return;
++        if (camera->index != uke_af_last_cam) { /* camara recien abierta: AF cuando la AE se asiente (~1,5 s) */
++                uke_af_last_cam = camera->index;
++                uke_af_pending = 45;
++                uke_af_state = 0;
++        }
++        if (uke_af_pending > 0 && --uke_af_pending == 0)
++                uke_af_start(info);
++        if (!uke_af_state)
++                return;
++        if (uke_af_wait > 0) {
++                uke_af_wait--;
++                return;
++        }
++        int pos = uke_af_state == 1 ? uke_af_idx * 1023 / 12 : uke_af_lo + uke_af_idx * 128 / 5;
++        double v = uke_sharpness(buffer);
++        if (v > uke_af_bestv) {
++                uke_af_bestv = v;
++                uke_af_best = pos;
++        }
++        if (uke_af_state == 1 && v < uke_af_minv)
++                uke_af_minv = v;
++        uke_af_idx++;
++        int n = uke_af_state == 1 ? 13 : 6;
++        if (uke_af_idx >= n) {
++                if (uke_af_state == 1 && uke_af_bestv < uke_af_minv * 1.03) {
++                        /* escena sin detalle (pared lisa, oscuridad): la diferencia es ruido; foco por defecto ~1-2 m */
++                        uke_af_state = 0;
++                        uke_set_focus(info->lens_fd, 200);
++                        printf("uke-af: sin contraste (%.4f..%.4f): foco por defecto 200\n", uke_af_minv, uke_af_bestv);
++                        return;
++                }
++                if (uke_af_state == 1) {
++                        uke_af_state = 2;
++                        uke_af_idx = 0;
++                        uke_af_lo = uke_af_best - 64 < 0 ? 0 : (uke_af_best + 64 > 1023 ? 1023 - 128 : uke_af_best - 64);
++                } else {
++                        uke_af_state = 0;
++                        uke_set_focus(info->lens_fd, uke_af_best);
++                        printf("uke-af: foco %d (contraste %.4f)\n", uke_af_best, uke_af_bestv);
++                        return;
++                }
++        }
++        pos = uke_af_state == 1 ? uke_af_idx * 1023 / 12 : uke_af_lo + uke_af_idx * 128 / 5;
++        uke_set_focus(info->lens_fd, pos);
++        uke_af_wait = 2;
++}
++
++static void
++uke_soft_ae(const MPBuffer *buffer)
++{
++        struct camera_info *info = &cameras[camera->index];
++        if (!info->soft_ae || ++uke_ae_frame % 3 || uke_af_state)
++                return; /* sin AE durante el barrido de AF */
+ 
+         uint32_t row_bytes = mp_pixel_format_width_to_bytes(mode.pixel_format, mode.width);
+         uint32_t bpl = row_bytes + mp_pixel_format_width_to_padding(mode.pixel_format, mode.width);
+@@ -720,8 +849,10 @@
+                 blank_frame_count = 0;
+         }
+ 
+-        if (captures_remaining == 0)
++        if (captures_remaining == 0) {
++                uke_soft_af(&buffer);
+                 uke_soft_ae(&buffer);
++        }
+ 
+         // Send the image off for processing
+         mp_process_pipeline_process_image(buffer);

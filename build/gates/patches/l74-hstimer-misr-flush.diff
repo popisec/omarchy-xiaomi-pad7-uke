@@ -1,0 +1,91 @@
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -36,6 +36,28 @@
+ 
+ #define DSI_RESET_TOGGLE_DELAY_MS 20
+ 
++/*
++ * L74 (16-oct): tres registros del vendor SIN nombre en dsi.xml (y sin
++ * ninguna referencia en el arbol L73: grep = 0 usos). Offsets LOGICOS:
++ * dsi_read/dsi_write suman la base ya desplazada (+4 io_offset DSI_6G_REG_SHIFT,
++ * aplicado en probe a msm_host->ctrl_base), o sea 0x00a0 aqui toca el vendor
++ * +0xa4 fisico. Resolucion del offset, INV-HSTIMER 2026-10-16:
++ *   MISR video CTRL 0x00a0 (vendor +0xa4): dsi_ctrl_hw_cmn_setup_misr
++ *     (002e7938) escribe 0x10000 | min(frames,0xff)<<8 para "video"
++ *     (para "cmd" usa el 0x9c); enable=bit16, frames=bits8-15.
++ *   MISR video DATA 0x013c (vendor +0x140): dsi_ctrl_hw_cmn_collect_misr
++ *     (002e79e4) lee ahi la firma acumulada.
++ *   FLUSH 0x01e0 (vendor +0x1e4): unica escritura en todo el .ko es la de
++ *     set_video_timing (002e7b3c, desasm 12d910: +0x1e4 <- 1); vecino del
++ *     TIMING_DB 0x01e4 (vendor +0x1e8, set_timing_db 002e7aa4). En dsi.xml
++ *     el hueco 0x1d4..0x1ec no tiene enum (entre RDBK_DATA_CTRL 0x1d0 y
++ *     VERSION 0x1f0): por eso se escribe por offset crudo.
++ * HS_TIMER_CTRL (0xb8) SI tiene nombre: dsi.xml.h:499 REG_DSI_HS_TIMER_CTRL.
++ */
++#define REG_DSI_UKE_MISR_VIDEO_CTRL	0x00a0	/* vendor +0xa4 */
++#define REG_DSI_UKE_MISR_VIDEO_DATA	0x013c	/* vendor +0x140 */
++#define REG_DSI_UKE_FLUSH		0x01e0	/* vendor +0x1e4 */
++
+ static int dsi_populate_dsc_params(struct msm_dsi_host *msm_host, struct drm_dsc_config *dsc);
+ 
+ static int dsi_get_version(const void __iomem *base, u32 *major, u32 *minor)
+@@ -1121,6 +1143,33 @@
+ 		dsi_write(msm_host, REG_DSI_ACTIVE_VSYNC_VPOS,
+ 			DSI_ACTIVE_VSYNC_VPOS_START(vs_start) |
+ 			DSI_ACTIVE_VSYNC_VPOS_END(vs_end));
++		/*
++		 * L74-A (16-oct): paridad vendor de la ventana de timing.
++		 * El vendor (set_video_timing 002e7b3c, desasm 12d8e8-12d918)
++		 * escribe INCONDICIONALMENTE tras los 6 registros de timing:
++		 *   HS_TIMER_CTRL (0xb8) = 0x4bb80 = HS_TX_TO(48000) |
++		 *     TIMER_RESOLUTION(4): watchdog de burst HS a
++		 *     192000 ciclos de byteclk = 1,29 ms (~302 lineas).
++		 *     STOP_EN=0: solo REPORTA en TIMEOUT_STATUS, no corta.
++		 *   MISR video (0x00a0) = 0x10100 (enable + 1 frame;
++		 *     setup_misr 002e7938).
++		 *   FLUSH (0x01e0) = 1 (siempre).
++		 * Mainline nunca escribe ninguno (grep arbol L73). El
++		 * watchdog es el unico detector de burst-HS colgado del HW;
++		 * MISR da la firma de que las lineas PASAN por el DSI.
++		 * LP_TIMER_CTRL (0xb4) NO se toca: el vendor TAMPOCO lo
++		 * escribe (INV 2026-10-16, correccion a B2 D5).
++		 */
++		uke_poke("L74-hstimer");
++		dsi_write(msm_host, REG_DSI_HS_TIMER_CTRL, 0x4bb80);
++		dsi_write(msm_host, REG_DSI_UKE_MISR_VIDEO_CTRL, 0x10100);
++		dsi_write(msm_host, REG_DSI_UKE_FLUSH, 1);
++		pr_info("UKE-L74: id=%d HS_TIMER=0x%08x (rd 0x%08x) MISR=0x%08x (rd 0x%08x) FLUSH=1 (rd 0x%08x)\n",
++			msm_host->id, 0x4bb80,
++			dsi_read(msm_host, REG_DSI_HS_TIMER_CTRL),
++			0x10100,
++			dsi_read(msm_host, REG_DSI_UKE_MISR_VIDEO_CTRL),
++			dsi_read(msm_host, REG_DSI_UKE_FLUSH));
+ 		/* L68 (uke): readback de los registros de timing escritos; el
+ 		 * discriminante widebus (CRITICA-L67/RE-GAPS §3) espera
+ 		 * ACTIVE_H=0x01CB0020 (widebus, H=427) o 0x02360020 (H=534). */
+@@ -1263,9 +1312,23 @@
+ 		/* S4-DIAG (arranque): distingue "motor parado" de "motor colgado". */
+ 		u32 st0 = dsi_read(msm_host, REG_DSI_STATUS0);
+ 		u32 fifo = dsi_read(msm_host, REG_DSI_FIFO_STATUS);
++		/* L74-B (16-oct): cada timeout trae el dato discriminante sin
++		 * runtime extra. MISR DATA (0x013c, firma armada 0x10100 en
++		 * L74-A): != 0 => lineas atravesando el pipeline de video del
++		 * DSI. TIMEOUT_STATUS (0xbc, watchdog HS armado en L74-A):
++		 * != 0 => burst HS colgado >= 1,29 ms. Ambas lecturas son no
++		 * destructivas (el clear de TO va por write-back en
++		 * dsi_timeout_status). */
++		u32 misr = dsi_read(msm_host, REG_DSI_UKE_MISR_VIDEO_DATA);
++		u32 to = dsi_read(msm_host, REG_DSI_TIMEOUT_STATUS);
++		/* CRITICA-L74 H-1: MCTRL (0xa0) en el eco detecta si el
++		 * dsi_sw_reset posterior a dsi_timing_setup desarma la unidad
++		 * MISR (0x10100 en L74-A): MCTRL=0 con marcador armado =>
++		 * falso "MISR=0" y el criterio ICC daria falso positivo. */
++		u32 mctrl = dsi_read(msm_host, REG_DSI_UKE_MISR_VIDEO_CTRL);
+ 		DRM_DEV_ERROR_RATELIMITED(dev,
+-			"S4-DIAG: wait for video done timed out, id=%d STATUS0=%08x FIFO=%08x (BUSY=%d)\n",
+-			msm_host->id, st0, fifo,
++			"S4-DIAG: wait for video done timed out, id=%d STATUS0=%08x FIFO=%08x MISR=%08x MCTRL=%08x TO=%08x (BUSY=%d)\n",
++			msm_host->id, st0, fifo, misr, mctrl, to,
+ 			!!(st0 & DSI_STATUS0_VIDEO_MODE_ENGINE_BUSY));
+ 	}
+ 

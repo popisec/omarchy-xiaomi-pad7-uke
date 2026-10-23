@@ -1,0 +1,19 @@
+stage: 473 paquetes | instalados en la DB de la imagen: 165
+tier1 (cierre estricto): 222 | tier2 (extras de Omarchy): 120 | total a instalar: 342
+tier3 (subidas de la base, EXCLUIDAS): 48  | mismas versiones: 83
+actualizan algo instalado: [('libelf', '0.195-1', '0.196-1')]
+integridad: sin proveedor=0 rotas=0 conflictos=0 downgrades=0
+orden: violaciones de lotes = 0
+ficheros ya en el disco SIN dueno en la DB: 7131 en 32 paquetes (volcado bsdtar del rootfs v8) -> --overwrite en sus tandas
+tandas:
+  T1: lotes 00-05 |  79 pkgs |   69.2 MiB comprimido |   279.0 MiB instalado | overlay=9
+  T2: lotes 06-12 | 140 pkgs |   53.2 MiB comprimido |   262.0 MiB instalado | overlay=10
+  T3: lotes 13-17 |  27 pkgs |   57.9 MiB comprimido |   300.3 MiB instalado | overlay=2
+  T4: lotes 18-22 |  18 pkgs |   64.1 MiB comprimido |   327.8 MiB instalado | overlay=1
+  T5: lotes 23-27 |  57 pkgs |   51.9 MiB comprimido |   305.2 MiB instalado | overlay=7
+  T6: lotes 28-30 |  17 pkgs |   87.7 MiB comprimido |   303.8 MiB instalado | overlay=0
+  T7: lotes 31-32 |   4 pkgs |  118.8 MiB comprimido |   145.1 MiB instalado | overlay=3
+TOTAL: 342 pkgs | 503 MiB comprimido | 1923 MiB instalado (de ellos ~136 MiB ya estan en disco sin registrar => netos ~1787 MiB)
+
+PROBLEMAS:
+ninguno

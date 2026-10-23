@@ -1,0 +1,120 @@
+/* SPDX-License-Identifier: GPL-2.0-only */
+/*
+ * FRAGMENTO-GPIO2.dts — puente DT para el `-EINVAL` del reset del panel (s257).
+ *
+ * QUE ES ESTE FICHERO
+ *   NO es un .dts autonomo con /plugin/. Es el BLOQUE `fragment@2103` que el
+ *   constructor de dtbo (patron mkdtbo-s253.py) inserta en el payload YA
+ *   DESCOMPILADO del dtbo anterior, antes del ultimo "};":
+ *       dtc -I dtb -O dts -o payload.dts payload-s257.dtb
+ *       (insertar fragment@2103 antes del ultimo "};")
+ *       dtc -I dts -O dtb -o payload-s258.dtb payload.dts
+ *       fdtoverlay -i base-dtb.img -o fusionado.dtb payload-s258.dtb
+ *   Va numerado por encima de 2100-2102 (los tres `status="disabled"` de s257)
+ *   y no colisiona con nada del payload (el maximo era 2102).
+ *
+ * CAUSA RAIZ QUE ESTE FRAGMENTO ESQUIVA (con el codigo delante)
+ *   Con s257 el pin 2 del TLMM ya NO es compartido: 1 referencia activa
+ *   (`panel@0`) + 1 sintetica (`reset-gpios`, gpiolib-shared.c:275-279) = 2
+ *   nodos, uno `is_reset_gpio` => `gpio_shared_entry_is_really_shared()=false`
+ *   (gpiolib-shared.c:739-763) => `gpio_shared_free_exclusive()` descarta la
+ *   entrada (gpiolib-shared.c:765-778) => el descriptor real NO se marca
+ *   GPIOD_FLAG_SHARED y `gpiod_get("reset")` va DIRECTO al tlmm.
+ *
+ *   Ese camino directo muere en `pin_request()` (drivers/pinctrl/pinmux.c:120):
+ *   el propio pinctrl-0 del panel (`uke-dsi-reset-active`, `function="gpio"`)
+ *   ya reclamó el pin en `pinctrl_bind_pins` (drivers/base/pinctrl.c:23-47 ->
+ *   `pinmux_enable_setting` -> `pin_request(..., setting->dev_name, NULL)`,
+ *   pinmux.c:462) => `desc->mux_owner="ae94000.dsi.0"`, `mux_usecount=1`.
+ *   Al pedirlo el panel como GPIO, `pin_request` calcula
+ *   `gpio_ok = ops->function_is_gpio(pctldev, mux_setting->func)`
+ *   (pinmux.c:145-147) y con `gpio_ok=false` dispara el check strict
+ *   (`.strict=true`, pinctrl-msm.c:287):
+ *       if ((!gpio_range || ops->strict) && !gpio_ok &&
+ *           desc->mux_usecount && strcmp(desc->mux_owner, owner))
+ *               -> "pin %s already requested by %s; cannot claim for %s"
+ *               -> goto out  (status = -EINVAL, pinmux.c:127)
+ *   `gpio_ok` es false porque la funcion "gpio" del driver VIVO
+ *   (`cliffs-pinctrl`, pinctrl-cliffs.c, compatible "qcom,cliffs-pinctrl")
+ *   se registra con `PINCTRL_PINFUNCTION` (SIN `PINFUNCTION_FLAG_GPIO`):
+ *   `FUNCTION(gpio)` en pinctrl-cliffs.c:44+1571 — ver INFORME-GPIO-EINVAL.md.
+ *
+ * QUE HACE ESTE FRAGMENTO (cambio minimo, 1 propiedad, 0 phandles nuevos)
+ *   Deja al device del panel SIN estado "default" (`pinctrl-names` pasa de
+ *   "default","sleep" a solo "sleep"). `pinctrl_bind_pins` busca el estado
+ *   PINCTRL_STATE_DEFAULT ("default", pinctrl-state.h:33): no lo encuentra,
+ *   hace `dev_dbg("no default pinctrl state")` y ret=0 (drivers/base/pinctrl.c:38-43)
+ *   => NO reclama gpio2 para la funcion "gpio" => `desc->mux_setting == NULL`
+ *   => en `pin_request`, `gpio_ok = true` (rama else, pinmux.c:148-149)
+ *   => los dos checks strict NO aplican => el request de `gpiod_get("reset")`
+ *   pasa, `msm_pinmux_request_gpio` (pinctrl-msm.c:276) muxea el pin a gpio y
+ *   el panel probea. El estado 1 (pinctrl-1) queda sin nombre (el core lo
+ *   nombra "1"; nadie lo selecciona) y el driver del panel no usa pinctrl.
+ *
+ * POR QUE NO OTRAS OPCIONES
+ *   - "neutralizar la ref sintetica": no aplica, con 1 real + 1 sintetica la
+ *     entrada se descarta igual (umbral 2, gpiolib-shared.c:753-761).
+ *   - "prop de exencion del mecanismo shared": no existe ninguna en
+ *     gpiolib-shared.c (grep: `gpio-shared,`/`shared-mask` = 0 resultados).
+ *   - "cargar antes el modulo proxy": el pin ya no es shared (s257) y el proxy
+ *     no participa; `lsmod` lo da cargado con refcount 0 (nadie tiene
+ *     descriptores proxy: el refcount lo da `gpiod_request` sobre el proxy,
+ *     gpiolib.c:2632, no el bind).
+ *   - "aplicar el pinconf sin mux": exigiria un grupo nuevo SOLO-config
+ *     (`pins="GPIO_2"`, sin `function`) + un phandle nuevo + repuntar
+ *     `pinctrl-0`; descartado por la regla del proyecto de no inventar
+ *     phandles (R-24). No se pierde nada practico: el pad conserva el estado
+ *     del BL (medido en vivo: `gpio2: out high func0 8mA no pull`) y
+ *     `msm_gpio_direction_output` solo toca IO/OE, no drive/bias.
+ *   - CAUSA RAIZ (para el proximo build de kernel, 2 lineas): pinctrl-cliffs.c
+ *     debe usar `MSM_GPIO_PIN_FUNCTION(gpio)` (pinctrl-msm.h:33 ->
+ *     `PINCTRL_GPIO_PINFUNCTION`, pinctrl.h:236-243) en la tabla
+ *     `cliffs_functions[]` (lineas 1571 y, por coherencia, 1623 `egpio`).
+ *     Mismo macro que el hermano mainline pinctrl-palawan.c:1112. Diff en
+ *     INFORME-GPIO-EINVAL.md §4.2.
+ *
+ * EVIDENCIA VIVA (boot s257; captura de consola del orquestador)
+ *   [   13.949778] cliffs-pinctrl f000000.pinctrl: pin GPIO_2 already requested
+ *                  by ae94000.dsi.0; cannot claim for f000000.pinctrl:514
+ *   [   13.949783] cliffs-pinctrl f000000.pinctrl: error -EINVAL: pin-2 (f000000.pinctrl:514)
+ *   [   13.949786] panel-xiaomi-o82-dualdsi ae94000.dsi.0: error -EINVAL: failed to get reset gpio
+ *   [   13.949789] panel-xiaomi-o82-dualdsi ae94000.dsi.0: probe with driver panel-xiaomi-o82-dualdsi failed with error -22
+ *
+ * GATES QUE DEBE APLICAR EL CONSTRUCTOR DE s258 (ademas de los suyos)
+ *   G-GPIO2-1  el fusionado contiene `pinctrl-names = "sleep"` EXACTO en
+ *              /soc/display-subsystem@ae00000/dsi@ae94000/panel@0 y la lista
+ *              NO contiene "default".
+ *   G-GPIO2-2  `pinctrl-0 = <0x700>`, `pinctrl-1 = <0x701>`, `reset-gpios =
+ *              <0x16b 0x02 0x01>`, supplies y compatible del panel intactos.
+ *   G-GPIO2-3  diff semantico s257-fusionado -> s258-fusionado: MISMO numero
+ *              de nodos, 0 nodos añadidos/quitados y EXACTAMENTE 1 propiedad
+ *              distinta (la de G-GPIO2-1).
+ *   G-GPIO2-4  recuento de referencias ACTIVAS a <0x16b 0x02> en el fusionado
+ *              sigue siendo 1 (solo panel@0); los 3 nodos vendor siguen
+ *              `status="disabled"` y el resto de pines de 0x16b con el MISMO
+ *              recuento que s257.
+ *   G-GPIO2-5  el fragmento no añade ni un phandle y no usa "&"/__fixups__:
+ *              __symbols__/__fixups__/__local_fixups__ y el conjunto de
+ *              phandles del payload deben ser IDENTICOS a los de s257.
+ *   G-GPIO2-6  AUTOPROBADO (control negativo): sobre el fusionado s238 (pin 2
+ *              con 4 refs activas) este fragmento NO arregla nada — el pin
+ *              sigue compartido y `gpiod_get` muere en el lookup del proxy
+ *              ANTES de `pin_request` (gpiolib.c:4796-4812). El fragmento solo
+ *              es suficiente COMBINADO con s257 (pin descompartido).
+ *
+ * RESIDUAL (por eso el parche kernel)
+ *   El bug de pinctrl-cliffs.c sigue vivo: cualquier otro pin que pinctrl
+ *   reclame con `function="gpio"` y luego se pida con gpiod dara el mismo
+ *   `-EINVAL` strict (p.ej. si algun dia se muxea un pin con function="gpio").
+ *   El puente DT arregla el panel; el parche de 2 lineas arregla el driver.
+ */
+
+	fragment@2103 {
+		target-path = "/soc/display-subsystem@ae00000/dsi@ae94000/panel@0";
+
+		__overlay__ {
+			/* Sin "default": pinctrl_bind_pins no reclama gpio2 para
+			 * la funcion "gpio" y el request de gpiod pasa. */
+			pinctrl-names = "sleep";
+		};
+	};

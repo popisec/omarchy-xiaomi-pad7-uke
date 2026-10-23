@@ -1,0 +1,46 @@
+k12-pinlive.diff — UKE-K12 (#P32): pineo SOLO de SMR vivos del BL; los qcom,handoff-smrs NO vivos pasan a masters normales.
+Fichero: drivers/iommu/arm/arm-smmu/arm-smmu.c (hunk unico @@ -2200,21 +2200,24 @@, dentro de arm_smmu_master_alloc_smes().
+K11 pineaba el idx de un handoff-DT aunque el BL no lo tuviera vivo (miga 'idx=6 PINADO sin estar vivo'): su S2CR nunca se escribia.
+K12: solo el barrido (SMR VALID=1 en HW, hoy idx 0 sid 0x60 UFS) pinea; un handoff no-vivo imprime
+  UKE-K12: handoff no-vivo sid=0x%x -> attach normal (se escribe S2CR)
+y sigue el camino normal (SMR/S2CR/CB nuevo). Sin UKE-K10/UKE-K12 residuos en otros puntos; el resto del bloque K8 (ramas PINADO de idx vivos) queda intacto.
+
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c	2026-09-29 15:25:52.337435172 +0200
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c	2026-09-30 01:39:59.273476053 +0200
+@@ -2200,21 +2200,24 @@
+ 
+ 		/*
+ 		 * UKE-SMMU-K8: HANDOFF por indice y por DT. Si find_sme ha
+-		 * devuelto un indice PINADO, este maestro hereda el mapeo del
+-		 * bootloader: se reclama en RAM (count++/smendx) pero NO se le
++		 * devuelto un indice PINADO (por el barrido: SMR VALID=1 vivo del
++		 * BL, hoy solo idx 0 sid 0x60 UFS), este maestro hereda el mapeo
++		 * del bootloader: se reclama en RAM (count++/smendx) pero NO se le
+ 		 * escribe ni SMR ni S2CR, y el dominio queda "SIN traducir por
+-		 * ahora" (el HW sigue como lo dejo el BL). Si ademas el fwpec del
+-		 * maestro es un handoff declarado en el DT, el indice se pina
+-		 * aunque el BL no lo tuviera vivo: esa banda de SIDs es del
+-		 * firmware y Linux no la escribe (misma semantica que
+-		 * arm_smmu_handoff_cbs() del lineage, pero sin leer S2CR).
++		 * ahora" (el HW sigue como lo dejo el BL).
++		 *
++		 * UKE-K12 (#P32): los handoff-smrs del DT que el BL NO tenia vivos
++		 * ya NO se pinean aqui. Antes se pineaban "sin estar vivo" y su
++		 * S2CR nunca se escribia -> sin traduccion posible -> el dpu moria
++		 * en dpu_kms_mmu_init (-22) con el SMMU ya bindeado. Ahora pasan a
++		 * tratarse como masters NORMALES: su attach reclama SME y su
++		 * install_s2cr/write_context_bank programan CB nuevo. Solo los SMR
++		 * VIVOS del BL quedan pineados intocables.
+ 		 */
+ 		if (uke_handoff_activo(smmu)) {
+-			if (uke_handoff_es_dt(sid, mask) && !uke_pinado(smmu, idx)) {
+-				smmu->s2crs[idx].pinned = true;
+-				pr_info("UKE-POKE: handoff: attach: dev=%s sid=0x%x mask=0x%x es qcom,handoff-smrs del DT; idx=%d PINADO sin estar vivo (no se escribira)\n",
+-					dev_name(dev), sid, mask, idx);
+-			}
++			if (uke_handoff_es_dt(sid, mask) && !uke_pinado(smmu, idx))
++				pr_info("UKE-K12: handoff no-vivo sid=0x%x -> attach normal (se escribe S2CR)\n",
++					(unsigned int)sid);
+ 			if (uke_pinado(smmu, idx)) {
+ 				if (smrs && !smmu->smrs[idx].valid) {
+ 					/* reserva logica: idx ocupado en RAM, HW intacto */

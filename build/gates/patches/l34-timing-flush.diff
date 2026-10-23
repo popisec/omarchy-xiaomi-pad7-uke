@@ -1,0 +1,52 @@
+--- build/kernel-pokes/k52L25-tree/drivers/gpu/drm/msm/dsi/dsi_host.c	2026-10-03 02:58:24.654839697 +0200
++++ build/kernel-pokes/k52L33-tree/drivers/gpu/drm/msm/dsi/dsi_host.c	2026-10-12 18:19:00.272236291 +0200
+@@ -1095,6 +1095,49 @@
+ 		dsi_write(msm_host, REG_DSI_ACTIVE_VSYNC_VPOS,
+ 			DSI_ACTIVE_VSYNC_VPOS_START(vs_start) |
+ 			DSI_ACTIVE_VSYNC_VPOS_END(vs_end));
++
++		/*
++		 * L34 (13-oct, ciclo 1a): Android compromete el timing de video
++		 * con un flush que mainline nunca hace.
++		 *
++		 * Evidencia (msm_drm.ko de Android, NO stripped; desensamblado
++		 * con llvm-objdump en dsi_ctrl_hw_cmn_set_video_timing @0x12d75c):
++		 *
++		 *   12d90c: ldr  x8, [x19]
++		 *   12d910: mov  w0, #0x1
++		 *   12d914: add  x1, x8, #0x1e4
++		 *   12d918: bl   <dsi_writel>      -> WRITE(base+0x1e4, 1)
++		 *
++		 * Mainline escribe los 6 registros de timing (ACTIVE_H/V, TOTAL,
++		 * ACTIVE_HSYNC, ACTIVE_VSYNC_HPOS/VPOS -> 0x20..0x34 en su
++		 * numeracion) y nada mas. Sin flush, el timing queda en sombra:
++		 * el motor de video arranca con VID_MODE_EN pero no completa
++		 * ninguna trama -> DSI_ERR_STATE_FIFO (status=4) y VIDEO_DONE
++		 * perdido. Ver HALLAZGO-L33-DEATH-20261013.md.
++		 *
++		 * OFFSET: el .ko de Android usa el mapa CAF, que es el de mainline
++		 * +4 (mainline lo corrige en runtime con cfg->io_offset,
++		 * dsi_host.c:2038). CAF 0x1e4 -> mainline 0x1e0. Encaja en el hueco
++		 * entre RDBK_DATA_CTRL (0x1d0) y VERSION (0x1f0), que estan libres.
++		 *
++		 * TODO upstream: declarar esto en dsi.xml, no aqui.
++		 */
++#define REG_DSI_TIMING_FLUSH_L34		0x000001e0
++
++		/* Instrumentacion de SOLO LECTURA: valores de reset de los tres
++		 * registros que Android programa y mainline no. Si el commit vuelve
++		 * a matar, esto nos dice queavia el hardware. No cambia el
++		 * comportamiento: es el unico extra de este ciclo. */
++		pr_info("UKE-L34: timing pre-flush: FLUSH(1e0)=%x HS_TIMER(b8)=%x LINKCFG(a0)=%x\n",
++			dsi_read(msm_host, REG_DSI_TIMING_FLUSH_L34),
++			dsi_read(msm_host, REG_DSI_HS_TIMER_CTRL),
++			dsi_read(msm_host, 0x000000a0));
++
++		/* EL CAMBIO de este ciclo: una sola escritura. */
++		dsi_write(msm_host, REG_DSI_TIMING_FLUSH_L34, 0x1);
++		uke_poke("L34-timing-flush");
++		pr_info("UKE-L34: timing flush comprometido (FLUSH(1e0)=%x)\n",
++			dsi_read(msm_host, REG_DSI_TIMING_FLUSH_L34));
+ 	} else {		/* command mode */
+ 		if (msm_host->dsc)
+ 			dsi_update_dsc_timing(msm_host, true);

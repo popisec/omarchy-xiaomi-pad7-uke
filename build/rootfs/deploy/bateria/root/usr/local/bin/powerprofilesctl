@@ -1,0 +1,13 @@
+#!/bin/bash
+# Shim de powerprofilesctl (no hay power-profiles-daemon en aarch64/uke): lo usan omarchy-powerprofiles-{list,set}
+# y el panel Power de la barra. Soporta list | get | set <perfil>. Delega en uke-perfil. 19-oct-2026.
+case "${1:-}" in
+list) act=$(/usr/local/bin/uke-perfil get)
+	for p in performance balanced power-saver; do
+		[ "$p" = "$act" ] && m='*' || m=' '
+		echo "$m $p:"; echo "    Driver:     uke"; echo; done ;;
+get) /usr/local/bin/uke-perfil get ;;
+set) exec /usr/local/bin/uke-perfil set "${2:-}" ;;
+version) echo "0.30-uke-shim" ;;
+*) echo "powerprofilesctl (shim uke): list | get | set <perfil>" >&2; exit 1 ;;
+esac

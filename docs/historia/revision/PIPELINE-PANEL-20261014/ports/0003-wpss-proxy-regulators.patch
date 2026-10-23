@@ -1,0 +1,261 @@
+diff -Naur a/drivers/remoteproc/qcom_q6v5_pas.c b/drivers/remoteproc/qcom_q6v5_pas.c
+--- a/drivers/remoteproc/qcom_q6v5_pas.c
++++ b/drivers/remoteproc/qcom_q6v5_pas.c
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include <linux/clk.h>
++#include <dt-bindings/regulator/qcom,rpmh-regulator-levels.h>
+ #include <linux/delay.h>
+ #include <linux/firmware.h>
+ #include <linux/interrupt.h>
+@@ -49,6 +50,7 @@
+ 	bool decrypt_shutdown;
+ 
+ 	char **proxy_pd_names;
++	unsigned int proxy_regulator_level;
+ 
+ 	const char *load_state;
+ 	const char *ssr_name;
+@@ -77,6 +79,8 @@
+ 	struct device *proxy_pds[3];
+ 
+ 	int proxy_pd_count;
++	unsigned int proxy_regulator_level;
++	struct regulator_bulk_data proxy_regs[2];
+ 
+ 	const char *dtb_firmware_name;
+ 	int pas_id;
+@@ -148,12 +152,40 @@
+ 	qcom_minidump(rproc, pas->minidump_id, qcom_pas_segment_dump);
+ }
+ 
+-static int qcom_pas_pds_enable(struct qcom_pas *pas, struct device **pds,
+-			       size_t pd_count)
++static void qcom_pas_proxy_unvote(struct qcom_pas *pas, int count)
+ {
++	while (count--) {
++		int ret = regulator_set_voltage(pas->proxy_regs[count].consumer,
++						0, INT_MAX);
++
++		if (ret)
++			dev_err(pas->dev, "failed to release %s proxy vote: %d\n",
++				pas->proxy_regs[count].supply, ret);
++	}
++}
++
++static int qcom_pas_proxy_enable(struct qcom_pas *pas)
++{
++	struct device **pds = pas->proxy_pds;
++	int pd_count = pas->proxy_pd_count;
+ 	int ret;
+ 	int i;
+ 
++	if (pas->proxy_regulator_level) {
++		for (i = 0; i < ARRAY_SIZE(pas->proxy_regs); i++) {
++			ret = regulator_set_voltage(pas->proxy_regs[i].consumer,
++						pas->proxy_regulator_level, INT_MAX);
++			if (ret) {
++				qcom_pas_proxy_unvote(pas, i);
++				return ret;
++			}
++		}
++		ret = regulator_bulk_enable(ARRAY_SIZE(pas->proxy_regs), pas->proxy_regs);
++		if (ret)
++			qcom_pas_proxy_unvote(pas, ARRAY_SIZE(pas->proxy_regs));
++		return ret;
++	}
++
+ 	for (i = 0; i < pd_count; i++) {
+ 		dev_pm_genpd_set_performance_state(pds[i], INT_MAX);
+ 		ret = pm_runtime_get_sync(pds[i]);
+@@ -175,11 +207,23 @@
+ 	return ret;
+ };
+ 
+-static void qcom_pas_pds_disable(struct qcom_pas *pas, struct device **pds,
+-				 size_t pd_count)
++static void qcom_pas_proxy_disable(struct qcom_pas *pas)
+ {
++	struct device **pds = pas->proxy_pds;
++	int pd_count = pas->proxy_pd_count;
+ 	int i;
+ 
++	if (pas->proxy_regulator_level) {
++		int ret = regulator_bulk_disable(ARRAY_SIZE(pas->proxy_regs), pas->proxy_regs);
++
++		if (ret) {
++			dev_err(pas->dev, "failed to disable proxy regulators: %d\n", ret);
++			return;
++		}
++		qcom_pas_proxy_unvote(pas, ARRAY_SIZE(pas->proxy_regs));
++		return;
++	}
++
+ 	for (i = 0; i < pd_count; i++) {
+ 		dev_pm_genpd_set_performance_state(pds[i], 0);
+ 		pm_runtime_put(pds[i]);
+@@ -278,7 +322,7 @@
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = qcom_pas_pds_enable(pas, pas->proxy_pds, pas->proxy_pd_count);
++	ret = qcom_pas_proxy_enable(pas);
+ 	if (ret < 0)
+ 		goto disable_irqs;
+ 
+@@ -370,7 +414,7 @@
+ disable_xo_clk:
+ 	clk_disable_unprepare(pas->xo);
+ disable_proxy_pds:
+-	qcom_pas_pds_disable(pas, pas->proxy_pds, pas->proxy_pd_count);
++	qcom_pas_proxy_disable(pas);
+ disable_irqs:
+ 	qcom_q6v5_unprepare(&pas->q6v5);
+ 
+@@ -390,7 +434,7 @@
+ 		regulator_disable(pas->cx_supply);
+ 	clk_disable_unprepare(pas->aggre2_clk);
+ 	clk_disable_unprepare(pas->xo);
+-	qcom_pas_pds_disable(pas, pas->proxy_pds, pas->proxy_pd_count);
++	qcom_pas_proxy_disable(pas);
+ }
+ 
+ static int qcom_pas_stop(struct rproc *rproc)
+@@ -545,6 +589,17 @@
+ 
+ static int qcom_pas_init_regulator(struct qcom_pas *pas)
+ {
++	if (pas->proxy_regulator_level) {
++		/* Cliffs vota niveles ARC por el grafo de reguladores CX/MX OEM. */
++		if (!of_property_present(pas->dev->of_node, "cx-supply") ||
++		    !of_property_present(pas->dev->of_node, "mx-supply"))
++			return dev_err_probe(pas->dev, -EINVAL, "WPSS requires CX and MX supplies\n");
++		pas->proxy_regs[0].supply = "cx";
++		pas->proxy_regs[1].supply = "mx";
++		return devm_regulator_bulk_get(pas->dev, ARRAY_SIZE(pas->proxy_regs),
++					       pas->proxy_regs);
++	}
++
+ 	pas->cx_supply = devm_regulator_get_optional(pas->dev, "cx");
+ 	if (IS_ERR(pas->cx_supply)) {
+ 		/* uke L18: los ARC vendor (lcx.lvl/lmx.lvl) no tendran driver mainline
+@@ -781,6 +836,7 @@
+ 	pas = rproc->priv;
+ 	pas->dev = &pdev->dev;
+ 	pas->rproc = rproc;
++	pas->proxy_regulator_level = desc->proxy_regulator_level;
+ 	pas->minidump_id = desc->minidump_id;
+ 	pas->pas_id = desc->pas_id;
+ 	pas->lite_pas_id = desc->lite_pas_id;
+@@ -828,6 +884,14 @@
+ 	if (ret)
+ 		goto detach_proxy_pds;
+ 
++	/* Uke/WPSS (port senemos 0014): con votos proxy por regulador, el
++	 * load-state por AOP es obligatorio; sin QMP el arranque falla. */
++	if (pas->proxy_regulator_level && !pas->q6v5.qmp) {
++		ret = dev_err_probe(pas->dev, -ENODEV, "WPSS requires AOP load-state QMP\n");
++		qcom_q6v5_deinit(&pas->q6v5);
++		goto detach_proxy_pds;
++	}
++
+ 	qcom_add_glink_subdev(rproc, &pas->glink_subdev, desc->ssr_name);
+ 	qcom_add_smd_subdev(rproc, &pas->smd_subdev);
+ 	qcom_add_pdm_subdev(rproc, &pas->pdm_subdev);
+@@ -1436,10 +1500,11 @@
+  */
+ static const struct qcom_pas_data cliffs_wpss_resource = {
+ 	.crash_reason_smem = 626,
+-	.firmware_name = "wpss.mdt",
++	.firmware_name = "qca6750/wpss.mdt",
+ 	.pas_id = 6,
+ 	.minidump_id = 4,
+ 	.auto_boot = false,
++	.proxy_regulator_level = RPMH_REGULATOR_LEVEL_TURBO,
+ 	.load_state = "wpss",
+ 	.ssr_name = "wpss",
+ 	.sysmon_name = "wpss",
+diff -Naur a/include/dt-bindings/regulator/qcom,rpmh-regulator-levels.h b/include/dt-bindings/regulator/qcom,rpmh-regulator-levels.h
+--- /dev/null
++++ b/include/dt-bindings/regulator/qcom,rpmh-regulator-levels.h
+@@ -0,0 +1,79 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * Copyright (c) 2018-2021, The Linux Foundation. All rights reserved.
++ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
++ */
++
++#ifndef __QCOM_RPMH_REGULATOR_LEVELS_H
++#define __QCOM_RPMH_REGULATOR_LEVELS_H
++
++/* These levels may be used for ARC type RPMh regulators. */
++#define RPMH_REGULATOR_LEVEL_RETENTION		16
++#define RPMH_REGULATOR_LEVEL_MIN_SVS		48
++#define RPMH_REGULATOR_LEVEL_LOW_SVS_D2		52
++#define RPMH_REGULATOR_LEVEL_LOW_SVS_D1		56
++#define RPMH_REGULATOR_LEVEL_LOW_SVS_D0		60
++#define RPMH_REGULATOR_LEVEL_LOW_SVS		64
++#define RPMH_REGULATOR_LEVEL_LOW_SVS_P1		72
++#define RPMH_REGULATOR_LEVEL_LOW_SVS_L1		80
++#define RPMH_REGULATOR_LEVEL_LOW_SVS_L2		96
++#define RPMH_REGULATOR_LEVEL_SVS		128
++#define RPMH_REGULATOR_LEVEL_SVS_L0		144
++#define RPMH_REGULATOR_LEVEL_SVS_L1		192
++#define RPMH_REGULATOR_LEVEL_SVS_L2		224
++#define RPMH_REGULATOR_LEVEL_NOM		256
++#define RPMH_REGULATOR_LEVEL_NOM_L0		288
++#define RPMH_REGULATOR_LEVEL_NOM_L1		320
++#define RPMH_REGULATOR_LEVEL_NOM_L2		336
++#define RPMH_REGULATOR_LEVEL_TURBO		384
++#define RPMH_REGULATOR_LEVEL_TURBO_L0		400
++#define RPMH_REGULATOR_LEVEL_TURBO_L1		416
++#define RPMH_REGULATOR_LEVEL_TURBO_L2		432
++#define RPMH_REGULATOR_LEVEL_TURBO_L3		448
++#define RPMH_REGULATOR_LEVEL_SUPER_TURBO	464
++#define RPMH_REGULATOR_LEVEL_SUPER_TURBO_NO_CPR	480
++#define RPMH_REGULATOR_LEVEL_MAX		65535
++#define RPMH_REGULATOR_CONSUMER_LEVEL_MAX	3300000
++
++/*
++ * These set constants may be used as the value for qcom,set of an RPMh
++ * resource device.
++ */
++#define RPMH_REGULATOR_SET_ACTIVE	1
++#define RPMH_REGULATOR_SET_SLEEP	2
++#define RPMH_REGULATOR_SET_ALL		3
++
++/*
++ * These mode constants may be used for qcom,supported-modes and qcom,init-mode
++ * properties of an RPMh resource.  Each type of regulator supports a subset of
++ * the possible modes.
++ *
++ * %RPMH_REGULATOR_MODE_PASS:	Pass-through mode in which output is directly
++ *				tied to input.  This mode is only supported by
++ *				BOB type regulators.
++ * %RPMH_REGULATOR_MODE_RET:	Retention mode in which only an extremely small
++ *				load current is allowed.  This mode is supported
++ *				by LDO and SMPS type regulators.
++ * %RPMH_REGULATOR_MODE_LPM:	Low power mode in which a small load current is
++ *				allowed.  This mode corresponds to PFM for SMPS
++ *				and BOB type regulators.  This mode is supported
++ *				by LDO, HFSMPS, BOB, and PMIC4 FTSMPS type
++ *				regulators.
++ * %RPMH_REGULATOR_MODE_AUTO:	Auto mode in which the regulator hardware
++ *				automatically switches between LPM and HPM based
++ *				upon the real-time load current.  This mode is
++ *				supported by HFSMPS, BOB, and PMIC4 FTSMPS type
++ *				regulators.
++ * %RPMH_REGULATOR_MODE_HPM:	High power mode in which the full rated current
++ *				of the regulator is allowed.  This mode
++ *				corresponds to PWM for SMPS and BOB type
++ *				regulators.  This mode is supported by all types
++ *				of regulators.
++ */
++#define RPMH_REGULATOR_MODE_PASS	0
++#define RPMH_REGULATOR_MODE_RET		1
++#define RPMH_REGULATOR_MODE_LPM		2
++#define RPMH_REGULATOR_MODE_AUTO	3
++#define RPMH_REGULATOR_MODE_HPM		4
++
++#endif

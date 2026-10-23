@@ -1,0 +1,7 @@
+# C5b ciclo 13 — plan (preparado 22-oct-2026 sin ejecutar; requiere orden del dueño y «tuya»)
+Objetivo único: **guardar y ver un frame RAW** (el del ciclo 12 se borró). `build/rootfs/deploy/camaras/c5-ciclo13.sh --check | --go`; módulos de `out-ciclo12/` (mismos, `--check` OK); sin captura de paquetes ni volcado de registros (`uke_cap_ctrl=-1`, `uke_cap_n=0`). Sin flash ni reinicio, ~5–8 min, batería ≥ 30 %, ACM lector único, doble captura.
+- Hasta **15 intentos** del stream normal (imagen, no patrón) con `0x4800=0x7e` (settle calculado, skew 0, lane_assign del DT); cada intento con `bytes>0` se copia a `/root/good-N.raw` (máx. 3) y se trae a `build/rootfs/deploy/camaras/out/good-N.raw`.
+- En el PC: `python3 -I raw10-to-png.py out/good-N.raw out/good-N.png` (RAW10 MIPI SGRBG, 2104×1560, stride 2640 B; vista previa 1052×780 con binning 2×2, sin balance de blancos). **Los `.raw` no se versionan** (imágenes del sensor del dueño: privacidad; se citan por sha256 en el informe y quedan en `out/`).
+- **PASS**: ≥ 1 frame guardado y la vista previa muestra una imagen reconocible (no ruido, no barras fijas). **Parcial**: frame con 4118400 B pero contenido corrupto (patrón de líneas/ruido) ⇒ se anota qué lane falla mirando columnas. **Fallo**: 0 frames en 15 intentos ⇒ la tasa del ciclo 12 (1/2) no se reproduce; se vuelve a la instrumentación del ciclo 12.
+- Abortar: Oops/SMMU, batería < 30 %, `dmesg -w` sin crecer.
+- Riesgo/privacidad: el frame es de la cámara trasera apuntando a lo que haya delante; queda solo en la máquina local.

@@ -1,0 +1,104 @@
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -1180,6 +1180,25 @@ static void dsi_op_mode_config(struct msm_dsi_host *msm_host,
+ 	dsi_write(msm_host, REG_DSI_CTRL, dsi_ctrl);
+ }
+ 
++/* L68 (uke): parar/arrancar SOLO el motor de video del controlador DSI.
++ * Necesario para leer al DDIC en el contexto del cold-path vendor (108 DCS
++ * con vid_engine OFF); con video ON las lecturas BTA devolvieron ret=0 en
++ * ambos links (L67). No toca IRQs ni ENABLE: solo VID_MODE_EN. */
++void msm_dsi_host_video_engine_set(struct mipi_dsi_host *host, bool on)
++{
++	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
++	u32 ctrl = dsi_read(msm_host, REG_DSI_CTRL);
++
++	if (on)
++		ctrl |= DSI_CTRL_VID_MODE_EN;
++	else
++		ctrl &= ~DSI_CTRL_VID_MODE_EN;
++	dsi_write(msm_host, REG_DSI_CTRL, ctrl);
++	wmb();
++}
++EXPORT_SYMBOL_GPL(msm_dsi_host_video_engine_set);
++
+ static void dsi_set_tx_power_mode(int mode, struct msm_dsi_host *msm_host)
+ {
+ 	u32 data;
+@@ -1097,6 +1116,14 @@ static void dsi_timing_setup(struct msm_dsi_host *msm_host, bool is_bonded_dsi)
+ 		dsi_write(msm_host, REG_DSI_ACTIVE_VSYNC_VPOS,
+ 			DSI_ACTIVE_VSYNC_VPOS_START(vs_start) |
+ 			DSI_ACTIVE_VSYNC_VPOS_END(vs_end));
++		/* L68 (uke): readback de los registros de timing escritos; el
++		 * discriminante widebus (CRITICA-L67/RE-GAPS §3) espera
++		 * ACTIVE_H=0x01CB0020 (widebus, H=427) o 0x02360020 (H=534). */
++		if (msm_host->dsc)
++			pr_info("UKE-L68: ACTIVE_H=0x%08x ACTIVE_V=0x%08x TOTAL=0x%08x widebus=%d\n",
++				dsi_read(msm_host, REG_DSI_ACTIVE_H),
++				dsi_read(msm_host, REG_DSI_ACTIVE_V),
++				dsi_read(msm_host, REG_DSI_TOTAL),
++				msm_dsi_host_is_wide_bus_enabled(&msm_host->base));
+ 	} else {		/* command mode */
+ 		if (msm_host->dsc)
+ 			dsi_update_dsc_timing(msm_host, true);
+
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -35,6 +35,10 @@
+ #include <video/mipi_display.h>
+ 
++/* L68 (uke): helper del host DSI para parar/arrancar el motor de video.
++ * Vive en drivers/gpu/drm/msm/dsi/dsi_host.c (ambos built-in). */
++extern void msm_dsi_host_video_engine_set(struct mipi_dsi_host *host, bool on);
++
+ /* Brillo: EXTERNO (Kinetic KTZ8866 por I2C, "bl_ctrl_external" del vendor).
+  * El vendor NUNCA escribe DCS 0x51 en este panel (ID 0x14):
+@@ -685,6 +689,50 @@ static int o82_enable(struct drm_panel *panel)
+ 			pr_info("UKE-L65: DCS read 0x04 link%d = 0x%02X 0x%02X 0x%02X (ret=%zd)\n",
+ 				li, id[0], id[1], id[2], r);
+ 		}
+ 	}
+ 
++	/*
++	 * L68 (15-oct): MISMO bloque de lecturas con el MOTOR DE VIDEO PARADO.
++	 * Contexto del cold-path vendor (108 DCS con vid_engine OFF); el vendor
++	 * lee poco y siempre con el panel gobernado, y sus diagnosticos en vivo
++	 * tambien fallaron (benignos). Control intra-boot: el bloque L65 de
++	 * arriba corre con video ON; este, con OFF. Criterio: si AQUI responde
++	 * (ret==len) y arriba no, el "sordo" de L67 era contencion de video y
++	 * el DDIC VIVE; si sigue ret<=0 en ambos, el problema es link/RX/panel.
++	 * Riesgo: parar/arrancar VID_MODE_EN en caliente (pantalla ya negra).
++	 */
++	uke_poke("L68-ve");
++	msm_dsi_host_video_engine_set(ctx->dsi[0]->host, false);
++	msm_dsi_host_video_engine_set(ctx->dsi[1]->host, false);
++	usleep_range(100, 200);
++	pr_info("UKE-L68: video engine OFF; leyendo DDIC (contexto vendor)\n");
++	{
++		static const u8 l68_cmds[] = { 0x0A, 0x0B, 0x0C, 0x0D };
++		int li, ci;
++
++		for (li = 0; li < 2; li++) {
++			for (ci = 0; ci < ARRAY_SIZE(l68_cmds); ci++) {
++				u8 val = 0;
++				ssize_t r = mipi_dsi_dcs_read(ctx->dsi[li],
++							      l68_cmds[ci], &val, 1);
++				pr_info("UKE-L68: DCS read 0x%02X link%d = 0x%02X (ret=%zd)\n",
++					l68_cmds[ci], li, val, r);
++			}
++		}
++		for (li = 0; li < 2; li++) {
++			u8 id[3] = { 0, 0, 0 };
++			ssize_t r = mipi_dsi_dcs_read(ctx->dsi[li],
++						      MIPI_DCS_GET_DISPLAY_ID, id, 3);
++			pr_info("UKE-L68: DCS read 0x04 link%d = 0x%02X 0x%02X 0x%02X (ret=%zd)\n",
++				li, id[0], id[1], id[2], r);
++		}
++	}
++	msm_dsi_host_video_engine_set(ctx->dsi[0]->host, true);
++	msm_dsi_host_video_engine_set(ctx->dsi[1]->host, true);
++	pr_info("UKE-L68: video engine ON de vuelta\n");
++
+ 	if (dsi_ctx.accum_err)
+ 		return dsi_ctx.accum_err;
+ 	return 0;

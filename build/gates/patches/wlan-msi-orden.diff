@@ -1,0 +1,104 @@
+From: omarchy-uke F3 instrumentation
+Subject: [REFUTADO #437] ath11k hal: MSI despues de base/ID (s247-equivalente) + quita hack s248
+
+ESTADO: REFUTADO como gatillo por el hermano (ronda 9, ledger #436/#437).
+Conservar como registro reproducible. NO flashear como fix. Ver R10E-NOTA.md.
+Base: d1c7ef2e05f33ef6013232e983c06b13dd9d0a11 (s150-postclk + s248).
+
+---
+--- a/drivers/net/wireless/ath/ath11k/hal.c
++++ b/drivers/net/wireless/ath/ath11k/hal.c
+@@ -275,12 +275,25 @@
+ 
+ 	reg_base = srng->hwreg_base[HAL_SRNG_REG_GRP_R0];
+ 
+-	/* UKE s248 (una sola variable): NO armar el MSI del anillo dst (CE): ni addr LSB, ni
+-	 * addr MSB con el bit ENABLE, ni data. Motivo medido: la direccion MSI 0x17110040 ES
+-	 * el valor del vendor (reg[0] "msi_addr" del nodo vendor del DT y el mismo nombre de
+-	 * device en el Android del tablet) -> "direccion mal traducida" descartado; lo que se
+-	 * prueba aqui es el efecto del propio armado del MSI. */
+-	if (0 && (srng->flags & HAL_SRNG_FLAGS_MSI_INTR)) {
++	ath11k_hif_write32(ab, reg_base, srng->ring_base_paddr);
++
++	val = FIELD_PREP(HAL_REO1_RING_BASE_MSB_RING_BASE_ADDR_MSB,
++			 ((u64)srng->ring_base_paddr >>
++			  HAL_ADDR_MSB_REG_SHIFT)) |
++	      FIELD_PREP(HAL_REO1_RING_BASE_MSB_RING_SIZE,
++			 (srng->entry_size * srng->num_entries));
++	ath11k_hif_write32(ab, reg_base + HAL_REO1_RING_BASE_MSB_OFFSET(ab), val);
++
++	val = FIELD_PREP(HAL_REO1_RING_ID_RING_ID, srng->ring_id) |
++	      FIELD_PREP(HAL_REO1_RING_ID_ENTRY_SIZE, srng->entry_size);
++	ath11k_hif_write32(ab, reg_base + HAL_REO1_RING_ID_OFFSET(ab), val);
++
++	/* UKE wlan-msi-orden (dst): MSI despues de base/ID. Equivalente al s247 del
++	 * hermano (ronda 9, ledger #436/#437): ALLI SE MIDIO y el reset NO se movio
++	 * (211/211 escrituras con retorno, muerte en el mismo tramo) => REFUTADO como
++	 * gatillo. Se conserva como registro reproducible; NO es un fix pendiente.
++	 * (El hack s248 "if (0 && ...)" se elimino aqui mismo: D17 de F.) */
++	if (srng->flags & HAL_SRNG_FLAGS_MSI_INTR) {
+ 		ath11k_hif_write32(ab, reg_base +
+ 				   HAL_REO1_RING_MSI1_BASE_LSB_OFFSET(ab),
+ 				   srng->msi_addr);
+@@ -297,19 +310,6 @@
+ 				   srng->msi_data);
+ 	}
+ 
+-	ath11k_hif_write32(ab, reg_base, srng->ring_base_paddr);
+-
+-	val = FIELD_PREP(HAL_REO1_RING_BASE_MSB_RING_BASE_ADDR_MSB,
+-			 ((u64)srng->ring_base_paddr >>
+-			  HAL_ADDR_MSB_REG_SHIFT)) |
+-	      FIELD_PREP(HAL_REO1_RING_BASE_MSB_RING_SIZE,
+-			 (srng->entry_size * srng->num_entries));
+-	ath11k_hif_write32(ab, reg_base + HAL_REO1_RING_BASE_MSB_OFFSET(ab), val);
+-
+-	val = FIELD_PREP(HAL_REO1_RING_ID_RING_ID, srng->ring_id) |
+-	      FIELD_PREP(HAL_REO1_RING_ID_ENTRY_SIZE, srng->entry_size);
+-	ath11k_hif_write32(ab, reg_base + HAL_REO1_RING_ID_OFFSET(ab), val);
+-
+ 	/* interrupt setup */
+ 	val = FIELD_PREP(HAL_REO1_RING_PRDR_INT_SETUP_INTR_TMR_THOLD,
+ 			 (srng->intr_timer_thres_us >> 3));
+@@ -359,8 +359,20 @@
+ 
+ 	reg_base = srng->hwreg_base[HAL_SRNG_REG_GRP_R0];
+ 
+-	/* UKE s248 (la misma unica variable, en los anillos src TCL/DP): NO armar el MSI. */
+-	if (0 && (srng->flags & HAL_SRNG_FLAGS_MSI_INTR)) {
++	ath11k_hif_write32(ab, reg_base, srng->ring_base_paddr);
++
++	val = FIELD_PREP(HAL_TCL1_RING_BASE_MSB_RING_BASE_ADDR_MSB,
++			 ((u64)srng->ring_base_paddr >>
++			  HAL_ADDR_MSB_REG_SHIFT)) |
++	      FIELD_PREP(HAL_TCL1_RING_BASE_MSB_RING_SIZE,
++			 (srng->entry_size * srng->num_entries));
++	ath11k_hif_write32(ab, reg_base + HAL_TCL1_RING_BASE_MSB_OFFSET(ab), val);
++
++	val = FIELD_PREP(HAL_REO1_RING_ID_ENTRY_SIZE, srng->entry_size);
++	ath11k_hif_write32(ab, reg_base + HAL_TCL1_RING_ID_OFFSET(ab), val);
++
++	/* UKE wlan-msi-orden (src): idem dst (s247-equivalente, REFUTADO #437). */
++	if (srng->flags & HAL_SRNG_FLAGS_MSI_INTR) {
+ 		ath11k_hif_write32(ab, reg_base +
+ 				   HAL_TCL1_RING_MSI1_BASE_LSB_OFFSET(ab),
+ 				   srng->msi_addr);
+@@ -378,18 +390,6 @@
+ 				   srng->msi_data);
+ 	}
+ 
+-	ath11k_hif_write32(ab, reg_base, srng->ring_base_paddr);
+-
+-	val = FIELD_PREP(HAL_TCL1_RING_BASE_MSB_RING_BASE_ADDR_MSB,
+-			 ((u64)srng->ring_base_paddr >>
+-			  HAL_ADDR_MSB_REG_SHIFT)) |
+-	      FIELD_PREP(HAL_TCL1_RING_BASE_MSB_RING_SIZE,
+-			 (srng->entry_size * srng->num_entries));
+-	ath11k_hif_write32(ab, reg_base + HAL_TCL1_RING_BASE_MSB_OFFSET(ab), val);
+-
+-	val = FIELD_PREP(HAL_REO1_RING_ID_ENTRY_SIZE, srng->entry_size);
+-	ath11k_hif_write32(ab, reg_base + HAL_TCL1_RING_ID_OFFSET(ab), val);
+-
+ 	if (srng->ring_id == HAL_SRNG_RING_ID_WBM_IDLE_LINK) {
+ 		ath11k_hif_write32(ab, reg_base, (u32)srng->ring_base_paddr);
+ 		val = FIELD_PREP(HAL_TCL1_RING_BASE_MSB_RING_BASE_ADDR_MSB,

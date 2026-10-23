@@ -1,0 +1,217 @@
+--- a/thp_algo.py
++++ b/thp_algo.py
+@@ -8,7 +8,7 @@
+ Mapeo medido contra getevent: fila = X/21360*40, col = Y/32000*60 (X,Y en la escala de Android, super_resolution 10:
+ 2136x3200 en pixeles del panel en orientacion natural vertical).
+ """
+-import struct
++import struct, sys
+ 
+ ROWS, COLS = 40, 60
+ MAGIC = 0x4BF
+@@ -25,6 +25,9 @@
+     return fid, list(struct.unpack_from("<%dH" % (ROWS * COLS), F, 0x40))
+ 
+ 
++_LE = sys.byteorder == "little"
++
++
+ class Tracker:
+     """Linea base por nodo + deteccion de picos + centroide + seguimiento de IDs."""
+ 
+@@ -37,41 +40,67 @@
+         self.track_dist = track_dist  # distancia maxima (en nodos) para conservar el ID entre frames
+         self.prev = []                # [(id, r, c)]
+         self.next_id = 0
++        self._tbls = {}
++
++    def _cands(self, mutual, lim):
++        """Indices de nodos con mutual >= lim (superconjunto barato: compara solo el byte alto, ~10 us frente a ~400 us
++        de recorrer 2400 enteros en Python; el filtro exacto lo hace quien llama)."""
++        if _LE and hasattr(mutual, "tobytes"):
++            hi = int(lim) >> 8
++            tbl = self._tbls.get(hi)
++            if tbl is None:
++                tbl = self._tbls[hi] = bytes(1 if i >= hi else 0 for i in range(256))
++            t = mutual.tobytes()[1::2].translate(tbl)
++            out, i = [], t.find(1)
++            while i >= 0:
++                out.append(i)
++                i = t.find(1, i + 1)
++            return out
++        return [i for i, v in enumerate(mutual) if v >= lim]
+ 
+-    def _peaks(self, d):
++    def _peaks(self, mutual):
++        """Maximos locales >= thr_peak sobre (mutual - base), mirando solo los nodos candidatos.
++
++        Equivalente al recorrido completo de 2400 nodos pero ~10x mas barato en reposo-con-dedo: un nodo solo puede
++        ser pico si mutual >= min(base) + thr_peak, y los vecinos se restan al vuelo.
++        """
++        base = self.base
++        lim = self._base_min + self.thr_peak
+         pk = []
+-        for r in range(ROWS):
+-            row = r * COLS
+-            for c in range(COLS):
+-                v = d[row + c]
+-                if v < self.thr_peak:
++        for i in self._cands(mutual, lim):
++            v = mutual[i] - base[i]
++            if v < self.thr_peak:
++                continue
++            r, c = divmod(i, COLS)
++            ok = True
++            for dr in (-1, 0, 1):
++                rr = r + dr
++                if not 0 <= rr < ROWS:
+                     continue
+-                ok = True
+-                for dr in (-1, 0, 1):
+-                    rr = r + dr
+-                    if not 0 <= rr < ROWS:
+-                        continue
+-                    for dc in (-1, 0, 1):
+-                        cc = c + dc
+-                        if (dr or dc) and 0 <= cc < COLS:
+-                            w = d[rr * COLS + cc]
+-                            # maximo local estricto, desempate por indice para mesetas
+-                            if w > v or (w == v and (rr * COLS + cc) < row + c):
+-                                ok = False
+-                                break
+-                    if not ok:
+-                        break
+-                if ok:
+-                    pk.append((v, r, c))
++                for dc in (-1, 0, 1):
++                    cc = c + dc
++                    if (dr or dc) and 0 <= cc < COLS:
++                        j = rr * COLS + cc
++                        w = mutual[j] - base[j]
++                        # maximo local estricto, desempate por indice para mesetas
++                        if w > v or (w == v and j < i):
++                            ok = False
++                            break
++                if not ok:
++                    break
++            if ok:
++                pk.append((v, r, c))
+         pk.sort(reverse=True)
+         return pk[: self.max_touch]
+ 
+-    def _centroid(self, d, r, c):
++    def _centroid(self, mutual, r, c):
++        base = self.base
+         sw = sr = sc = 0.0
+         n = 0
+         for rr in range(max(0, r - 1), min(ROWS, r + 2)):
+             for cc in range(max(0, c - 1), min(COLS, c + 2)):
+-                w = d[rr * COLS + cc]
++                k = rr * COLS + cc
++                w = mutual[k] - base[k]
+                 if w > 0:
+                     sw += w
+                     sr += w * rr
+@@ -80,7 +109,7 @@
+                         n += 1
+         return (sr / sw, sc / sw, n) if sw else (float(r), float(c), 1)
+ 
+-    def quick_idle(self, mutual, every=16):
++    def quick_idle(self, mutual, every=32):
+         """Via rapida de reposo (uke-touchd): True si el frame no puede contener un dedo y no hay toques activos.
+ 
+         Usa max() en C sobre la rejilla (array/lista) en vez de recorrer 2400 nodos en Python; la base se adapta solo
+@@ -88,17 +117,18 @@
+         """
+         if self.base is None or self.prev:
+             return False
+-        if max(mutual) >= self._base_max + self.thr_peak:
++        lim = self._base_max + self.thr_peak
++        if self._cands(mutual, lim) and max(mutual) >= lim:
+             return False
+         self._idle_n = getattr(self, "_idle_n", 0) + 1
+         if self._idle_n % every == 0:
+-            a = self.alpha * every
++            a = min(1.0, self.alpha * every)
+             b = self.base
+             for i in range(ROWS * COLS):
+                 e = mutual[i] - b[i]
+                 if e < 0 or e < self.thr_on / 2:
+                     b[i] += (a if e >= 0 else min(1.0, 4 * a)) * e
+-            self._base_max = max(b)
++            self._base_max, self._base_min = max(b), min(b)
+         return True
+ 
+     def reset(self):
+@@ -106,7 +136,7 @@
+         self.base = None
+         self.prev = []
+ 
+-    def feed(self, mutual):
++    def feed(self, mutual, upd_every=4):
+         """Devuelve lista de toques [(id, x, y, area)] en escala Android (0..21360, 0..32000)."""
+         if self.base is None:
+             # base inicial PLANA = mediana del frame: con un dedo ya apoyado al arrancar (pasa en la captura de
+@@ -114,30 +144,35 @@
+             # es casi plana (9962..10071 medido sobre 1284 frames) y el dedo da +1100..1280.
+             med = sorted(mutual)[len(mutual) // 2]
+             self.base = [float(med)] * (ROWS * COLS)
+-            self._base_max = float(med)
+-        d = [mutual[i] - self.base[i] for i in range(ROWS * COLS)]
+-        peaks = self._peaks(d)
++            self._base_max = self._base_min = float(med)
++        peaks = self._peaks(mutual)
+         pts = []
+         for v, r, c in peaks:
+-            rc, cc, n = self._centroid(d, r, c)
++            rc, cc, n = self._centroid(mutual, r, c)
+             pts.append((rc, cc, n))
+-        # base: adaptar solo donde no hay toque (y lejos de los picos)
+-        touched = set()
+-        for rc, cc, _ in pts:
+-            for rr in range(int(rc) - 2, int(rc) + 3):
+-                for c2 in range(int(cc) - 2, int(cc) + 3):
+-                    if 0 <= rr < ROWS and 0 <= c2 < COLS:
+-                        touched.add(rr * COLS + c2)
+-        a = self.alpha
+-        for i in range(ROWS * COLS):
+-            if i in touched:
+-                continue
+-            e = mutual[i] - self.base[i]
+-            # adaptar solo con desviaciones pequenas (deriva); por debajo de la base, rapido (dedo que se fue)
+-            if e < 0:
+-                self.base[i] += 4 * a * e
+-            elif e < self.thr_on / 2:
+-                self.base[i] += a * e
++        # base: adaptar solo donde no hay toque (y lejos de los picos). Recorrer los 2400 nodos costaba el 65 % del
++        # tiempo de feed(): se hace 1 de cada upd_every frames con paso upd_every*alpha (misma constante de tiempo).
++        self._upd_n = getattr(self, "_upd_n", 0) + 1
++        if self._upd_n % upd_every == 0 or not pts:
++            touched = set()
++            for rc, cc, _ in pts:
++                for rr in range(int(rc) - 2, int(rc) + 3):
++                    for c2 in range(int(cc) - 2, int(cc) + 3):
++                        if 0 <= rr < ROWS and 0 <= c2 < COLS:
++                            touched.add(rr * COLS + c2)
++            a = self.alpha * upd_every
++            b = self.base
++            thr_half = self.thr_on / 2
++            for i in range(ROWS * COLS):
++                if i in touched:
++                    continue
++                e = mutual[i] - b[i]
++                # adaptar solo con desviaciones pequenas (deriva); por debajo de la base, rapido (dedo que se fue)
++                if e < 0:
++                    b[i] += min(1.0, 4 * a) * e
++                elif e < thr_half:
++                    b[i] += a * e
++            self._base_max, self._base_min = max(b), min(b)
+         # seguimiento: emparejar por distancia con los toques del frame anterior
+         out, used = [], set()
+         for rc, cc, n in pts:
+@@ -154,5 +189,4 @@
+             used.add(best)
+             out.append((best, rc, cc, n))
+         self.prev = [(t, r, c) for t, r, c, _ in out]
+-        self._base_max = max(self.base)
+         return [(t, (r + 0.5) * X_MAX / ROWS, (c + 0.5) * Y_MAX / COLS, n) for t, r, c, n in out]

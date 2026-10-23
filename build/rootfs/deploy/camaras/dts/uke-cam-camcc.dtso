@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-cam-camcc.dtso -- C2: el controlador de relojes de camara (camcc) de la uke con el driver mainline camcc-sm8650
+ * (copia parcheada: module/camcc-cliffs-uke.c). Plan: build/gates/revision/CAMARAS-PLAN-20261019.md. C0, 19-oct-2026:
+ * compila y se aplica con fdtoverlay en el PC; NO probado en la tablet.
+ *
+ * Por que sm8650: los offsets de camcc de la uke (cmd_rcgr MCLK0 0x15000, CCI0 0x131cc, CPHY_RX 0x1104c, CSI1PHYTIMER
+ * 0x15104, gdscr titan_top 0x132bc, max_register 0x1603c, PLL0..9 a 0x0..0x9000) coinciden con camcc-sm8650.c
+ * (fuente OEM leida via WebFetch el 19-oct, y arbol 7.2.9). Solo cambian los IDs de reloj (los del DT vendor no valen).
+ *
+ * Reescribe EN SITIO el nodo vendor /soc/clock-controller@ade0000 (compatible "qcom,cliffs-camcc","syscon" lo casa el
+ * modulo parcheado). Orden de clocks = enum del driver: IFACE (relleno, ver abajo), BI_TCXO, BI_TCXO_AO, SLEEP_CLK. En la uke el CXO de
+ * RPMh ya son 19,2 MHz (clk_summary de Android: cam_cc_xo_clk_src 19200000), por eso se pasa tal cual (no hay div2).
+ * Los rieles vdd_mx/vdd_mxc/vdd_mm los vota el modulo parcheado (no hay rpmhpd en la uke); ya estan en el nodo vendor.
+ */
+#include <dt-bindings/clock/qcom,sm8650-camcc.h>
+#include "uke-cam-ph.h"
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/clock-controller@ade0000";
+
+		__overlay__ {
+			/* DT_IFACE (1.a entrada) NO se usa como padre en camcc-sm8650 (solo aparece en el enum) y gcc-cliffs NO registra GCC_CAMERA_AHB_CLK
+			 * (ID 10 = NULL; en Android es measure_only: el AHB de camara es siempre activo). Un <&gcc 10> daria -ENOENT: se rellena la ranura. */
+			clocks = <&sleep_clk>, <PH_RPMHCC 0>, <PH_RPMHCC 1>, <&sleep_clk>;
+			#power-domain-cells = <1>;
+			/* parent-supply del GDSC titan_top en el DT vendor (qcom,gdsc@adf32bc): pm_v6c_s6_mmcx_voter_level (phandle 0x1c5). Lo vota camcc-cliffs-uke */
+			vdd_mmcx_voter-supply = <PH_MMCX_VOTER>;
+		};
+	};
+};

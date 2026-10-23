@@ -1,0 +1,15 @@
+[Unit]
+Description=uke: guardia de bateria baja (aviso 15 %, apagado 8 %)
+Documentation=file:///usr/local/share/uke/P5-energia.md
+After=uke-adsp.service
+Wants=uke-adsp.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/bateria-baja-guard.sh --once
+# El guardia NUNCA debe bloquear el boot ni colgarse: si tarda, se mata.
+TimeoutStartSec=60
+SuccessExitStatus=0 2 3 4 5
+SyslogIdentifier=uke-bateria
+StandardOutput=journal
+StandardError=journal

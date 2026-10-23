@@ -1,0 +1,27 @@
+/etc/uke — interruptores de seguridad del arranque de la tablet uke (sin reflashear)
+=====================================================================================
+Creados por build/rootfs/deploy/arranque/deploy.sh. Todo se hace con SSH (root@192.168.42.129).
+
+INTERRUPTORES MANUALES (basta con que EXISTA el fichero; surten efecto en el PROXIMO arranque)
+  touch /etc/uke/no-wifi      no arranca el WiFi (uke-wifi.service)
+  touch /etc/uke/no-desktop   no arranca el escritorio (uke-desktop.service); 'uke-session start' sigue valiendo
+  touch /etc/uke/no-bt        no arranca el Bluetooth (uke-bt.service, build/rootfs/deploy/bt/); la blacklist de hci_uart sigue
+  touch /etc/uke/no-audio     no arranca el audio (uke-audio.service, build/rootfs/deploy/audio/boot/); apr sigue en la blacklist de autoload
+  touch /etc/uke/safe-mode    ni WiFi ni BT ni escritorio ni audio (solo carga + SSH por usb0)
+  rm /etc/uke/no-wifi /etc/uke/no-desktop /etc/uke/no-bt /etc/uke/no-audio /etc/uke/safe-mode     para volver a activarlos
+Con ellos puestos NO se pierde nada que el kernel no pierda ya: la blacklist de ath11k sigue en
+/etc/modprobe.d y la sesion se puede lanzar a mano (uke-session start; uke-wifi-up.sh).
+
+GUARDA AUTOMATICA (uke-bootguard; por si el cuelgue impide llegar por SSH a poner el fichero)
+  Si el WiFi o el escritorio no llegan a 'ok' en 2 arranques seguidos (cuelgue + reset fisico), el tercero los
+  OMITE solo y anota la causa en el diario y en dmesg. 'ok' = el guion del WiFi volvio / el escritorio llevo 180 s
+  vivo / apagado ordenado. Protege el ARRANQUE, no un cuelgue tardio. Un solo intento fallido (p. ej. un corte de
+  corriente a mitad de arranque) NO desactiva nada; hacen falta 2 seguidos (UKE_GUARD_MAX en la unidad lo cambia).
+  uke-bootguard status            estado (interruptores, pending, fallos, disparada)
+  uke-bootguard reset wifi|desktop|bt|audio|audio-amps|touch|all    rearmar tras diagnosticar
+  (los contadores que existen son wifi, desktop, bt, audio, audio-amps y touch: el que
+  ea stage2 del audio tiene contador propio)
+  journalctl -b -t uke-bootguard  ver que decidio en este arranque
+  journalctl -b -1 -t uke-bootguard   y en el arranque anterior
+
+QUITAR TODO ESTO: build/rootfs/deploy/arranque/deploy.sh revert --go   (deshabilita las dos unidades).

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Avisa a chrony cuando cambia la red (sin esto sus fuentes se quedaban 'offline' tras arrancar sin red). 20-oct-2026
+case "$2" in up|down|connectivity-change) chronyc onoffline >/dev/null 2>&1 ;; esac
+exit 0

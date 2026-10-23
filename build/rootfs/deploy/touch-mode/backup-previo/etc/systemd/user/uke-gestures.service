@@ -1,0 +1,12 @@
+[Unit]
+Description=uke: gestos de borde y de 3 dedos (lectura pasiva del evdev del tactil)
+# Habilitada con --global: sin esto el systemd --user de root (sesiones SSH) lanzaba una 2a instancia (gestos dobles)
+ConditionUser=omarchy
+
+[Service]
+ExecStart=/usr/bin/python3 -I /usr/local/share/uke/gestures/uke-gestures.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

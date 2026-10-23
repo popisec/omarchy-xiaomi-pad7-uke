@@ -1,0 +1,79 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e2d-gpr-ports.dtso — E2d (AUDIO-E2c-SONDA-20261018.md): q6apm/q6prm de mainline en los PUERTOS GPR que el SPF de Xiaomi reconoce.
+ * ALTERNATIVA a uke-audio-e2-gpr (no cargar los dos). BORRADOR del PC, NO probado en la tablet.
+ *
+ * Medido con la sonda: el ADSP contesta a src_port 3 (spf_core) y no a src_port 1. El gpr-lite de Android registra spf_core=3, prm=7, audio-pkt=0x17.
+ *   service@3  qcom,q6apm   (reg 3: el parche kernel/0005 hace que q6apm use su id de servicio como src_port; requiere el modulo snd-q6apm parcheado)
+ *   service@7  qcom,q6prm   (reg 7: q6prm ya usa gdev->svc.id como src_port, q6prm.c:75) + clock-controller q6prm-lpass-clocks
+ * Los nodos vendor `spf_core` (reg 3) y `q6prm` (reg 7, qcom,audio_prm) ocupan esos ids en el idr de apr y apr_add_device() falla para duplicados:
+ * se les CAMBIA el `reg` (0x40 y 0x41; sin driver, solo cambia el id con el que apr los registra en Linux). No se puede "deshabilitarlos":
+ * apr.c recorre con for_each_child_of_node (incluye status=disabled). `audio-pkt` (0x17) queda como esta.
+ * Mantienen `qcom,protection-domain` = avs/audio + msm/adsp/audio_pd (el ADSP da UP de audio_pd por si mismo, ver DIAGNOSTICO §1).
+ * Etiquetas uke_q6apm / uke_q6prm / uke_q6prmcc (18-oct, preparando E3): las usan e3 (relojes PRM), e5-codec y e5-card; e4 cuelga de service@3.
+ * (Anadir etiquetas anade 3 avisos benignos "memory leak ... /__symbols__/uke_*" al aplicar el overlay.)
+ * Avisos esperados: "OF: overlay: WARNING: memory leak will occur if overlay removed" por las propiedades `reg` de los nodos vendor.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/soc/qcom,gpr.h>
+
+/ {
+	fragment@0 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr";
+
+		__overlay__ {
+			uke_q6apm: service@3 {
+				compatible = "qcom,q6apm";
+				reg = <3>;
+				#sound-dai-cells = <0>;
+				qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+
+				/*
+				 * bedais y dais DENTRO de E2d (18-oct, tras el oops de E4c: AUDIO-E4c-RESULTADO-20261018.md): los crea el of_platform_populate() del
+				 * probe de q6apm, de modo que su padre es el dispositivo GPR de q6apm (q6apm_is_graph_in_push_pull_mode_from_id() lee su drvdata).
+				 * Como overlay aparte (e4a/e4b) los creaba of_platform_notify con padre NULL (service@3 es del bus apr, no de plataforma).
+				 * `dais` lleva iommus (SMMU del LPASS, medido OK en E4b): el banco de contexto se asigna en cada arranque con uke-audio.service.
+				 */
+				uke_q6apmbedai: bedais {
+					compatible = "qcom,q6apm-lpass-dais";
+					#sound-dai-cells = <1>;
+				};
+
+				uke_q6apmdai: dais {
+					compatible = "qcom,q6apm-dais";
+					iommus = <&apps_smmu 0x1001 0x80>,
+						 <&apps_smmu 0x1061 0x0>;
+				};
+			};
+
+			uke_q6prm: service@7 {
+				compatible = "qcom,q6prm";
+				reg = <7>;
+				qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+
+				uke_q6prmcc: clock-controller {
+					compatible = "qcom,q6prm-lpass-clocks";
+					#clock-cells = <2>;
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr/spf_core";
+
+		__overlay__ {
+			reg = <0x40>;
+		};
+	};
+
+	fragment@2 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr/q6prm";
+
+		__overlay__ {
+			reg = <0x41>;
+		};
+	};
+};

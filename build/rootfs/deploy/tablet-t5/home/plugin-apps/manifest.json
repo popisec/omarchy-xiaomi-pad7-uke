@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "uke.apps",
+  "name": "Apps (uke)",
+  "version": "1.0.0",
+  "author": "uke",
+  "description": "Boton de la barra que abre/cierra el lanzador tactil (nwg-drawer)",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "BarWidget.qml" },
+  "barWidget": {
+    "displayName": "Apps",
+    "description": "Abre el lanzador tactil de aplicaciones",
+    "category": "Compositor",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}

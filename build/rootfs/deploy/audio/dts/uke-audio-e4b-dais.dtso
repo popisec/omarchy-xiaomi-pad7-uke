@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e4b-dais.dtso — ETAPA E4b: DAIs de FRONTEND PCM de q6apm con el cliente SMMU del LPASS.
+ * Parte 2 de la division de uke-audio-e4-dais.dtso (18-oct-2026). BORRADOR del PC, NO probado en la tablet.
+ *
+ *   dais (qcom,q6apm-dais): frontend PCM (MultiMedia1..n). `iommus` hacia apps-smmu con los SIDs del LPASS, identicos en sm8650.dtsi y en el
+ *   `qcom,msm-audio-ion` vendor: <0x1001 mascara 0x80> y <0x1061 mascara 0>. arm_smmu_of_xlate() los codifica id | mascara<<16 = 0x801001 y 0x1061
+ *   (admitidos por la lista blanca del kernel v4: parche 0002, `arm-smmu-qcom.c`).
+ *
+ * LO QUE PASA AL CARGAR (lectura del kernel, NO medido):
+ *   - `modprobe q6apm_dai` (se autocarga por modalias al crearse el dispositivo) -> el nucleo de plataforma llama a dma_configure -> of_iommu_configure ->
+ *     arm-smmu: se programan entradas SMR/S2CR para 0x801001 y 0x1061 y se asigna un banco de contexto (`qcom_uke_smmu_alloc_context_bank`, ya admitido).
+ *   - q6apm_dai_probe solo lee el primer argumento del iommu (SID 0x1001) para componer `dma_addr | (sid << 32)` en los comandos al ADSP (q6apm-dai.c:1032-1036,
+ *     438): la DMA real ocurre solo al abrir un PCM (necesita tarjeta, E4c). Sin tarjeta no se mueve ningun dato.
+ *   - RIESGO: los streams 0x1001/0x1081 (la mascara 0x80 los une) y 0x1061 pasan a traducirse por el banco de contexto nuevo. Si el ADSP ya usase esos SIDs
+ *     con una configuracion heredada (bypass/handoff) sus accesos pasarian a fallar (arm-smmu "Unhandled context fault"), y con recovery_disabled=true eso
+ *     puede tumbar el ADSP/la carga. Es el escenario §5(a) del plan: por eso esta etapa va aparte y con vigia.
+ *
+ * OBSOLETO (18-oct, oops de E4c): bedais/dais viven ahora DENTRO de uke-audio-e2d-gpr-ports (padre correcto). Este overlay aparte crea el dispositivo con padre NULL
+ * y NO sirve con una tarjeta. Se conserva solo como referencia de E4a/E4b (medidos sin tarjeta).
+ *
+ * Requiere e2d. Etiqueta uke_q6apmdai. `dma-coherent` no se pone (sm8650.dtsi tampoco).
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr/service@3";
+
+		__overlay__ {
+			uke_q6apmdai: dais {
+				compatible = "qcom,q6apm-dais";
+				iommus = <&apps_smmu 0x1001 0x80>,
+					 <&apps_smmu 0x1061 0x0>;
+			};
+		};
+	};
+};

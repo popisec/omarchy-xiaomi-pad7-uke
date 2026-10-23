@@ -1,0 +1,267 @@
+## A. DSI ctrl vendor (full-dsi{0,1}-ctrl-reg.txt), offset fisico = mainline+4
+| fis | mainline | nombre | dsi0 | dsi1 | decodificado (dsi0) | nuestro (codigo) | nuestro (medido) | igual? |
+|---|---|---|---|---|---|---|---|---|
+| 0x000 | - | CAF:DSI_HW_VERSION | 0x20080000 | 0x20080000 | major=2 minor=8 step=0 | - | - | - |
+| 0x004 | 0x000 | CTRL | 0x000001f3 | 0x000001f3 | ENABLE=1 VID_MODE_EN=1 CMD_MODE_EN=0 LANES=0xf CLK_EN=1 ECC=0 CRC=0 | 0x000001f3 [dsi_host.c:945-969 + :1256 (dsi_op_mode_config)] | - | SI |
+| 0x008 | 0x004 | STATUS0 | 0x00002008 | 0x00002008 | CMD_ENG_BUSY=0 DMA_BUSY=0 MDP_BUSY=0 VIDEO_BUSY=1 DSI_BUSY=0 bit13=1 bit14=0 | - | L74 timeout 0x00004000 (#652) | - |
+| 0x00c | 0x008 | FIFO_STATUS | 0x00001010 | 0x11111010 | VID_MDP_OVF=0 VID_MDP_UNF=0 CMD_MDP_UNF=0 DMA_UNF=0 bit4=1 LP_FIFO_EMPTY=1 HS[L0:---- L1:---- L2:---- L3:----] | - | L70/L73/L74 0xdddd1011; L74 timeout 0xdddd1019 (#649/#652) | - |
+| 0x010 | 0x00c | VID_CFG0 | 0x02009140 | 0x02009140 | VC=0 DST_FORMAT=4(RGB101010) TRAFFIC=NON_BURST_SYNC_EVENT BLLP_STOP=1 EOF_BLLP_STOP=1 HSA/HBP/HFP_STOP=0/0/0 DATABUS_WIDEN=1 PULSE_HSA_HE=0 | L70 0x02009130 / L71-L74 0x00009130 [dsi_host.c:863-881; formato RGB888 de panel-xiaomi-o82-dualdsi.c:814; widebus :841-852] | - | NO / NO |
+| 0x014 | 0x010 | CAF:VIDEO_MODE_SYNC_DATATYPE | 0x31211101 | 0x31211101 |  | - | - | - |
+| 0x018 | 0x014 | CAF:VIDEO_MODE_PIXEL_DATATYPE | 0x3e2e1e0e | 0x3e2e1e0e |  | - | - | - |
+| 0x01c | 0x018 | CAF:VIDEO_MODE_BLANKING_DATATYPE | 0x00001900 | 0x00001900 |  | - | - | - |
+| 0x020 | 0x01c | VID_CFG1 | 0x00000000 | 0x00000000 |  | 0x00000000 [dsi_host.c:885] | - | SI |
+| 0x024 | 0x020 | ACTIVE_H | 0x01cb0020 | 0x01cb0020 | start=32 end=459 (len 427) | L70 0x01cb0020 / L71-L74 0x02360020 [dsi_host.c:1092-1131] | L70 0x01cb0020; L71/L73 0x02360020 (ledger #649/#650/#651) | SI / NO |
+| 0x028 | 0x024 | ACTIVE_V | 0x08ec0094 | 0x08ec0094 | start=148 end=2284 (len 2136) | 0x08ec0094 [dsi_host.c:1132] | L71/L73 0x08ec0094 (#650) | SI |
+| 0x02c | 0x028 | TOTAL | 0x0905023b | 0x0905023b | H_TOTAL=571(+1=572) V_TOTAL=2309(+1=2310) | L70 0x0905023b / L71-L74 0x090502a6 [dsi_host.c:1135] | L70 0x0905023b; L71/L73 0x090502a6 (#650/#651) | SI / NO |
+| 0x030 | 0x02c | ACTIVE_HSYNC | 0x00100000 | 0x00100000 | start=0 end=16 (len 16) | 0x00100000 [dsi_host.c:1139] | - | SI |
+| 0x034 | 0x030 | ACTIVE_VSYNC_HPOS | 0x00000000 | 0x00000000 | start=0 end=0 (len 0) | 0x00000000 [dsi_host.c:1142] | - | SI |
+| 0x038 | 0x034 | ACTIVE_VSYNC_VPOS | 0x00020000 | 0x00020000 | start=0 end=2 (len 2) | 0x00020000 [dsi_host.c:1143] | - | SI |
+| 0x03c | 0x038 | CMD_DMA_CTRL | 0xd0000000 | 0x90000000 | BROADCAST_EN=1 BROADCAST_MASTER(b30)=1 FROM_FB=1 LOW_POWER=0 | 0x14000000 (LP) / 0x10000000 (HS); nunca BROADCAST [dsi_host.c:912, :1296] | - | NO |
+| 0x040 | 0x03c | CMD_CFG0 | 0x06100006 | 0x06100006 |  | - | - | - |
+| 0x044 | 0x040 | CMD_CFG1 | 0x00003c2c | 0x00003c2c |  | - | - | - |
+| 0x048 | 0x044 | DMA_BASE | 0xfff2c000 | 0xfff2c000 |  | - | - | - |
+| 0x04c | 0x048 | DMA_LEN | 0x00000020 | 0x00000020 |  | - | - | - |
+| 0x050 | 0x04c | CAF:DMA_FIFO_CTRL | 0x00110000 | 0x00110000 |  | - | - | - |
+| 0x054 | 0x050 | CAF:DMA_NULL_PACKET_DATA | 0x00000900 | 0x00000900 |  | - | - | - |
+| 0x07c | 0x078 | CAF:RDBK_DATATYPE0 | 0x22211211 | 0x22211211 |  | - | - | - |
+| 0x080 | 0x07c | CAF:RDBK_DATATYPE1 | 0x001c1a02 | 0x001c1a02 |  | - | - | - |
+| 0x084 | 0x080 | TRIG_CTRL | 0x80000004 | 0x80000004 | DMA_TRIG=4 MDP_TRIG=0 STREAM=0 BLOCK_DMA_WITHIN_FRAME=0 TE=1 | 0x80001004 [dsi_host.c:916-925 (BLOCK_DMA_WITHIN_FRAME por 6G>=v1.2)] | - | NO |
+| 0x090 | 0x08c | TRIG_DMA | 0x00000001 | 0x00000001 |  | - | - | - |
+| 0x0a4 | 0x0a0 | (UKE) MISR_VIDEO_CTRL | 0x00010100 | 0x00010100 |  | L74: 0x00010100 / <=L73: no escrito [dsi_host.c:1165] | L74 rd 0x00010100 (#652) | SI |
+| 0x0a8 | 0x0a4 | LANE_STATUS | 0x00001f00 | 0x00001f1f | STOP[D0-3,CLK]=0b0 ULPS_NOT=0b11111 DLN0_DIR=0 | - | - | - |
+| 0x0ac | 0x0a8 | LANE_CTRL | 0x01000000 | 0x01000000 | HS_REQ_SEL_PHY=1 CLKLN_HS_FORCE_REQUEST=0 | no escrito (CLOCK_NON_CONTINUOUS en panel :812-813) [dsi_host.c:959-965] | - | - |
+| 0x0b0 | 0x0ac | LANE_SWAP_CTRL | 0x00000000 | 0x00000000 | DLN_SWAP_SEL=0 | 0 (dlane_swap por DT) [dsi_host.c:954] | - | SI |
+| 0x0b8 | 0x0b4 | LP_TIMER_CTRL | 0xffffffff | 0xffffffff | LP_RX_TO=0xffff BTA_TO=0xffff | no escrito [dsi_host.c:1158 comentario] | - | - |
+| 0x0bc | 0x0b8 | HS_TIMER_CTRL | 0x0004bb80 | 0x0004bb80 | HS_TX_TO=48000 RES=4 STOP_EN=0 | L74: 0x0004bb80 / <=L73: no escrito [dsi_host.c:1164] | L74 rd 0x0004bb80 (#652) | SI |
+| 0x0c4 | 0x0c0 | CLKOUT_TIMING_CTRL | 0x00000000 | 0x00000000 | T_CLK_PRE=0x0 T_CLK_POST=0x0 | L74 calc 0x00001a23 / L75 0x00000f20 [dsi_host.c:927-929 (+ dsi_phy_7nm.c:1034-1035 L75)] | - | NO / NO |
+| 0x0c8 | 0x0c4 | CAF:EOT_PACKET (bytes EoTp 08 0f 0f 01) | 0x010f0f08 | 0x010f0f08 |  | - | - | - |
+| 0x0cc | 0x0c8 | EOT_PACKET_CTRL | 0x00000011 | 0x00000011 | TX_EOT_APPEND=1 RX_EOT_IGNORE=1 | 0x00000001 [dsi_host.c:937-940] | - | NO |
+| 0x10c | 0x108 | ERR_INT_MASK0 | 0x13e0391f | 0x13e0391f |  | 0x13ff3fe0 [dsi_host.c:943] | - | NO |
+| 0x110 | 0x10c | INTR_CTRL | 0x02010000 | 0x02010000 | masks: DMA=0 MDP=0 VIDEO=0 BTA=0 ERROR=1 | status: DMA=0 MDP=0 VIDEO=1 BTA=0 ERR=0 | - | - | - |
+| 0x11c | 0x118 | CLK_CTRL | 0x0000023f | 0x0000023f | AHBS=1 AHBM=1 PCLK=1 DSICLK=1 BYTE=1 ESC=1 FORCE_DYN_AHBM=1 | 0x0000023f [dsi_host.c:947 (DSI_CLK_CTRL_ENABLE_CLKS :120-124)] | - | SI |
+| 0x120 | 0x11c | CLK_STATUS | 0x008047c3 | 0x00004343 |  | - | - | - |
+| 0x134 | 0x130 | CAF:MISR_CMD_MDP0_32BIT | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x138 | 0x134 | CAF:MISR_CMD_MDP1_32BIT | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x13c | 0x138 | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x140 | 0x13c | (UKE) MISR_VIDEO_DATA | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x148 | 0x144 | CAF:LANE0_MISR | 0x0000ffff | 0x0000ffff |  | - | - | - |
+| 0x14c | 0x148 | CAF:LANE1_MISR | 0x0000ffff | 0x0000ffff |  | - | - | - |
+| 0x150 | 0x14c | CAF:LANE2_MISR | 0x0000ffff | 0x0000ffff |  | - | - | - |
+| 0x154 | 0x150 | CAF:LANE3_MISR | 0x0000ffff | 0x0000ffff |  | - | - | - |
+| 0x15c | 0x158 | TEST_PATTERN_GEN_CTRL | 0x00000004 | 0x00000004 | EN=0 CMD_DMA_TPG_EN=0 TPG_DMA_FIFO_MODE=1 | - | - | - |
+| 0x180 | 0x17c | T_CLK_PRE_EXTEND | 0x00000000 | 0x00000000 |  | 0 salvo clk_pre_inc_by_2 [dsi_host.c:931-935] | - | SI |
+| 0x1a4 | 0x1a0 | TPG_VIDEO_CONFIG | 0x00000001 | 0x00000001 |  | - | - | - |
+| 0x1a8 | 0x1a4 | ? | 0x00ff0000 | 0x00ff0000 |  | - | - | - |
+| 0x1ac | 0x1a8 | ? | 0x00400040 | 0x00400040 |  | - | - | - |
+| 0x1b0 | 0x1ac | ? | 0x000000ff | 0x000000ff |  | - | - | - |
+| 0x1b4 | 0x1b0 | ? | 0x00000024 | 0x00000024 |  | - | - | - |
+| 0x1b8 | 0x1b4 | CMD_MODE_MDP_CTRL2 | 0x00000006 | 0x00000006 |  | - | - | - |
+| 0x1c8 | 0x1c4 | CAF:MISR_CMD_MDP2_32BIT | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x1cc | 0x1c8 | CAF:VBIF_CTRL | 0x00000007 | 0x00000007 |  | - | - | - |
+| 0x1d0 | 0x1cc | ? | 0x00290000 | 0x00290000 |  | - | - | - |
+| 0x1e4 | 0x1e0 | (UKE) FLUSH | 0x00000000 | 0x00000000 |  | L74: 1 (eco 0) [dsi_host.c:1166] | L74 rd 0x0 (#652) | NO |
+| 0x1f4 | 0x1f0 | VERSION | 0x03000104 | 0x03000104 |  | - | - | - |
+| 0x200 | 0x1fc | CAF:DYNAMIC_REFRESH_CTRL | 0x80000000 | 0x80000000 |  | - | - | - |
+| 0x2a0 | 0x29c | VIDEO_COMPRESSION_MODE_CTRL | 0x03200b51 | 0x03200b51 | EN=1 EOL_BYTE_NUM=1 PKT_PER_LINE(log2)=1 DATATYPE=0xb WC=800 | 0x03200b51 (calculado, no medido) [dsi_host.c:976-1034] | - | SI |
+| 0x2a8 | 0x2a4 | COMMAND_COMPRESSION_MODE_CTRL | 0x39003900 | 0x39003900 | S0_DT=0x39 S1_DT=0x39 (reset; no se usa en video) | - | - | - |
+| 0x2b8 | 0x2b4 | CAF:READ_BACK_DISABLE_STATUS(?) | 0x3e2e0600 | 0x3e2e0600 |  | - | - | - |
+| 0x2bc | 0x2b8 | CAF:DESKEW_CTRL(?) | 0x0000f000 | 0x0000f000 |  | - | - | - |
+| 0x2c8 | 0x2c4 | ? | 0x20000004 | 0x20000004 |  | - | - | - |
+| 0x2d8 | 0x2d4 | CPHY_MODE_CTRL | 0x00000000 | 0x00000000 |  | no escrito (cphy_mode=0) [dsi_host.c:971-972] | - | SI |
+| 0x300 | 0x2fc | ? | 0x0000ffff | 0x0000ffff |  | - | - | - |
+| 0x310 | 0x30c | CAF:LOGICAL_LANE_SWAP_CTRL(?) | 0x00008421 | 0x00008421 |  | - | - | - |
+| 0x314 | 0x310 | ? | 0x00f3ffff | 0x00f3ffff |  | - | - | - |
+| 0x318 | 0x314 | ? | 0x0002a300 | 0x0002a300 |  | - | - | - |
+| 0x31c | 0x318 | ? | 0x00000143 | 0x00000143 |  | - | - | - |
+| 0x320 | 0x31c | ? | 0x10ffffff | 0x10ffffff |  | - | - | - |
+| 0x324 | 0x320 | ? | 0x0000b81f | 0x0000b81f |  | - | - | - |
+| 0x32c | 0x328 | ? | 0x3c0c2c0d | 0x3c0c2c0d |  | - | - | - |
+| 0x330 | 0x32c | CAF:SPLIT_LINK(?) | 0x33533000 | 0x33533000 |  | - | - | - |
+| 0x334 | 0x330 | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x338 | 0x334 | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x33c | 0x338 | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x364 | 0x360 | ? | 0x01000000 | 0x01000000 |  | - | - | - |
+| 0x368 | 0x364 | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x370 | 0x36c | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x374 | 0x370 | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x378 | 0x374 | ? | 0xffffffff | 0xffffffff |  | - | - | - |
+| 0x398 | 0x394 | ? | 0x00130013 | 0x00130013 |  | - | - | - |
+| 0x39c | 0x398 | ? | 0x0000038d | 0x000003a4 |  | - | - | - |
+| 0x4d8 | 0x4d4 | ? | 0x00000001 | 0x00000001 |  | - | - | - |
+
+## B. INTF_1 / INTF_2 (vendor) vs dpu_hw_intf_setup_timing_engine emulado
+| off | reg | INTF_1 | INTF_2 | L70 (wb ON, trunc 426) | L73/L74 (wb OFF, ceil 534) | propuesta (wb ON, ceil 427) |
+|---|---|---|---|---|---|---|
+| 0x000 | TIMING_ENGINE_EN | 0x00000001 | 0x00000000 | - | - | - |
+| 0x004 | INTF_CONFIG | 0x80800000 | 0x80800000 | - | - | - |
+| 0x008 | HSYNC_CTL | 0x023c0010 | 0x023c0010 | 0x023b0010 != | 0x02a70010 != | 0x023c0010 == |
+| 0x00c | VSYNC_PERIOD_F0 | 0x00142968 | 0x00142968 | 0x00142062 != | 0x0017eeea != | 0x00142968 == |
+| 0x014 | VSYNC_PULSE_WIDTH_F0 | 0x00000478 | 0x00000478 | 0x00000476 != | 0x0000054e != | 0x00000478 == |
+| 0x01c | DISPLAY_V_START_F0 | 0x00014ab0 | 0x00014ab0 | 0x00014a1c != | 0x0001888c != | 0x00014ab0 == |
+| 0x024 | DISPLAY_V_END_F0 | 0x0013ef4f | 0x0013ef4f | 0x0013e663 != | 0x0017a9f3 != | 0x0013ef4f == |
+| 0x02c | ACTIVE_V_START_F0 | 0x00014ab0 | 0x00014ab0 | 0x00000000 != | 0x00000000 != | 0x00000000 != |
+| 0x034 | ACTIVE_V_END_F0 | 0x0013ef4f | 0x0013ef4f | 0x00000000 != | 0x00000000 != | 0x00000000 != |
+| 0x03c | DISPLAY_HCTL | 0x01ca0020 | 0x01ca0020 | 0x01c90020 != | 0x02350020 != | 0x01ca0020 == |
+| 0x040 | ACTIVE_HCTL | 0x01ca0020 | 0x01ca0020 | 0x00000000 != | 0x00000000 != | 0x00000000 != |
+| 0x050 | POLARITY_CTL | 0x00000000 | 0x00000000 | 0x00000000 == | 0x00000000 == | 0x00000000 == |
+| 0x060 | INTF_CONFIG2 | 0x00001011 | 0x00001011 | 0x00001011 == | 0x00001000 != | 0x00001011 == |
+| 0x064 | DISPLAY_DATA_HCTL | 0x012a0020 | 0x012a0020 | 0x012a0020 == | 0x02350020 != | 0x012a0020 == |
+| 0x08c | ? | 0x00000011 | 0x00000011 | - | - | - |
+| 0x090 | PANEL_FORMAT | 0x00002100 | 0x00002100 | 0x0000213f != | 0x0000213f != | 0x0000213f != |
+| 0x094 | ? | 0x01234567 | 0x01234567 | - | - | - |
+| 0x0a4 | ? | 0x000000bf | 0x000000d2 | - | - | - |
+| 0x0a8 | FRAME_LINE_COUNT_EN | 0x00000000 | 0x00000000 | 0x00000003 != | 0x00000003 != | 0x00000003 != |
+| 0x0ac | FRAME_COUNT | 0x000000bf | 0x000000d2 | - | - | - |
+| 0x0b0 | LINE_COUNT | 0x000005a0 | 0x0000059e | - | - | - |
+| 0x0b8 | ? | 0x00000010 | 0x00000010 | - | - | - |
+| 0x0d4 | ? | 0xffffffff | 0xffffffff | - | - | - |
+| 0x0d8 | ? | 0xffffffff | 0xffffffff | - | - | - |
+| 0x170 | PROG_FETCH_START | 0x0014272d | 0x0014272d | - | - | - |
+| 0x178 | ? | 0xffffffff | 0xffffffff | - | - | - |
+| 0x180 | MISR_CTRL | 0x01000000 | 0x01000000 | - | - | - |
+| 0x1c4 | ? | 0x00000a00 | 0x00000a00 | - | - | - |
+| 0x1d8 | ? | 0x00000002 | 0x00000002 | - | - | - |
+| 0x1dc | ? | 0x00020001 | 0x00020001 | - | - | - |
+| 0x1f0 | ? | 0xffffffff | 0xffffffff | - | - | - |
+| 0x210 | ? | 0x00000011 | 0x00000030 | - | - | - |
+| 0x214 | ? | 0xe1af83a0 | 0x00000000 | - | - | - |
+| 0x218 | ? | 0x00000093 | 0x00000000 | - | - | - |
+| 0x21c | ? | 0xe1af835a | 0x00000000 | - | - | - |
+| 0x220 | ? | 0x00000093 | 0x00000000 | - | - | - |
+| 0x224 | ? | 0x00000001 | 0x00000001 | - | - | - |
+| 0x234 | WD_TIMER_0_CTL2 | 0x00000022 | 0x00000022 | - | - | - |
+| 0x250 | ? | 0xffffffff | 0xffffffff | - | - | - |
+| 0x25c | INTF_MUX | 0x000f0000 | 0x000f0001 | - | - | - |
+| 0x268 | ? | 0xffffffff | 0xffffffff | - | - | - |
+| 0x26c | INTF_STATUS | 0x00000001 | 0x00000001 | - | - | - |
+
+## C. DSC_0/DSC_1 encoder (vendor) vs dpu_hw_dsc_config_1_2 emulado (L73: flb13+maxqp0=8; mainline puro)
+| off | reg | DSC0 vendor | DSC1 vendor | decod. vendor | nuestro L73+ | decod. nuestro | igual? | mainline puro (<=L72) |
+|---|---|---|---|---|---|---|---|---|
+| 0x00 | ENC_DF_CTRL | 0x095c1203 | 0x095c1203 | initial_lines=3 video=1 bit12=1 bits10-17=0x4 ob_max_addr=599 | 0x095c0202 | initial_lines=2 video=1 bit12=0 bits10-17=0x0 ob_max_addr=599 | **NO** | 0x095c0202 (!=) |
+| 0x04 | ENC_GENERAL_STATUS | 0x00000003 | 0x00000003 |  | (estado) |  | - | - |
+| 0x08 | ENC_HSLICE_STATUS | 0x000e0004 | 0x00230006 |  | (estado) |  | - | - |
+| 0x0c | ENC_OUT_STATUS | 0x000d0011 | 0x00220012 |  | (estado) |  | - | - |
+| 0x10 | ENC_INT_STAT | 0x000007b0 | 0x000007b0 |  | (estado) |  | - | - |
+| 0x14 | ENC_INT_CLR | 0x00000000 | 0x00000000 |  | (estado) |  | - | - |
+| 0x18 | ENC_INT_MASK | 0x00000000 | 0x00000000 |  | (estado) |  | - | - |
+| 0x1c | ? | 0x00000000 | 0x00000000 |  | (estado) |  | - | - |
+| 0x20 | ? | 0x00000000 | 0x00000000 |  | (estado) |  | - | - |
+| 0x24 | ? | 0x00000000 | 0x00000000 |  | (estado) |  | - | - |
+| 0x28 | ? | 0x00000000 | 0x00000000 |  | (estado) |  | - | - |
+| 0x2c | ? | 0x00000000 | 0x00000000 |  | (estado) |  | - | - |
+| 0x30 | DSC_MAIN_CONF | 0x101202da | 0x101202da | minor=1 bpp16=128 blk_pred=1 lbd=11 rgb=1 bpc=10 | 0x101202da | minor=1 bpp16=128 blk_pred=1 lbd=11 rgb=1 bpc=10 | SI | 0x101202da |
+| 0x34 | DSC_PICTURE_SIZE | 0x08580c80 | 0x08580c80 | w=3200 h=2136 | 0x08580c80 | w=3200 h=2136 | SI | 0x08580c80 |
+| 0x38 | DSC_SLICE_SIZE | 0x00180320 | 0x00180320 | w=800 h=24 | 0x00180320 | w=800 h=24 | SI | 0x00180320 |
+| 0x3c | DSC_MISC_SIZE | 0x00000320 | 0x00000320 |  | 0x00000320 |  | SI | 0x00000320 |
+| 0x40 | DSC_HRD_DELAYS | 0x02b20200 | 0x02b20200 | xmit=512 dec=690 | 0x02b20200 | xmit=512 dec=690 | SI | 0x02910200 (!=) |
+| 0x44 | DSC_RC_SCALE | 0x00000020 | 0x00000020 |  | 0x00000020 |  | SI | 0x00000020 |
+| 0x48 | DSC_RC_SCALE_INC_DEC | 0x000b029f | 0x000b029f | inc=671 dec=11 | 0x000b029f | inc=671 dec=11 | SI | 0x000b02c0 (!=) |
+| 0x4c | DSC_RC_OFFSETS_1 | 0x0000000d | 0x0000000d | flb=13 slb=0 | 0x0000000d | flb=13 slb=0 | SI | 0x0000000c (!=) |
+| 0x50 | DSC_RC_OFFSETS_2 | 0x02dc0486 | 0x02dc0486 | nfl=1158 slice_bpg=732 | 0x02dc0486 | nfl=1158 slice_bpg=732 | SI | 0x02dc042d (!=) |
+| 0x54 | DSC_RC_OFFSETS_3 | 0x10f01800 | 0x10f01800 | init_ofs=6144 final_ofs=4336 | 0x10f01800 | init_ofs=6144 final_ofs=4336 | SI | 0x10f01800 |
+| 0x58 | DSC_RC_OFFSETS_4 | 0x00000000 | 0x00000000 |  | 0x00000000 |  | SI | 0x00000000 |
+| 0x5c | DSC_FLATNESS_QP | 0x00002207 | 0x00002207 | flat min 7 max 16 det 8 | 0x00002207 | flat min 7 max 16 det 8 | SI | 0x00002207 |
+| 0x60 | DSC_RC_MODEL_SIZE | 0x00002000 | 0x00002000 |  | 0x00002000 |  | SI | 0x00002000 |
+| 0x64 | DSC_RC_CONFIG | 0x0331ef06 | 0x0331ef06 |  | 0x0331ef06 |  | SI | 0x0331ef06 |
+| 0x68 | DSC_RC_BUF_THRESH_0 | 0x382a1c0e | 0x382a1c0e |  | 0x382a1c0e |  | SI | 0x382a1c0e |
+| 0x6c | DSC_RC_BUF_THRESH_1 | 0x69625446 | 0x69625446 |  | 0x69625446 |  | SI | 0x69625446 |
+| 0x70 | DSC_RC_BUF_THRESH_2 | 0x7b797770 | 0x7b797770 |  | 0x7b797770 |  | SI | 0x7b797770 |
+| 0x74 | DSC_RC_BUF_THRESH_3 | 0x00007e7d | 0x00007e7d |  | 0x00007e7d |  | SI | 0x00007e7d |
+| 0x78 | DSC_RC_MIN_QP_0 | 0x00729480 | 0x00729480 | 0/4/5/5/7 | 0x00729480 | 0/4/5/5/7 | SI | 0x00729480 |
+| 0x7c | DSC_RC_MIN_QP_1 | 0x00739ce7 | 0x00739ce7 | 7/7/7/7/7 | 0x00739ce7 | 7/7/7/7/7 | SI | 0x00739ce7 |
+| 0x80 | DSC_RC_MIN_QP_2 | 0x0115a529 | 0x0115a529 | 9/9/9/11/17 | 0x0115a529 | 9/9/9/11/17 | SI | 0x0115a529 |
+| 0x84 | DSC_RC_MAX_QP_0 | 0x00b52508 | 0x00b52508 | 8/8/9/10/11 | 0x00b52508 | 8/8/9/10/11 | SI | 0x00b52504 (!=) |
+| 0x88 | DSC_RC_MAX_QP_1 | 0x00e6b16b | 0x00e6b16b | 11/11/12/13/14 | 0x00e6b16b | 11/11/12/13/14 | SI | 0x00e6b16b |
+| 0x8c | DSC_RC_MAX_QP_2 | 0x0138c60f | 0x0138c60f | 15/16/17/17/19 | 0x0138c60f | 15/16/17/17/19 | SI | 0x0138c60f |
+| 0x90 | DSC_RC_RANGE_BPG_OFFSETS_0 | 0x3cf80002 | 0x3cf80002 | 2/0/0/-2/-4 | 0x3cf80002 | 2/0/0/-2/-4 | SI | 0x3cf80002 |
+| 0x94 | DSC_RC_RANGE_BPG_OFFSETS_1 | 0x36e38e3a | 0x36e38e3a | -6/-8/-8/-8/-10 | 0x36e38e3a | -6/-8/-8/-8/-10 | SI | 0x36e38e3a |
+| 0x98 | DSC_RC_RANGE_BPG_OFFSETS_2 | 0x34d34d36 | 0x34d34d36 | -10/-12/-12/-12/-12 | 0x34d34d36 | -10/-12/-12/-12/-12 | SI | 0x34d34d36 |
+
+DSC_CMN_MAIN_CNF (top 0x81000): vendor 0x00000101 | nuestro 0x00000101 | SI
+DSC0_ctl: DSC_CTL vendor 0x0 / nuestro 0x0 (PP_0); DSC_CFG vendor 0x00001001 / nuestro 0x00001001; DATA_IN_SWAP vendor 0x0002c688 / nuestro no escrito; DSC_CLK_CTRL vendor 0xc0000000 / nuestro no escrito
+DSC1_ctl: DSC_CTL vendor 0x1 / nuestro 0x1 (PP_1); DSC_CFG vendor 0x00001001 / nuestro 0x00001001; DATA_IN_SWAP vendor 0x0002c688 / nuestro no escrito; DSC_CLK_CTRL vendor 0xc0000000 / nuestro no escrito
+initial_lines nuestro = 2 (dpu_encoder.c:1970-1990, enc_ip_w=1600, soft_slice=2)
+
+## D. PPS 128 B: vendor (dt=0x0a, ambos links identicos) vs nuestro
+vendor : 11 00 00 ab 30 80 08 58 0c 80 00 18 03 20 03 20 02 00 02 b2 00 20 02 9f 00 0b 00 0d 04 86 02 dc 18 00 10 f0 07 10 20 00 06 0f 0f 33 0e 1c 2a 38 46 54 62 69 70 77 79 7b 7d 7e 02 02 22 00 2a 40 2a be 3a fc 3a fa 3a f8 3b 38 3b 78 3b b6 4b f6 4c 34 4c 74 5c 74 8c f4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+L73+   : 11 00 00 ab 30 80 08 58 06 40 00 18 03 20 03 20 02 00 02 b2 00 20 02 9f 00 0b 00 0d 04 86 02 dc 18 00 10 f0 07 10 20 00 06 0f 0f 33 0e 1c 2a 38 46 54 62 69 70 77 79 7b 7d 7e 02 02 22 00 2a 40 2a be 3a fc 3a fa 3a f8 3b 38 3b 78 3b b6 4b f6 4c 34 4c 74 5c 74 8c f4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00   (pic_width=1600 por link, panel :432/:623)
+<=L72  : 11 00 00 ab 30 80 08 58 06 40 00 18 03 20 03 20 02 00 02 91 00 20 02 c0 00 0b 00 0c 04 2d 02 dc 18 00 10 f0 07 10 20 00 06 0f 0f 33 0e 1c 2a 38 46 54 62 69 70 77 79 7b 7d 7e 01 02 22 00 2a 40 2a be 3a fc 3a fa 3a f8 3b 38 3b 78 3b b6 4b f6 4c 34 4c 74 5c 74 8c f4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+| byte | campo | vendor | nuestro L73+ (1600) | igual? | nuestro <=L72 |
+|---|---|---|---|---|---|
+| 0 | dsc_version (maj<<4|min) | 0x11 (17) | 0x11 (17) | SI | 0x11 (17) |
+| 1 | pps_identifier | 0x00 (0) | 0x00 (0) | SI | 0x00 (0) |
+| 2 | reservado | 0x00 (0) | 0x00 (0) | SI | 0x00 (0) |
+| 3 | bpc<<4 | line_buf_depth | 0xab (171) | 0xab (171) | SI | 0xab (171) |
+| 4 | flags: block_pred(5) convert_rgb(4) 422(3) vbr(2) bpp_hi | 0x30 (48) | 0x30 (48) | SI | 0x30 (48) |
+| 5 | bits_per_pixel_low (bpp*16) | 0x80 (128) | 0x80 (128) | SI | 0x80 (128) |
+| 6-7 | pic_height | 0x0858 (2136) | 0x0858 (2136) | SI | 0x0858 (2136) |
+| 8-9 | pic_width | 0x0c80 (3200) | 0x0640 (1600) | **NO** | 0x0640 (1600) |
+| 10-11 | slice_height | 0x0018 (24) | 0x0018 (24) | SI | 0x0018 (24) |
+| 12-13 | slice_width | 0x0320 (800) | 0x0320 (800) | SI | 0x0320 (800) |
+| 14-15 | chunk_size | 0x0320 (800) | 0x0320 (800) | SI | 0x0320 (800) |
+| 16-17 | initial_xmit_delay | 0x0200 (512) | 0x0200 (512) | SI | 0x0200 (512) |
+| 18-19 | initial_dec_delay | 0x02b2 (690) | 0x02b2 (690) | SI | 0x0291 (657) |
+| 20 | reservado | 0x00 (0) | 0x00 (0) | SI | 0x00 (0) |
+| 21 | initial_scale_value | 0x20 (32) | 0x20 (32) | SI | 0x20 (32) |
+| 22-23 | scale_increment_interval | 0x029f (671) | 0x029f (671) | SI | 0x02c0 (704) |
+| 24-25 | scale_decrement_interval | 0x000b (11) | 0x000b (11) | SI | 0x000b (11) |
+| 26 | reservado | 0x00 (0) | 0x00 (0) | SI | 0x00 (0) |
+| 27 | first_line_bpg_offset | 0x0d (13) | 0x0d (13) | SI | 0x0c (12) |
+| 28-29 | nfl_bpg_offset | 0x0486 (1158) | 0x0486 (1158) | SI | 0x042d (1069) |
+| 30-31 | slice_bpg_offset | 0x02dc (732) | 0x02dc (732) | SI | 0x02dc (732) |
+| 32-33 | initial_offset | 0x1800 (6144) | 0x1800 (6144) | SI | 0x1800 (6144) |
+| 34-35 | final_offset | 0x10f0 (4336) | 0x10f0 (4336) | SI | 0x10f0 (4336) |
+| 36 | flatness_min_qp | 0x07 (7) | 0x07 (7) | SI | 0x07 (7) |
+| 37 | flatness_max_qp | 0x10 (16) | 0x10 (16) | SI | 0x10 (16) |
+| 38-39 | rc_model_size | 0x2000 (8192) | 0x2000 (8192) | SI | 0x2000 (8192) |
+| 40 | rc_edge_factor | 0x06 (6) | 0x06 (6) | SI | 0x06 (6) |
+| 41 | rc_quant_incr_limit0 | 0x0f (15) | 0x0f (15) | SI | 0x0f (15) |
+| 42 | rc_quant_incr_limit1 | 0x0f (15) | 0x0f (15) | SI | 0x0f (15) |
+| 43 | rc_tgt_offset hi<<4|lo | 0x33 (51) | 0x33 (51) | SI | 0x33 (51) |
+| 44 | rc_buf_thresh[0] | 0x0e (14) | 0x0e (14) | SI | 0x0e (14) |
+| 45 | rc_buf_thresh[1] | 0x1c (28) | 0x1c (28) | SI | 0x1c (28) |
+| 46 | rc_buf_thresh[2] | 0x2a (42) | 0x2a (42) | SI | 0x2a (42) |
+| 47 | rc_buf_thresh[3] | 0x38 (56) | 0x38 (56) | SI | 0x38 (56) |
+| 48 | rc_buf_thresh[4] | 0x46 (70) | 0x46 (70) | SI | 0x46 (70) |
+| 49 | rc_buf_thresh[5] | 0x54 (84) | 0x54 (84) | SI | 0x54 (84) |
+| 50 | rc_buf_thresh[6] | 0x62 (98) | 0x62 (98) | SI | 0x62 (98) |
+| 51 | rc_buf_thresh[7] | 0x69 (105) | 0x69 (105) | SI | 0x69 (105) |
+| 52 | rc_buf_thresh[8] | 0x70 (112) | 0x70 (112) | SI | 0x70 (112) |
+| 53 | rc_buf_thresh[9] | 0x77 (119) | 0x77 (119) | SI | 0x77 (119) |
+| 54 | rc_buf_thresh[10] | 0x79 (121) | 0x79 (121) | SI | 0x79 (121) |
+| 55 | rc_buf_thresh[11] | 0x7b (123) | 0x7b (123) | SI | 0x7b (123) |
+| 56 | rc_buf_thresh[12] | 0x7d (125) | 0x7d (125) | SI | 0x7d (125) |
+| 57 | rc_buf_thresh[13] | 0x7e (126) | 0x7e (126) | SI | 0x7e (126) |
+| 58-59 | rc_range[0] (minqp<<11|maxqp<<6|ofs) | 0x0202 (514) min 0 max 8 ofs 2 | 0x0202 (514) min 0 max 8 ofs 2 | SI | 0x0102 (258) |
+| 60-61 | rc_range[1] (minqp<<11|maxqp<<6|ofs) | 0x2200 (8704) min 4 max 8 ofs 0 | 0x2200 (8704) min 4 max 8 ofs 0 | SI | 0x2200 (8704) |
+| 62-63 | rc_range[2] (minqp<<11|maxqp<<6|ofs) | 0x2a40 (10816) min 5 max 9 ofs 0 | 0x2a40 (10816) min 5 max 9 ofs 0 | SI | 0x2a40 (10816) |
+| 64-65 | rc_range[3] (minqp<<11|maxqp<<6|ofs) | 0x2abe (10942) min 5 max 10 ofs -2 | 0x2abe (10942) min 5 max 10 ofs -2 | SI | 0x2abe (10942) |
+| 66-67 | rc_range[4] (minqp<<11|maxqp<<6|ofs) | 0x3afc (15100) min 7 max 11 ofs -4 | 0x3afc (15100) min 7 max 11 ofs -4 | SI | 0x3afc (15100) |
+| 68-69 | rc_range[5] (minqp<<11|maxqp<<6|ofs) | 0x3afa (15098) min 7 max 11 ofs -6 | 0x3afa (15098) min 7 max 11 ofs -6 | SI | 0x3afa (15098) |
+| 70-71 | rc_range[6] (minqp<<11|maxqp<<6|ofs) | 0x3af8 (15096) min 7 max 11 ofs -8 | 0x3af8 (15096) min 7 max 11 ofs -8 | SI | 0x3af8 (15096) |
+| 72-73 | rc_range[7] (minqp<<11|maxqp<<6|ofs) | 0x3b38 (15160) min 7 max 12 ofs -8 | 0x3b38 (15160) min 7 max 12 ofs -8 | SI | 0x3b38 (15160) |
+| 74-75 | rc_range[8] (minqp<<11|maxqp<<6|ofs) | 0x3b78 (15224) min 7 max 13 ofs -8 | 0x3b78 (15224) min 7 max 13 ofs -8 | SI | 0x3b78 (15224) |
+| 76-77 | rc_range[9] (minqp<<11|maxqp<<6|ofs) | 0x3bb6 (15286) min 7 max 14 ofs -10 | 0x3bb6 (15286) min 7 max 14 ofs -10 | SI | 0x3bb6 (15286) |
+| 78-79 | rc_range[10] (minqp<<11|maxqp<<6|ofs) | 0x4bf6 (19446) min 9 max 15 ofs -10 | 0x4bf6 (19446) min 9 max 15 ofs -10 | SI | 0x4bf6 (19446) |
+| 80-81 | rc_range[11] (minqp<<11|maxqp<<6|ofs) | 0x4c34 (19508) min 9 max 16 ofs -12 | 0x4c34 (19508) min 9 max 16 ofs -12 | SI | 0x4c34 (19508) |
+| 82-83 | rc_range[12] (minqp<<11|maxqp<<6|ofs) | 0x4c74 (19572) min 9 max 17 ofs -12 | 0x4c74 (19572) min 9 max 17 ofs -12 | SI | 0x4c74 (19572) |
+| 84-85 | rc_range[13] (minqp<<11|maxqp<<6|ofs) | 0x5c74 (23668) min 11 max 17 ofs -12 | 0x5c74 (23668) min 11 max 17 ofs -12 | SI | 0x5c74 (23668) |
+| 86-87 | rc_range[14] (minqp<<11|maxqp<<6|ofs) | 0x8cf4 (36084) min 17 max 19 ofs -12 | 0x8cf4 (36084) min 17 max 19 ofs -12 | SI | 0x8cf4 (36084) |
+| 88 | native_422|420 | 0x00 (0) | 0x00 (0) | SI | 0x00 (0) |
+| 89 | second_line_bpg_offset | 0x00 (0) | 0x00 (0) | SI | 0x00 (0) |
+| 90-91 | nsl_bpg_offset | 0x0000 (0) | 0x0000 (0) | SI | 0x0000 (0) |
+| 92-93 | second_line_offset_adj | 0x0000 (0) | 0x0000 (0) | SI | 0x0000 (0) |
+| 94-127 | reservado (0) | todo-cero | todo-cero | SI | todo-cero |
+
+Bytes distintos vendor vs L73+(1600): [8] 0c/06, [9] 80/40
+Bytes distintos vendor vs L73+ con pic_width=3200: NINGUNO (identica)
+Bytes distintos vendor vs <=L72(1600): [8] 0c/06, [9] 80/40, [19] b2/91, [23] 9f/c0, [27] 0d/0c, [29] 86/2d, [58] 02/01
+
+DSC config nuestro L73+: slice_chunk_size=800, initial_xmit_delay=512, initial_dec_delay=690, initial_scale_value=32, scale_increment_interval=671, scale_decrement_interval=11, first_line_bpg_offset=13, nfl_bpg_offset=1158, slice_bpg_offset=732, initial_offset=6144, final_offset=4336, rc_bits=9616, _groups_per_line=267, _num_extra_mux_bits=240, _final_scale=16
+
+## E. PHY: 0x800-0x9ff vs 0x000-0x1ff
+dsi0_phy: 128/128 palabras iguales; difieren: ninguna
+dsi0_phy TIMING_CTRL_0..13 (0x0b4..0x0e8): 00 27 0a 0a 1b 19 0a 0b 0a 02 04 00 20 0f
+dsi1_phy: 128/128 palabras iguales; difieren: ninguna
+dsi1_phy TIMING_CTRL_0..13 (0x0b4..0x0e8): 00 27 0a 0a 1b 19 0a 0b 0a 02 04 00 20 0f

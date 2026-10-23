@@ -1,0 +1,112 @@
+=== /sys/kernel/debug/dri/ae01000.display-controller/encoder-0/status
+intf:1  wb:-1  vsync:   12028     underrun:       0    frame_done_cnt:0mode: INTF_MODE_VIDEO
+intf:2  wb:-1  vsync:       0     underrun:       0    frame_done_cnt:0mode: INTF_MODE_VIDEO
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/crtc-0/status
+crtc:79 width:3200 height:2136
+
+	mixer:0 ctl:0 width:1600 height:2136
+	mixer:1 ctl:0 width:1600 height:2136
+
+	plane:37 stage:1
+	fb:81 image format:XR24 wxh:3200x2136 cpp[0]:4 cpp[1]:0 cpp[2]:0 cpp[3]:0 
+	modifier:       0 
+	pitches[0]:   12800 pitches[1]:       0 pitches[2]:       0 pitches[3]:       0 
+	offsets[0]:       0 offsets[1]:       0 offsets[2]:       0 offsets[3]:       0 
+	src_x:   0 src_y:   0 src_w:209715200 src_h:139984896
+	dst x:   0 dst_y:   0 dst_w:3200 dst_h:2136
+	sspp[0]:sspp_8
+	multirect[0]: mode: 1 index: 1
+	sspp[1]:sspp_8
+	multirect[1]: mode: 1 index: 2
+
+vblank fps:119 count:784 total:6538ms total_framecount:8080
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_irq
+IRQ=[0, 26] count:0 cb:dpu_encoder_phys_vid_underrun_irq
+IRQ=[0, 27] count:12028 cb:dpu_encoder_phys_vid_vblank_irq
+IRQ=[0, 28] count:0 cb:dpu_encoder_phys_vid_underrun_irq
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/core_clk_rate
+600000000
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/enable_bw_release
+0
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/fix_core_ab_vote
+0
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/fix_core_clk_rate
+0
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/fix_core_ib_vote
+0
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/low_core_ab
+23900000
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/max_core_ab
+26500000
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/max_core_clk_rate
+600000000
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/min_core_ib
+2500000
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/min_dram_ib
+800000
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/min_llcc_ib
+0
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/core_perf/perf_mode
+mode 0
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/danger/danger_status
+
+Danger signal status:
+MDP     :  0x0
+SSPP0   :  0x0  
+SSPP1   :  0x0  
+SSPP2   :  0x0  
+SSPP3   :  0x0  
+SSPP4   :  0x0  
+SSPP5   :  0x0  
+SSPP6   :  0x0  
+SSPP7   :  0x0  
+SSPP8   :  0x0  
+SSPP9   :  0x0  
+SSPP10   :  0x0  
+SSPP11   :  0x0  
+SSPP12   :  0x0  
+SSPP13   :  0x0  
+SSPP14   :  0x0  
+SSPP15   :  0x0  
+
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/danger/disable_danger
+1
+
+=== /sys/kernel/debug/dri/ae01000.display-controller/debug/danger/safe_status
+
+Safe signal status:
+MDP     :  0x0
+SSPP0   :  0x0  
+SSPP1   :  0x0  
+SSPP2   :  0x0  
+SSPP3   :  0x0  
+SSPP4   :  0x0  
+SSPP5   :  0x0  
+SSPP6   :  0x0  
+SSPP7   :  0x0  
+SSPP8   :  0x0  
+SSPP9   :  0x0  
+SSPP10   :  0x0  
+SSPP11   :  0x0  
+SSPP12   :  0x0  
+SSPP13   :  0x0  
+SSPP14   :  0x0  
+SSPP15   :  0x0  
+
+

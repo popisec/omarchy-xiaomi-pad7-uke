@@ -1,0 +1,110 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-cam-front.dtso -- C6: sensor frontal OV08D10 en el I2C GENI i2c@880000 (= /dev/i2c-6 en Android; QUP1 SE0). Plan: CAMARAS-PLAN-20261019.md.
+ * C0, 19-oct-2026: compila y se aplica con fdtoverlay (tras camcc, rear y camss) en el PC; NO probado en la tablet.
+ *
+ * Datos (DT Android .../i2c@880000/qcom,cam-sensor1): slave 0x20 (8 bit) = 0x10; MCLK4 = gpio68 "cam_aon_mclk4" (camcc 0x71 vendor), 19,2 MHz,
+ * `use-shared-clk`; reset gpio3 (ojo: su pinctrl lleva qcom,apps/qcom,remote: puede ser un GPIO compartido con otro subsistema);
+ * rails: vio = pmxr2230_l20 -> dovdd; vana = gpio-regulator@3 (gpio160, 2,8 V) -> avdd; vdig = pm_v6c_l3 (1,2 V) -> dvdd; csiphy4; 2 lanes.
+ * El bus i2c@880000 viene status=disabled (uke_scope_qup_buses de uke-abl.c): se enciende como el overlay E7 del audio (i2c@88c000):
+ * compat geni-i2c, clock-names "se", dmas de 3 celdas <&gpi_dma1 canal SE protocolo>; SE0 de QUP1, protocolo I2C = 3. El EEPROM 0x51
+ * del frontal NO se declara (solo calibracion). CHIP-ID: el vendor lee 0x5647 y el driver mainline espera 0x5608 en regs 0x00/0x01:
+ * la discrepancia se resuelve LEYENDO en C6 (ver plan); si no coincide, el modulo uke_ov08d10 parchea la constante.
+ * CICLO 23 (22-oct-2026, Megapixels): reset por PINCTRL como la trasera (gpio3 sale en la propiedad `gpios` del cam-sensor1 vendor:
+ * gpiolib-shared lo reservaria; ademas es egpio): "default" = MCLK4 + gpio3 bajo, "rst_release" = gpio3 alto; power-domains titan_top para
+ * el MCLK4 (como el MCLK0 de la trasera); los hijos vendor cam-sensor1 (0x20) y eeprom1 (0x51) se apagan ANTES de encender el bus.
+ */
+#include <dt-bindings/clock/qcom,sm8650-camcc.h>
+#include <dt-bindings/gpio/gpio.h>
+#include "uke-cam-ph.h"
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@880000";
+
+		__overlay__ {
+			compatible = "qcom,geni-i2c";
+			clock-names = "se";
+			dmas = <&gpi_dma1 0 0 3>, <&gpi_dma1 1 0 3>;
+			clock-frequency = <400000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			qcom,cam-sensor1 { status = "disabled"; };
+			qcom,eeprom1 { status = "disabled"; };
+		};
+	};
+
+	fragment@1 {
+		target-path = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@880000";
+
+		__overlay__ {
+			status = "okay";
+
+			camera@10 {
+				compatible = "ovti,ov08d10";
+				reg = <0x10>;
+				clocks = <&camcc CAM_CC_MCLK4_CLK>;
+				assigned-clocks = <&camcc CAM_CC_MCLK4_CLK>;
+				assigned-clock-rates = <19200000>;
+				power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+				/* reset (XSHUTDN, gpio3) por PINCTRL (uke_ov08d10 lo mueve): "default" = asertado, "rst_release" = liberado */
+				pinctrl-names = "default", "sleep", "rst_release";
+				pinctrl-0 = <&cam_sensor_mclk4_active &uke_cam_front_rst_lo>;
+				pinctrl-1 = <&cam_sensor_mclk4_suspend &uke_cam_front_rst_lo>;
+				pinctrl-2 = <&cam_sensor_mclk4_active &uke_cam_front_rst_hi>;
+				dovdd-supply = <&pmxr2230_l20>;
+				avdd-supply = <PH_FRONT_AVDD>;
+				dvdd-supply = <&pm_v6c_l3>;
+				orientation = <0>;	/* frontal */
+				rotation = <270>;	/* Android: sensor-position-roll = 0x10e = 270 */
+
+				port {
+					ov08d10_ep: endpoint {
+						link-frequencies = /bits/ 64 <360000000 720000000>;
+						data-lanes = <0 1>;
+						remote-endpoint = <&csiphy4_ep>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&camss>;
+		__overlay__ {
+			ports {
+				port@4 {
+					reg = <4>;
+					csiphy4_ep: endpoint {
+						data-lanes = <0 1>;
+						remote-endpoint = <&ov08d10_ep>;
+					};
+				};
+			};
+		};
+	};
+
+	fragment@3 {
+		target-path = "/soc/pinctrl@f000000";
+
+		__overlay__ {
+			uke_cam_front_rst_lo: uke-cam-front-rst-lo {
+				pins = "gpio3";
+				function = "gpio";
+				drive-strength = <2>;
+				bias-disable;
+				output-low;
+			};
+			uke_cam_front_rst_hi: uke-cam-front-rst-hi {
+				pins = "gpio3";
+				function = "gpio";
+				drive-strength = <2>;
+				bias-disable;
+				output-high;
+			};
+		};
+	};
+};

@@ -1,0 +1,470 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -33,6 +33,7 @@
+ #include <linux/pci.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
++#include <linux/printk.h>
+ #include <linux/ratelimit.h>
+ #include <linux/slab.h>
+ #include <linux/string_choices.h>
+@@ -287,6 +288,221 @@
+ 	return UKE_RESET_BITS;
+ }
+ 
++/*
++ * UKE-SMMU-CLK (K5): instrumentacion y CONTROL de la fase de ATTACH.
++ *
++ * CONTEXTO MEDIDO (K4, 29-sep 00:24; build/gates/k4c-consola-trail.txt):
++ * con uke_keep_boot=1 el probe real SOBREVIVE a todo el reset (fase2 omitida,
++ * fase3 CBAR/SCTLR/FSR x71, TLBI, mmu500_reset, sCR0) y termina con
++ * "test_smr_masks OMITIDO". Justo despues viene iommu_device_register()
++ * (arm-smmu.c:2716) -> drivers/iommu/iommu.c:289 -> bus_iommu_probe()
++ * (iommu.c:1954): el registro del iommu recorre TODOS los devices de
++ * platform_bus y por cada maestro con iommus (69 entradas, ~58 devices, en el
++ * DT del aparato) llama a arm_smmu_probe_device (arm-smmu.c:1727) ->
++ * arm_smmu_master_alloc_smes (1358) -> find_sme (1304) -> arm_smmu_write_sme
++ * (1215): la TORMENTA DE ATTACH. En el trail K4 no se ve NINGUNA miga de
++ * attach: la consola enmudece en el mismo instante (el printk es asincrono:
++ * si la escritura letal llega antes de que el hilo de consola vacie el ring
++ * buffer, la miga se pierde aunque se haya generado).
++ *
++ * DOS CORRECCIONES DE FONDO que trae K5:
++ *
++ * 1) ORDEN + FLUSH. La miga de write_sme de K4 SI va antes de las escrituras,
++ *    pero se queda en el ring buffer. K5 anade, con uke_attach_log>=1, una miga
++ *    POR MAESTRO (dev_name, sid, mask, idx elegido y valores SMR/S2CR que se
++ *    van a escribir) inmediatamente antes de arm_smmu_write_sme(), seguida de
++ *    pr_flush(): la linea tiene que estar en ttyGS0 ANTES del acceso. Si el
++ *    acceso mata, la ultima linea flush-eada es el punto de muerte real.
++ *
++ * 2) SMR(0) NO ES "mask=0x8000". La miga del barrido (K3/K4) decodificaba
++ *    mask=FIELD_GET(ARM_SMMU_SMR_MASK, smr) con el bit 31 (VALID) colado en la
++ *    mascara del campo (ARM_SMMU_SMR_MASK = GENMASK(31,16), arm-smmu.h:102; el
++ *    campo real es 30:16 y mainline lo arregla con "smr &= ~VALID" antes de
++ *    extraer). El valor vivo leido era SMR(0)=0x80000060: valid=1, id=0x60 y
++ *    mask REAL = 0x0000 (no 0x8000). O sea: SMR(0) casa EXACTAMENTE con el sid
++ *    0x60, y el unico maestro del DT con iommus=<&apps_smmu 0x60 0x00> es
++ *    ufshc@1d84000 (stockuke.dts:12589), el UFS del que cuelga el rootfs. El
++ *    mdss (sid 0x1c00, mask 0x02) NO casa con SMR(0): find_sme le da hueco.
++ *
++ * LAGUNA DOCUMENTADA (mitigada en K5): s2crs[] se pobla en el barrido de
++ * qcom_smmu_cfg_probe SIN leer el S2CR real del HW (type=BYPASS/cbndx=0xff
++ * "asumidos"). Con keep_boot=1, s2crs[0] en RAM NO refleja el S2CR(0) del
++ * bootloader: no se sabe si el BL dejo el UFS en BYPASS, en TRANS a un CB con
++ * tablas o en FAULT. K5 lo LEE (lectura; S2CR(109) ya se escribio+leyo en
++ * K2/K3) antes del reset y lo imprime. Solo se leen indices que la RAM marca
++ * como del BL (con uke_smr_max=0, el 0): la lectura de un indice arbitrario NO
++ * esta medida como segura (K2 murio dentro del barrido completo de lecturas).
++ *
++ * PARAMS (solo apps-smmu, reg==0x15000000):
++ *
++ *   uke_attach_log (int, 0 por defecto)
++ *     0 = silencio (comportamiento K4).
++ *     1 = miga por maestro ANTES de escribir (con flush a consola) + volcado
++ *         read-only del estado BL (SMR(0)/S2CR(0) y de cada idx BL-valido)
++ *         antes del reset.
++ *     2 = ademas, si find_sme devuelve un indice que la RAM conoce como VIVO del
++ *         BL (smrs[idx].valid && s2crs[idx].count==0), NO se escribe ese SME:
++ *         se omite write_sme y el maestro queda con el mapeo del BL
++ *         (bypass/traduccion del bootloader). Miga "SME idx=%d PRESERVADO".
++ *
++ *   uke_protect_smr0 (bool, 0 por defecto)
++ *     Variante "reubicar": si el idx elegido es un SME vivo del BL, el maestro
++ *     se reasigna a un indice libre ALTO (de num_mapping_groups-1 hacia abajo,
++ *     primer !smrs[i].valid && s2crs[i].count==0) y se escribe ahi;
++ *     SMR(0)/S2CR(0) del BL no se tocan. Caveat funcional: si el SID ya casaba
++ *     con el SMR vivo, el HW vera DOS SMR que casan el mismo SID (matching
++ *     ambiguo); para la medicina "no tocar nunca lo vivo" sirve, pero no es una
++ *     configuracion fiel. Precedencia: con uke_attach_log>=2, PRESERVAR gana.
++ *
++ * Recordatorio: la deteccion "idx vivo del BL" depende de que el barrido de
++ * qcom_smmu_cfg_probe lo haya dejado en RAM (uke_smr_max>=0). Con
++ * uke_smr_max=-2 (barrido saltado) K5 no conoce ningun indice vivo.
++ */
++static int uke_attach_log;
++static bool uke_protect_smr0;
++
++static int uke_attach_log_set(const char *val, const struct kernel_param *kp)
++{
++	int ret = param_set_int(val, kp);
++
++	if (ret)
++		return ret;
++	pr_info("UKE-POKE: uke_attach_log=%d (0=nada; 1=miga por maestro con flush antes de escribir + volcado BL; 2=ademas PRESERVAR los indices vivos del BL sin escribir)\n",
++		uke_attach_log);
++	return 0;
++}
++
++static const struct kernel_param_ops uke_attach_log_ops = {
++	.set	= uke_attach_log_set,
++	.get	= param_get_int,
++};
++
++module_param_cb(uke_attach_log, &uke_attach_log_ops, &uke_attach_log, 0644);
++MODULE_PARM_DESC(uke_attach_log,
++	"UKE (K5): 0=nada; 1=miga por maestro (dev/sid/mask/idx/valores a escribir) con flush ANTES de cada write_sme + volcado del estado BL; 2=ademas no escribe los SME cuyo indice es un mapeo vivo del BL (miga PRESERVADO).");
++
++static int uke_protect_smr0_set(const char *val, const struct kernel_param *kp)
++{
++	int ret = param_set_bool(val, kp);
++
++	if (ret)
++		return ret;
++	pr_info("UKE-POKE: uke_protect_smr0=%d: los SME que find_sme mande a un indice vivo del BL se reubican en un indice libre alto; SMR(0)/S2CR(0) no se tocan\n",
++		uke_protect_smr0);
++	return 0;
++}
++
++static const struct kernel_param_ops uke_protect_smr0_ops = {
++	.set	= uke_protect_smr0_set,
++	.get	= param_get_bool,
++};
++
++module_param_cb(uke_protect_smr0, &uke_protect_smr0_ops, &uke_protect_smr0, 0644);
++MODULE_PARM_DESC(uke_protect_smr0,
++	"UKE (K5): 1 = si find_sme elige un indice con smrs[idx].valid del bootloader (vivo), escribe en un indice libre alto en vez de tocar el vivo; 0 (defecto) = comportamiento K4. Solo apps-smmu.");
++
++/*
++ * Bitmap de indices ya preservados por uke_attach_log=2: evita que un segundo
++ * maestro que case el mismo SID vuelva a escribir un indice vivo del BL.
++ * (Con el DT actual el unico sid que casa SMR(0) es 0x60/ufshc, pero la guarda
++ * es barata.) Solo se consulta para el apps-smmu.
++ */
++static DECLARE_BITMAP(uke_preservados_bl, 128);
++
++/* ¿El indice idx es un SME que el barrido dejo vivo y nadie ha reclamado? */
++static bool uke_sme_es_bl(struct arm_smmu_device *smmu, int idx)
++{
++	if (!smmu->smrs || idx < 0 || (unsigned int)idx >= smmu->num_mapping_groups)
++		return false;
++	return smmu->smrs[idx].valid && smmu->s2crs[idx].count == 0;
++}
++
++/* Primer indice libre ALTO (de num_mapping_groups-1 hacia abajo), sin tocar el 0. */
++static int uke_sme_libre_alto(struct arm_smmu_device *smmu)
++{
++	int i;
++
++	if (!smmu->smrs)
++		return -ENOSPC;
++	for (i = (int)smmu->num_mapping_groups - 1; i > 0; i--)
++		if (!smmu->smrs[i].valid && smmu->s2crs[i].count == 0)
++			return i;
++	return -ENOSPC;
++}
++
++/* Valor exacto que arm_smmu_write_smr() escribira (arm-smmu.c:1184-1193). */
++static u32 uke_smr_val(struct arm_smmu_device *smmu, int idx)
++{
++	struct arm_smmu_smr *smr = &smmu->smrs[idx];
++	u32 reg = FIELD_PREP(ARM_SMMU_SMR_ID, smr->id) |
++		  FIELD_PREP(ARM_SMMU_SMR_MASK, smr->mask);
++
++	if (!(smmu->features & ARM_SMMU_FEAT_EXIDS) && smr->valid)
++		reg |= ARM_SMMU_SMR_VALID;
++	return reg;
++}
++
++/* Valor nominal que arm_smmu_write_s2cr() pondria (sin el quirk qcom). */
++static u32 uke_s2cr_val(struct arm_smmu_device *smmu, int idx)
++{
++	struct arm_smmu_s2cr *s2cr = &smmu->s2crs[idx];
++
++	return FIELD_PREP(ARM_SMMU_S2CR_TYPE, s2cr->type) |
++	       FIELD_PREP(ARM_SMMU_S2CR_CBNDX, s2cr->cbndx) |
++	       FIELD_PREP(ARM_SMMU_S2CR_PRIVCFG, s2cr->privcfg);
++}
++
++/*
++ * Decodificacion CORRECTA de la MASK de un SMR leido: el campo es 30:16 y el
++ * bit 31 es VALID; FIELD_GET(ARM_SMMU_SMR_MASK) (GENMASK(31,16)) lo colaba
++ * (K3/K4 imprimieron mask=0x8000 para SMR(0)=0x80000060, cuya mask real es 0).
++ */
++static u32 uke_smr_mask_leido(u32 smr)
++{
++	return FIELD_GET(ARM_SMMU_SMR_MASK, smr & ~ARM_SMMU_SMR_VALID);
++}
++
++/*
++ * Volcado READ-ONLY del estado que dejo el bootloader, antes del reset.
++ * Solo indices BL-validos en RAM (con uke_smr_max=0: el 0); NO se barren SMR
++ * arbitrarios (K2 murio en el barrido completo de LECTURAS).
++ */
++static void uke_dump_bl_state(struct arm_smmu_device *smmu)
++{
++	u32 smr0, s2cr0;
++	int i;
++
++	if (!uke_smmu_es_apps(smmu))
++		return;
++
++	smr0 = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(0));
++	s2cr0 = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(0));
++	pr_info("UKE-POKE: BL estado idx=0: SMR(0) HW=0x%08x (valid=%u id=0x%x mask=0x%x) S2CR(0) HW=0x%08x (TYPE=%u CBNDX=%u PRIVCFG=%u)\n",
++		smr0, (unsigned int)FIELD_GET(ARM_SMMU_SMR_VALID, smr0),
++		(unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, smr0),
++		(unsigned int)uke_smr_mask_leido(smr0),
++		s2cr0, (unsigned int)FIELD_GET(ARM_SMMU_S2CR_TYPE, s2cr0),
++		(unsigned int)FIELD_GET(ARM_SMMU_S2CR_CBNDX, s2cr0),
++		(unsigned int)FIELD_GET(ARM_SMMU_S2CR_PRIVCFG, s2cr0));
++
++	for (i = 1; smmu->smrs && (unsigned int)i < smmu->num_mapping_groups; i++) {
++		u32 smr, s2cr;
++
++		if (!smmu->smrs[i].valid)	/* solo lo que la RAM conoce del BL */
++			continue;
++		smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
++		s2cr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(i));
++		pr_info("UKE-POKE: BL estado idx=%d (smrs.valid, count=%u): SMR(%d) HW=0x%08x (valid=%u id=0x%x mask=0x%x) S2CR(%d) HW=0x%08x (TYPE=%u CBNDX=%u)\n",
++			i, smmu->s2crs[i].count, i, smr,
++			(unsigned int)FIELD_GET(ARM_SMMU_SMR_VALID, smr),
++			(unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, smr),
++			(unsigned int)uke_smr_mask_leido(smr),
++			i, s2cr, (unsigned int)FIELD_GET(ARM_SMMU_S2CR_TYPE, s2cr),
++			(unsigned int)FIELD_GET(ARM_SMMU_S2CR_CBNDX, s2cr));
++	}
++	pr_flush(500, false);
++}
++
+ static inline int arm_smmu_rpm_get(struct arm_smmu_device *smmu)
+ {
+ 	if (pm_runtime_enabled(smmu->dev))
+@@ -811,6 +1027,14 @@
+ 			idx, cfg ? "asignado" : "NULL (solo SCTLR=0)",
+ 			(u64)((smmu->numpage + idx) << smmu->pgshift) + ARM_SMMU_CB_SCTLR);
+ 
++	/*
++	 * UKE-SMMU-CLK (K5): el attach de un dominio escribe CBAR/TCR/TTBR/SCTLR
++	 * del CB elegido (con cfg asignado): tercer candidato a escritura letal.
++	 * Con uke_attach_log>=1 se flushea la miga ANTES del primer acceso.
++	 */
++	if (uke_smmu_es_apps(smmu) && uke_attach_log >= 1)
++		pr_flush(500, false);
++
+ 	/* Unassigned context banks only need disabling */
+ 	if (!cfg) {
+ 		arm_smmu_cb_write(smmu, idx, ARM_SMMU_CB_SCTLR, 0);
+@@ -1362,12 +1586,22 @@
+ 	struct arm_smmu_device *smmu = cfg->smmu;
+ 	struct arm_smmu_smr *smrs = smmu->smrs;
+ 	int i, idx, ret;
++	/*
++	 * UKE-SMMU-CLK (K5): que fwspec ids de este maestro hay que PRESERVAR
++	 * (uke_attach_log>=2): se reclaman en RAM como mainline pero su SME no se
++	 * escribe en HW (el indice tiene un mapeo vivo del bootloader). i indexa
++	 * fwspec->ids[]; el DT de este aparato usa como maximo 5, 64 sobra.
++	 */
++	DECLARE_BITMAP(uke_preservar, 64);
++
++	bitmap_zero(uke_preservar, 64);
+ 
+ 	mutex_lock(&smmu->stream_map_mutex);
+ 	/* Figure out a viable stream map entry allocation */
+ 	for_each_cfg_sme(cfg, fwspec, i, idx) {
+ 		u16 sid = FIELD_GET(ARM_SMMU_SMR_ID, fwspec->ids[i]);
+ 		u16 mask = FIELD_GET(ARM_SMMU_SMR_MASK, fwspec->ids[i]);
++		bool uke_bl;
+ 
+ 		if (idx != INVALID_SMENDX) {
+ 			ret = -EEXIST;
+@@ -1390,6 +1624,46 @@
+ 			goto out_err;
+ 
+ 		idx = ret;
++
++		/*
++		 * UKE-SMMU-CLK (K5): ¿este idx es un SME VIVO del bootloader? Solo el
++		 * apps-smmu, y solo si el barrido lo dejo en RAM (smrs[idx].valid) y
++		 * ningun maestro lo ha reclamado (count==0). Con uke_smr_max=0 eso es
++		 * exactamente idx==0 (SMR(0): id=0x60 mask real 0 = ufshc). Con la
++		 * fase2 omitida (uke_keep_boot=1) escribir ese indice es el candidato
++		 * nº1 a matar: K3 murio justo en la primera escritura de SME tras el
++		 * barrido con smr_max=0.
++		 */
++		uke_bl = uke_smmu_es_apps(smmu) && uke_sme_es_bl(smmu, idx);
++		if (!uke_bl && uke_smmu_es_apps(smmu) &&
++		    (unsigned int)idx < 128 && test_bit(idx, uke_preservados_bl))
++			uke_bl = true;	/* ya preservado en una llamada anterior */
++		if (uke_bl) {
++			if (uke_attach_log >= 1)
++				pr_info("UKE-POKE: attach: dev=%s sid=0x%x mask=0x%x -> find_sme elige idx=%d, SME VIVO DEL BOOTLOADER (id=0x%x mask=0x%x valid=1)\n",
++					dev_name(dev), sid, mask, idx,
++					smmu->smrs[idx].id, smmu->smrs[idx].mask);
++			if (uke_attach_log >= 2) {
++				if (i < 64)
++					set_bit(i, uke_preservar);
++				if ((unsigned int)idx < 128)
++					set_bit(idx, uke_preservados_bl);
++				pr_info("UKE-POKE: attach: SME idx=%d PRESERVADO (BL vivo): NO se escribe; %s queda con el mapeo del bootloader\n",
++					idx, dev_name(dev));
++			} else if (uke_protect_smr0) {
++				int libre = uke_sme_libre_alto(smmu);
++
++				if (libre >= 0) {
++					pr_info("UKE-POKE: attach: protect_smr0: idx %d es del BL -> %s se reubica en el idx libre alto %d (SMR(%d)/S2CR(%d) del BL NO se tocan)\n",
++						idx, dev_name(dev), libre, idx, idx);
++					idx = libre;
++				} else {
++					pr_warn("UKE-POKE: attach: protect_smr0: no hay indice libre alto; %s se queda en el idx %d del BL\n",
++						dev_name(dev), idx);
++				}
++			}
++		}
++
+ 		if (smrs && smmu->s2crs[idx].count == 0) {
+ 			smrs[idx].id = sid;
+ 			smrs[idx].mask = mask;
+@@ -1400,8 +1674,60 @@
+ 	}
+ 
+ 	/* It worked! Now, poke the actual hardware */
+-	for_each_cfg_sme(cfg, fwspec, i, idx)
++	for_each_cfg_sme(cfg, fwspec, i, idx) {
++		/*
++		 * UKE-SMMU-CLK (K5): si este SME se PRESERVO (uke_attach_log=2) no se
++		 * toca el HW: el mapeo del bootloader sigue siendo el que traduce.
++		 */
++		if (uke_smmu_es_apps(smmu) && i < 64 && test_bit(i, uke_preservar)) {
++			pr_info("UKE-POKE: attach: SME idx=%d PRESERVADO (BL vivo): se omite write_sme (no se toca SMR/S2CR)\n",
++				idx);
++			continue;
++		}
++		if (uke_smmu_es_apps(smmu) && (unsigned int)idx < 128 &&
++		    test_bit(idx, uke_preservados_bl)) {
++			pr_info("UKE-POKE: attach: SME idx=%d PRESERVADO (BL vivo, ya visto): se omite write_sme\n",
++				idx);
++			continue;
++		}
++
++		/*
++		 * UKE-SMMU-CLK (K5): miga ANTES de escribir, con los valores exactos
++		 * que se van a escribir (SMR y S2CR nominales) y, si el indice es el 0
++		 * (unico con lectura medida como segura), el estado ACTUAL del HW.
++		 * Despues, pr_flush: la linea tiene que estar en ttyGS0 ANTES del
++		 * acceso, porque si el acceso mata, el printk sin vaciar se pierde.
++		 */
++		if (uke_smmu_es_apps(smmu) && uke_attach_log >= 1) {
++			if (smmu->smrs)
++				pr_info("UKE-POKE: attach: ESCRIBIR SME idx=%d dev=%s -> SMR=0x%08x (id=0x%x mask=0x%x valid=%u) | S2CR nominal=0x%08x (type=%u cbndx=%u)%s\n",
++					idx, dev_name(dev), uke_smr_val(smmu, idx),
++					smmu->smrs[idx].id, smmu->smrs[idx].mask,
++					smmu->smrs[idx].valid ? 1 : 0,
++					uke_s2cr_val(smmu, idx), smmu->s2crs[idx].type,
++					smmu->s2crs[idx].cbndx,
++					smmu->impl && smmu->impl->write_s2cr ?
++						" [impl->write_s2cr: quirk qcom reescribe]" : "");
++			else
++				pr_info("UKE-POKE: attach: ESCRIBIR SME idx=%d dev=%s -> S2CR nominal=0x%08x (type=%u cbndx=%u) (smrs==NULL)\n",
++					idx, dev_name(dev), uke_s2cr_val(smmu, idx),
++					smmu->s2crs[idx].type, smmu->s2crs[idx].cbndx);
++			if (idx == 0) {
++				u32 hw_smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(0));
++				u32 hw_s2cr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(0));
++
++				pr_info("UKE-POKE: attach: idx=0 AHORA en HW: SMR(0)=0x%08x (valid=%u id=0x%x mask=0x%x) S2CR(0)=0x%08x (TYPE=%u CBNDX=%u)\n",
++					hw_smr, (unsigned int)FIELD_GET(ARM_SMMU_SMR_VALID, hw_smr),
++					(unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, hw_smr),
++					(unsigned int)uke_smr_mask_leido(hw_smr),
++					hw_s2cr, (unsigned int)FIELD_GET(ARM_SMMU_S2CR_TYPE, hw_s2cr),
++					(unsigned int)FIELD_GET(ARM_SMMU_S2CR_CBNDX, hw_s2cr));
++			}
++			pr_flush(500, false);
++		}
++
+ 		arm_smmu_write_sme(smmu, idx);
++	}
+ 
+ 	mutex_unlock(&smmu->stream_map_mutex);
+ 	return 0;
+@@ -1439,6 +1765,20 @@
+ 	int i, idx;
+ 
+ 	for_each_cfg_sme(cfg, fwspec, i, idx) {
++		/*
++		 * UKE-SMMU-CLK (K5): un indice PRESERVADO (uke_attach_log=2) no se
++		 * toca NI en install_s2crs: el attach del dominio escribe S2CR para
++		 * pasar el maestro a TRANS->CB, y eso destruiria el mapeo del BL
++		 * justo despues de haberlo protegido en master_alloc_smes. El
++		 * maestro queda "atado" al dominio en RAM pero el HW sigue con el
++		 * S2CR del bootloader (handoff puro).
++		 */
++		if (uke_smmu_es_apps(smmu) && uke_attach_log >= 2 &&
++		    (unsigned int)idx < 128 && test_bit(idx, uke_preservados_bl)) {
++			pr_info("UKE-POKE: attach: install_s2cr idx=%d PRESERVADO (BL vivo): NO se escribe el S2CR (el HW sigue con el mapeo del BL)\n",
++				idx);
++			continue;
++		}
+ 		if (type == s2cr[idx].type && cbndx == s2cr[idx].cbndx)
+ 			continue;
+ 
+@@ -1451,9 +1791,28 @@
+ 		 * desde el arranque: si la consola muere aqui, el attach del mdss es
+ 		 * mortal por si mismo y hay que replantearlo (ver INFORME-K4-BUILD.md).
+ 		 */
+-		if (uke_smmu_es_apps(smmu))
+-			pr_info("UKE-POKE: attach: install_s2cr idx=%d type=%u cbndx=%u -> S2CR(0x%x)\n",
+-				idx, type, cbndx, ARM_SMMU_GR0_S2CR(idx));
++		if (uke_smmu_es_apps(smmu)) {
++			pr_info("UKE-POKE: attach: install_s2cr idx=%d type=%u cbndx=%u -> S2CR(0x%x); nominal=0x%08x (quirk qcom reescribe si es BYPASS)\n",
++				idx, type, cbndx, (unsigned int)ARM_SMMU_GR0_S2CR(idx),
++				(unsigned int)(FIELD_PREP(ARM_SMMU_S2CR_TYPE, type) |
++				FIELD_PREP(ARM_SMMU_S2CR_CBNDX, cbndx) |
++				FIELD_PREP(ARM_SMMU_S2CR_PRIVCFG, S2CR_PRIVCFG_DEFAULT)));
++			if (idx == 0) {	/* unica lectura de S2CR medida como segura */
++				u32 hw = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_S2CR(0));
++
++				pr_info("UKE-POKE: attach: install_s2cr idx=0 S2CR(0) HW AHORA=0x%08x (TYPE=%u CBNDX=%u)\n",
++					hw, (unsigned int)FIELD_GET(ARM_SMMU_S2CR_TYPE, hw),
++					(unsigned int)FIELD_GET(ARM_SMMU_S2CR_CBNDX, hw));
++			}
++		}
++		/*
++		 * UKE-SMMU-CLK (K5): el attach de un dominio (install_s2crs) es el
++		 * otro candidato a escritura letal (fase de iommu_setup_default_domain
++		 * de bus_iommu_probe). Con uke_attach_log>=1 se fuerza el vaciado de la
++		 * consola ANTES del acceso, igual que en master_alloc_smes.
++		 */
++		if (uke_smmu_es_apps(smmu) && uke_attach_log >= 1)
++			pr_flush(500, false);
+ 		arm_smmu_write_s2cr(smmu, idx);
+ 	}
+ }
+@@ -2704,6 +3063,16 @@
+ 	/* Check for RMRs and install bypass SMRs if any */
+ 	arm_smmu_rmr_install_bypass_smr(smmu);
+ 
++	/*
++	 * UKE-SMMU-CLK (K5): volcado READ-ONLY del estado que dejo el bootloader
++	 * (SMR(0)/S2CR(0) reales del HW y cada indice que la RAM marca BL-valido)
++	 * justo antes del reset. Responde la laguna "s2crs[] asume BYPASS": que
++	 * traduccion tiene de verdad el SID del BL (cbndx real). Solo con
++	 * uke_attach_log>=1.
++	 */
++	if (uke_attach_log >= 1)
++		uke_dump_bl_state(smmu);
++
+ 	pr_info("UKE-POKE: apps-smmu: -> arm_smmu_device_reset (SMR/S2CR x%u, CBAR/SCTLR/FSR x%u, TLBIALLH, RMW de sCR0, y arm_mmu500_reset con CB_ACTLR si CONFIG_ARM_SMMU_MMU_500_CPRE_ERRATA)\n", smmu->num_mapping_groups, smmu->num_context_banks);
+ 	arm_smmu_device_reset(smmu);
+ 	arm_smmu_test_smr_masks(smmu);
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+@@ -596,10 +596,16 @@
+ 		 */
+ 		pr_info("UKE-POKE: SMR[%d] -> readl(0x%x)\n", i, ARM_SMMU_GR0_SMR(i));
+ 		smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
+-		pr_info("UKE-POKE: SMR[%d] = 0x%08x (valid=%u id=0x%x mask=0x%x)\n", i, smr,
++		/*
++		 * UKE-SMMU-CLK (K5): la MASK se extrae con VALID limpio. El campo real
++		 * es 30:16; ARM_SMMU_SMR_MASK (GENMASK(31,16)) colaba el bit 31
++		 * (VALID): K3/K4 imprimieron "mask=0x8000" para SMR(0)=0x80000060,
++		 * cuya mascara REAL es 0x0000 (casa solo con el sid 0x60 = ufshc).
++		 */
++		pr_info("UKE-POKE: SMR[%d] = 0x%08x (valid=%u id=0x%x mask=0x%x [mask sin el bit VALID])\n", i, smr,
+ 			(unsigned int)FIELD_GET(ARM_SMMU_SMR_VALID, smr),
+ 			(unsigned int)FIELD_GET(ARM_SMMU_SMR_ID, smr),
+-			(unsigned int)FIELD_GET(ARM_SMMU_SMR_MASK, smr));
++			(unsigned int)FIELD_GET(ARM_SMMU_SMR_MASK, smr & ~ARM_SMMU_SMR_VALID));
+ 
+ 		if (FIELD_GET(ARM_SMMU_SMR_VALID, smr)) {
+ 			n_validos++;

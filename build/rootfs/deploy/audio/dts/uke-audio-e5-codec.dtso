@@ -1,0 +1,242 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e5-codec.dtso — ETAPA E5: macros LPASS (VA/TX/RX) + SoundWire (RX/TX) + WCD9395.
+ * ESBOZO DE E0 (18-oct-2026): compila y se aplica con fdtoverlay sobre el DT vivo, NO probado en la tablet.
+ *
+ * Requiere, en este orden, e2-gpr y e3-lpi (usa &uke_q6prmcc, &uke_rx_swr_active, &uke_tx_swr_active,
+ * &uke_wcd_reset_default, &uke_lpi). ES LA ETAPA DE MAS RIESGO DE ESTE JUEGO (AUDIO-SENEMOS §6 E5): sondear
+ * los macros accede a MMIO del LPASS (cuelgue duro sin relojes votados), el reset del WCD9395 es LPI gpio12
+ * y el codec comparte el carril `pmxr2230_l7` con el usbss del puerto USB-C (SSH por RNDIS).
+ *
+ * Plantilla: sm8650.dtsi (lpass_vamacro, lpass_txmacro, lpass_rxmacro, swr1 = RX 0x6ad0000, swr2 = TX 0x6d30000)
+ * y sm8650-qrd.dts (`wcd939x` + enlaces SDW `wcd_rx` codec@0,4 / `wcd_tx` codec@0,3). Adaptaciones a la uke:
+ *   - /soc es 1/1 celdas: reg = <direccion tamano>. Interrupciones GIC de 3 celdas.
+ *   - NO hay macro WSA ni swr WSA (la uke tiene `qcom,wsa-max-devs = 0`; amplificadores por TDM, E7).
+ *   - Los slaves SDW: el vendor los llama wcd939x-rx-slave/wcd939x-tx-slave con reg = <0x0e 0x01170224/3>,
+ *     i.e. misma pareja mfg 0x0217 / part 0x010e / clase 0 que `sdw20217010e00` de mainline; unique-id 4 (RX) y 3 (TX).
+ *   - Suministros del WCD (vendor `cdc-vdd-{rx,tx,buck,px}-supply` = pmxr2230_l7 1,8 V; `cdc-vdd-mic-bias` = pmxr2230_bob):
+ *     etiquetas de la base `pmxr2230_l7` / `pmxr2230_bob` (comprobadas en res-live-final.dtb /__symbols__).
+ *   - micbias1..4 = 2750 mV como el vendor (`qcom,cdc-micbias*-mv = <0xabe>`); dentro del rango 1000-2850 de wcd-common.c.
+ *   - SIN `mode-switch` / `orientation-switch` / `port`: el mux USB-C de la uke (wcd939x_i2c@e en i2c@a80000) lo lleva
+ *     el driver propio `wcd939x-usb-uke`; no queremos que wcd939x.c registre un typec_mux/switch encima.
+ *   - umbrales MBHC = valores de referencia de sm8650-qrd.dts (SIN verificar contra la uke; no hay jack 3,5 mm,
+ *     el analogico va por USB-C).
+ *   - reset-gpios = LPI gpio12 (no TLMM 107 como en la QRD).
+ *
+ * Divergencias HW/DT que NO se han podido cerrar en el PC (informe §7.5): el vendor declara qcom,swr-num-ports = 12
+ * (RX) y 5 (VA/TX) con SWRM 2.1.0 en hardware, mientras sm8650.dtsi trae 11 dout (RX) y 4 din (TX) con compat v2.0.0.
+ * Se copian los de sm8650.dtsi; los puertos de mas del vendor no los usa ningun mapeo del WCD9395.
+ * DMIC: los pines (gpio6-9 vs TDM1, gpio12/13 vs reset) y el reparto VA/TX estan sin decidir; aqui no hay enlace VA.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
+
+/ {
+	fragment@0 {
+		target-path = "/soc";
+
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			uke_vamacro: codec@6d44000 {
+				compatible = "qcom,sm8650-lpass-va-macro", "qcom,sm8550-lpass-va-macro";
+				reg = <0x06d44000 0x1000>;
+				clocks = <&uke_q6prmcc LPASS_CLK_ID_TX_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_q6prmcc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_q6prmcc LPASS_HW_DCODEC_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+				clock-names = "mclk",
+					      "macro",
+					      "dcodec";
+
+				#clock-cells = <0>;
+				clock-output-names = "fsgen";
+				#sound-dai-cells = <1>;
+			};
+
+			uke_txmacro: codec@6ae0000 {
+				compatible = "qcom,sm8650-lpass-tx-macro", "qcom,sm8550-lpass-tx-macro";
+				reg = <0x06ae0000 0x1000>;
+				clocks = <&uke_q6prmcc LPASS_CLK_ID_TX_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_q6prmcc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_q6prmcc LPASS_HW_DCODEC_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_vamacro>;
+				clock-names = "mclk",
+					      "macro",
+					      "dcodec",
+					      "fsgen";
+
+				#clock-cells = <0>;
+				clock-output-names = "mclk";
+				#sound-dai-cells = <1>;
+			};
+
+			uke_rxmacro: codec@6ac0000 {
+				compatible = "qcom,sm8650-lpass-rx-macro", "qcom,sm8550-lpass-rx-macro";
+				reg = <0x06ac0000 0x1000>;
+				clocks = <&uke_q6prmcc LPASS_CLK_ID_RX_CORE_TX_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_q6prmcc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_q6prmcc LPASS_HW_DCODEC_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+					 <&uke_vamacro>;
+				clock-names = "mclk",
+					      "macro",
+					      "dcodec",
+					      "fsgen";
+
+				#clock-cells = <0>;
+				clock-output-names = "mclk";
+				#sound-dai-cells = <1>;
+			};
+
+			/* SWR RX (0x6ad0000, SPI 155): WCD9395 RX, unique-id 4 */
+			uke_swr1: soundwire@6ad0000 {
+				compatible = "qcom,soundwire-v2.0.0";
+				reg = <0x06ad0000 0x10000>;
+				interrupts = <GIC_SPI 155 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&uke_rxmacro>;
+				clock-names = "iface";
+				label = "RX";
+
+				pinctrl-0 = <&uke_rx_swr_active>;
+				pinctrl-names = "default";
+
+				qcom,din-ports = <0>;
+				qcom,dout-ports = <11>;
+
+				qcom,ports-sinterval =		/bits/ 16 <0x03 0x1f 0x1f 0x07 0x03 0xff 0xff 0x31 0xff 0xff 0xff>;
+				qcom,ports-offset1 =		/bits/ 8 <0x00 0x00 0x0b 0x09 0x01 0xff 0xff 0x00 0xff 0xff 0xff>;
+				qcom,ports-offset2 =		/bits/ 8 <0x00 0x00 0x0b 0x00 0x00 0xff 0xff 0x00 0xff 0xff 0xff>;
+				qcom,ports-hstart =		/bits/ 8 <0xff 0x03 0xff 0xff 0xff 0xff 0xff 0x00 0xff 0xff 0xff>;
+				qcom,ports-hstop =		/bits/ 8 <0xff 0x06 0xff 0xff 0xff 0xff 0xff 0x0f 0xff 0xff 0xff>;
+				qcom,ports-word-length =	/bits/ 8 <0x01 0x07 0x04 0xff 0xff 0xff 0xff 0x18 0xff 0xff 0xff>;
+				qcom,ports-block-pack-mode =	/bits/ 8 <0xff 0x00 0x01 0xff 0xff 0xff 0xff 0x01 0xff 0xff 0xff>;
+				qcom,ports-block-group-count =	/bits/ 8 <0xff 0xff 0xff 0x01 0x03 0xff 0xff 0x00 0xff 0xff 0xff>;
+				qcom,ports-lane-control =	/bits/ 8 <0x01 0x00 0x00 0x00 0x00 0xff 0xff 0x01 0xff 0xff 0xff>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+				#sound-dai-cells = <1>;
+
+				/* WCD9395 RX */
+				uke_wcd_rx: codec@0,4 {
+					compatible = "sdw20217010e00";
+					reg = <0 4>;
+
+					/*
+					 * WCD9395 RX Port 1 (HPH_L/R)      <=> SWR1 Port 1 (HPH_L/R)
+					 * WCD9395 RX Port 2 (CLSH)         <=> SWR1 Port 2 (CLSH)
+					 * WCD9395 RX Port 3 (COMP_L/R)     <=> SWR1 Port 3 (COMP_L/R)
+					 * WCD9395 RX Port 4 (LO)           <=> SWR1 Port 4 (LO)
+					 * WCD9395 RX Port 5 (DSD_L/R)      <=> SWR1 Port 5 (DSD_L/R)
+					 * WCD9395 RX Port 6 (HIFI_PCM_L/R) <=> SWR1 Port 9 (HIFI_PCM_L/R)
+					 * (coincide con el qcom,swr-port-mapping del swr master vendor: puertos 1,2,3,4,5,9)
+					 */
+					qcom,rx-port-mapping = <1 2 3 4 5 9>;
+				};
+			};
+
+			/* SWR TX (0x6d30000, SPI 496 + wakeup SPI 520): WCD9395 TX, unique-id 3 */
+			uke_swr2: soundwire@6d30000 {
+				compatible = "qcom,soundwire-v2.0.0";
+				reg = <0x06d30000 0x10000>;
+				interrupts = <GIC_SPI 496 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 520 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "core", "wakeup";
+				clocks = <&uke_txmacro>;
+				clock-names = "iface";
+				label = "TX";
+
+				pinctrl-0 = <&uke_tx_swr_active>;
+				pinctrl-names = "default";
+
+				qcom,din-ports = <4>;
+				qcom,dout-ports = <0>;
+
+				qcom,ports-sinterval-low =	/bits/ 8 <0x01 0x01 0x03 0x03>;
+				qcom,ports-offset1 =		/bits/ 8 <0x00 0x00 0x01 0x01>;
+				qcom,ports-offset2 =		/bits/ 8 <0x00 0x00 0x00 0x00>;
+				qcom,ports-hstart =		/bits/ 8 <0xff 0xff 0xff 0xff>;
+				qcom,ports-hstop =		/bits/ 8 <0xff 0xff 0xff 0xff>;
+				qcom,ports-word-length =	/bits/ 8 <0xff 0xff 0xff 0xff>;
+				qcom,ports-block-pack-mode =	/bits/ 8 <0xff 0xff 0xff 0xff>;
+				qcom,ports-block-group-count =	/bits/ 8 <0xff 0xff 0xff 0xff>;
+				qcom,ports-lane-control =	/bits/ 8 <0x01 0x02 0x00 0x00>;
+
+				#address-cells = <2>;
+				#size-cells = <0>;
+				#sound-dai-cells = <1>;
+
+				/* WCD9395 TX */
+				uke_wcd_tx: codec@0,3 {
+					compatible = "sdw20217010e00";
+					reg = <0 3>;
+
+					/*
+					 * WCD9395 TX Port 1 (ADC1,2,3,4)         <=> SWR2 Port 2 (TX SWR_INPUT 0,1,2,3)
+					 * WCD9395 TX Port 2 (ADC3,4 & DMIC0,1)   <=> SWR2 Port 2 (TX SWR_INPUT 0,1,2,3)
+					 * WCD9395 TX Port 3 (DMIC0,1,2,3 & MBHC) <=> SWR2 Port 3 (TX SWR_INPUT 4,5,6,7)
+					 * WCD9395 TX Port 4 (DMIC4,5,6,7)        <=> SWR2 Port 4 (TX SWR_INPUT 8,9,10,11)
+					 */
+					qcom,tx-port-mapping = <2 2 3 4>;
+				};
+			};
+		};
+	};
+
+	/* WCD9395: nodo de primer nivel como en sm8650-qrd.dts */
+	fragment@1 {
+		target-path = "/";
+
+		__overlay__ {
+			uke_wcd939x: audio-codec {
+				compatible = "qcom,wcd9395-codec", "qcom,wcd9390-codec";
+
+				pinctrl-0 = <&uke_wcd_reset_default>;
+				pinctrl-names = "default";
+
+				qcom,micbias1-microvolt = <2750000>;
+				qcom,micbias2-microvolt = <2750000>;
+				qcom,micbias3-microvolt = <2750000>;
+				qcom,micbias4-microvolt = <2750000>;
+				qcom,mbhc-buttons-vthreshold-microvolt = <75000 150000 237000 500000 500000 500000 500000 500000>;
+				qcom,mbhc-headset-vthreshold-microvolt = <1700000>;
+				qcom,mbhc-headphone-vthreshold-microvolt = <50000>;
+				qcom,rx-device = <&uke_wcd_rx>;
+				qcom,tx-device = <&uke_wcd_tx>;
+
+				reset-gpios = <&uke_lpi 12 GPIO_ACTIVE_LOW>;
+
+				vdd-buck-supply = <&pmxr2230_l7>;
+				vdd-rxtx-supply = <&pmxr2230_l7>;
+				vdd-io-supply = <&pmxr2230_l7>;
+				vdd-px-supply = <&pmxr2230_l7>;
+				vdd-mic-bias-supply = <&uke_vdd_micbias>;
+
+				#sound-dai-cells = <1>;
+			};
+		};
+	};
+	/*
+	 * M1b (21-oct-2026): `pmxr2230_bob` (bobb1) NO existe como regulador en el kernel de la uke: `qcom-rpmh-regulator-uke.c` no admite bobb1 a proposito (lo comparte el display);
+	 * medido en M1: `audio-codec` queda diferido para siempre («wait for supplier .../rpmh-regulator-bobb1/regulator-pmxr2230-bob1») y los dos esclavos SoundWire se enumeran
+	 * pero quedan UNATTACHED (el codec no saca el chip del reset). El carril BOB lo enciende el hardware/bootloader (el vendor solo lo pide con `cdc-vdd-mic-bias`);
+	 * aqui se representa con un regulador fijo SIN control de hardware para que wcd939x.c pueda sondear. SI el BOB estuviera apagado, el efecto se vera en M3 (micro sin señal).
+	 */
+	fragment@2 {
+		target-path = "/";
+
+		__overlay__ {
+			uke_vdd_micbias: regulator-uke-micbias {
+				compatible = "regulator-fixed";
+				regulator-name = "uke_vdd_micbias";
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-always-on;
+			};
+		};
+	};
+};

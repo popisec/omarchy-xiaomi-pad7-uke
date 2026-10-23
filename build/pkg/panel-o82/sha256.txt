@@ -1,0 +1,1 @@
+9890258752426704508bcd0dd51784898816faf6c242d42cb18c7a4125e88a14  ~/proyectos/omarchy-uke/build/pkg/panel-o82/panel_xiaomi_o82_dualdsi.ko

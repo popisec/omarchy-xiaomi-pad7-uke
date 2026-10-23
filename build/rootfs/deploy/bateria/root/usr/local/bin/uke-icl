@@ -1,0 +1,9 @@
+#!/bin/bash
+# uke-icl — sube el limite de corriente de entrada USB de 100 mA (valor por defecto del firmware en Linux) a 500 mA. 20-oct-2026.
+# Hallazgo: qcom-battmgr-usb/input_current_limit arranca en 100000 y la bateria no cargaba con el PC (SDP); con 500000 carga.
+# Seguro con cargadores rapidos: SOLO sube (nunca baja un limite >=500000) y solo con VBUS < 6 V. El kernel rechaza >500000 (EINVAL).
+U=/sys/class/power_supply/qcom-battmgr-usb
+[ -w $U/input_current_limit ] || exit 0
+cur=$(cat $U/input_current_limit 2>/dev/null); v=$(cat $U/voltage_now 2>/dev/null); on=$(cat $U/online 2>/dev/null)
+[ "${on:-0}" = 1 ] && [ "${v:-0}" -lt 6000000 ] && [ "${cur:-500000}" -lt 500000 ] && echo 500000 > $U/input_current_limit 2>/dev/null
+exit 0

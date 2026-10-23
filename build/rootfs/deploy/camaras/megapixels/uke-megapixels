@@ -1,0 +1,7 @@
+#!/bin/sh
+# uke-megapixels — lanzador de Megapixels en la uke (22-oct-2026): deja el grafo de camss limpio (enlaces de otra sesion o de la otra camara
+# daban VIDIOC_STREAMON EPIPE) y pide el ISP activo (la frontal deja de dar buffers tras un runtime suspend; ver CAMARAS-MEGAPIXELS-20261022.md).
+[ -e /dev/media0 ] || { notify-send "Cámara" "Las cámaras no están cargadas (uke-camaras)" 2>/dev/null; exit 1; }
+media-ctl -d /dev/media0 -r 2>/dev/null
+[ -w /sys/bus/platform/devices/acb6000.isp/power/control ] && echo on > /sys/bus/platform/devices/acb6000.isp/power/control
+exec /usr/local/bin/megapixels "$@"

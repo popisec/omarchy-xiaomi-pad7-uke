@@ -1,0 +1,62 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -626,6 +626,59 @@
+ 	dsi_ctx.dsi = ctx->dsi[0];
+ 	pr_info("UKE-L63: PPS post-0x29 enviada (dims=%ux%u por link, err=%d)\n",
+ 		dsc_link.pic_width, dsc_link.pic_height, dsi_ctx.accum_err);
++
++	/*
++	 * L65 (15-oct): BTA readback del DDIC, post-PPS, con video andando.
++	 *
++	 * CRITICA-RONDA2 S2: err=0 solo prueba el DMA del host (dsi_ctx.accum_err
++	 * <- mipi_dsi_device_transfer, drm_mipi_dsi.c:448-458); un panel sordo o
++	 * sin vci da el mismo err=0. Jamas hemos LEIDO nada del DDIC: esta es la
++	 * primera lectura DCS (BTA) del proyecto. Va DESPUES del log UKE-L63 para
++	 * no mover la variable PPS, y es fail-safe: solo pr_info, nunca altera el
++	 * valor de retorno (el bloque PPS de arriba decide, como en L63/L64).
++	 *
++	 * Registros (video/mipi_display.h): 0x0A GET_POWER_MODE, 0x0B
++	 * GET_ADDRESS_MODE, 0x0C GET_PIXEL_FORMAT, 0x0D GET_DISPLAY_MODE (1 byte
++	 * c/u, respuesta short = 1 iteracion en cmd_rx) y 0x04 GET_DISPLAY_ID
++	 * (3 bytes ID1/ID2/ID3). NO 0xDA/0xDB/0xDC (redundantes con 0x04) ni 0x05
++	 * (contador de errores, semantica ambigua). El vendor casi no lee en boot
++	 * (solo diagnostico: lockdown "Panel not initialized" benigno bajo splash,
++	 * cell_id rc=-22; ANDROID-PANTALLA-COMPLETA S2), pero esos intentos no
++	 * colgaron el link: el precedente dice que leer no wedgea.
++	 *
++	 * Notas de implementacion:
++	 * - mipi_dsi_dcs_read() directo por link (NO _multi): cmd_rx devuelve 0
++	 *   ante ACK_ERR/respuesta invalida (dsi_host.c) sin marcar accum_err, asi
++	 *   que el diagnostico necesita el ret por link, no el agregado.
++	 * - Los reads NO son sync (need_sync=false si rx_buf, dsi_manager.c:503):
++	 *   cada lectura va solo a su host; no aplica la asimetria DSI_0 de S4
++	 *   S2.1 (esa es solo de writes sincronizados).
++	 * - Todo va en LP (mode_flags tiene MIPI_DSI_MODE_LPM, :738; transfer ORs
++	 *   USE_LPM, drm_mipi_dsi.c:448-458), como el vendor (dt=0x39 lp_mode).
++	 */
++	uke_poke("L65-bta");
++	{
++		static const u8 l65_cmds[] = { 0x0A, 0x0B, 0x0C, 0x0D };
++		int li, ci;
++
++		for (li = 0; li < 2; li++) {
++			for (ci = 0; ci < ARRAY_SIZE(l65_cmds); ci++) {
++				u8 val = 0;
++				ssize_t r = mipi_dsi_dcs_read(ctx->dsi[li],
++							      l65_cmds[ci], &val, 1);
++				pr_info("UKE-L65: DCS read 0x%02X link%d = 0x%02X (ret=%zd)\n",
++					l65_cmds[ci], li, val, r);
++			}
++		}
++		for (li = 0; li < 2; li++) {
++			u8 id[3] = { 0, 0, 0 };
++			ssize_t r = mipi_dsi_dcs_read(ctx->dsi[li],
++						      MIPI_DCS_GET_DISPLAY_ID, id, 3);
++			pr_info("UKE-L65: DCS read 0x04 link%d = 0x%02X 0x%02X 0x%02X (ret=%zd)\n",
++				li, id[0], id[1], id[2], r);
++		}
++	}
++
+ 	if (dsi_ctx.accum_err)
+ 		return dsi_ctx.accum_err;
+ 	return 0;

@@ -1,0 +1,1 @@
+obj-m += uke_lpi_rd.o uke_lpi_io.o

@@ -1,0 +1,31 @@
+[Unit]
+Description=uke: pantalla tactil NT36532 (firmware por SPI + demonio THP -> uinput)
+Documentation=file:///etc/uke/LEEME file:///usr/local/share/uke/tactil/README.md
+# INTERRUPTORES (sin reflashear): touch /etc/uke/no-touch  |  /etc/uke/safe-mode
+# uke-bootguard lo omite solo tras 2 arranques seguidos que no llegaron a 'ok' (cuelgue durante la carga del firmware).
+ConditionPathExists=!/etc/uke/no-touch
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionPathExists=/usr/local/sbin/uke-bootguard
+ConditionPathExists=/lib/firmware/novatek_nt36532_o82_fw_csot.bin
+ConditionPathExists=/usr/local/share/uke/tactil/uke-touchd.py
+# 23-oct-2026: se quito 'uke-wifi.service' del After=. El tactil no depende del WiFi
+# (solo necesita spidev + uinput, y el firmware entra por SPI sobre el PMIC, que es
+# lo de uke-carga.service). Con uke-wifi delante (Type=oneshot, TimeoutStartSec=300)
+# el tactil no aparecia hasta 5 minutos en un arranque con WiFi lento, y
+# uke-desktop.service (que solo ordena tras uke-wifi) arrancaba la sesion antes.
+# Decision del dueno; la entrada completa esta en DUDAS.md.
+After=local-fs.target systemd-udevd.service uke-carga.service
+
+[Service]
+Type=simple
+ExecCondition=/usr/local/sbin/uke-bootguard begin touch
+ExecStartPre=/usr/local/sbin/uke-touch-up.sh
+ExecStart=/usr/bin/python3 -u /usr/local/share/uke/tactil/uke-touchd.py
+ExecStopPost=/usr/local/sbin/uke-bootguard ok touch
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

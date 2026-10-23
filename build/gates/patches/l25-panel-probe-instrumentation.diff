@@ -1,0 +1,36 @@
+--- a/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
++++ b/drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+@@ -292,6 +292,7 @@
+  */
+ static int o82_power_on(struct o82_panel *ctx)
+ {
++	uke_poke("K47-pan-pwron");
+ 	uke_poke("K47-pan-pwr");
+ 	unsigned int i;
+ 	int ret;
+@@ -314,6 +315,7 @@
+ 
+ 	pr_info("UKE-P82: power_on: TODAS OK\n");
+ 	uke_poke("K47-pwr-OK");
++	uke_poke("K47-pan-pwron-ok");
+ 	return 0;
+ 
+ err:
+@@ -643,6 +645,7 @@
+ 
+ static int o82_probe(struct mipi_dsi_device *dsi)
+ {
++	uke_poke("K47-pan-probe");
+ 	struct mipi_dsi_device_info dsi_info = { "dsi-secondary", 0, NULL };
+ 	struct device *dev = &dsi->dev;
+ 	const struct o82_panel_desc *desc;
+@@ -752,7 +755,9 @@
+ 		ctx->dsi[i]->mode_flags = desc->mode_flags;
+ 		ctx->dsi[i]->dsc = &ctx->dsc;
+ 
++		uke_poke("K47-pan-probe-ok");
+ 		ret = devm_mipi_dsi_attach(dev, ctx->dsi[i]);
++		uke_poke("K47-pan-probe-attach-ok");
+ 		if (ret < 0) {
+ 			drm_panel_remove(&ctx->panel);
+ 			return dev_err_probe(dev, ret,

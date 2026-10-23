@@ -1,0 +1,74 @@
+#!/bin/bash
+# uke-bt-sleep — gancho de systemd-sleep: apaga el adaptador Bluetooth antes de suspender y lo reconecta al reanudar.
+# Etapa D2 de build/gates/revision/BT-DIARIO-PLAN-20261018.md (NO instalado por defecto: deploy.sh --go --sleep).
+#   pre  (suspend): guarda las MAC de los dispositivos de AUDIO conectados en /var/lib/uke/bt-last y hace `bluetoothctl power off` (salvo que no haya
+#                   controlador o ya este apagado: entonces no espera el timeout)
+#                   (el chip y los rails se apagan: nada que despierte la tablet ni enlace A2DP medio roto al volver).
+#   post (suspend): lanza uke-bt-resume (enciende y reconecta con reintentos) en una unidad transitoria (systemd-run) y vuelve al instante.
+# D2, prueba del 18-oct 21:11 en la tablet: (1) `power off` NO basta: el IRQ de despertar del RX de la UART (GPIO 43, `888000.qcom,qup_uart:wakeup`)
+#   sacaba a s2idle al instante (0,1 s, pm_wakeup_irq=229) aun con el adaptador apagado -> `pre` desactiva power/wakeup del UART y `post` lo restaura;
+#   (2) `setsid ... &` NO sobrevive: systemd mata el cgroup de systemd-suspend.service al terminar (20 ms despues) y uke-bt-resume nunca llego a
+#   escribir nada -> se lanza con `systemd-run --no-block --collect` (como uke-resume-stamp). Ambas correcciones SIN PROBAR en la tablet.
+# Nunca falla ni se queda colgado: todo con timeout y `exit 0` siempre (un gancho roto no debe impedir suspender).
+# Pruebas en el PC (harness/test-bt-sleep.sh): UKE_BT_ROOT = prefijo falso, UKE_BT_PATH = PATH con mocks, UKE_BT_TMO = timeout (s),
+# UKE_BT_RESUME = ruta del ayudante de reanudacion.
+PATH=${UKE_BT_PATH:-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin}
+ROOT=${UKE_BT_ROOT:-}
+TMO=${UKE_BT_TMO:-5}
+LOG=$ROOT/var/log/uke-bt.log
+LAST=$ROOT/var/lib/uke/bt-last
+RESUME=${UKE_BT_RESUME:-/usr/local/sbin/uke-bt-resume}
+UARTSAVE=$ROOT/run/uke-bt-uartwake
+say() { printf '%s uke-bt-sleep: %s\n' "$(date -u +%FT%TZ)" "$*" >> "$LOG" 2>/dev/null; return 0; }
+# ficheros power/wakeup del dispositivo del UART del BT (el overlay de uke_bt_* conserva su IRQ de despertar por el RX)
+uart_wake_files() { ls "$ROOT"/sys/devices/platform/soc/*/888000.qcom,qup_uart/power/wakeup 2>/dev/null; }
+case "${1:-}/${2:-}" in
+pre/suspend|pre/suspend-then-hibernate)
+	[ -e "$ROOT/etc/uke/no-bt" ] && exit 0
+	: > "$UARTSAVE.new" 2>/dev/null
+	for f in $(uart_wake_files); do
+		printf '%s %s\n' "$f" "$(cat "$f" 2>/dev/null)" >> "$UARTSAVE.new" 2>/dev/null
+		echo disabled > "$f" 2>/dev/null && say "pre: despertar por el UART del BT desactivado ($f)"
+	done
+	mv -f "$UARTSAVE.new" "$UARTSAVE" 2>/dev/null
+	command -v bluetoothctl >/dev/null || exit 0
+	systemctl is-active --quiet bluetooth.service 2>/dev/null || { say "pre: bluetooth.service inactivo, nada que apagar"; exit 0; }
+	[ -e "$ROOT/sys/class/bluetooth/hci0" ] || { say "pre: sin hci0"; exit 0; }
+	mkdir -p "$(dirname "$LAST")" 2>/dev/null
+	: > "$LAST"   # lista vacia por defecto: que uke-bt-resume no use una de una suspension anterior
+	# politica opcional (y base de la medicion de consumo en suspension, bt-consumo.sh): con /etc/uke/bt-keep-on el adaptador se queda ENCENDIDO al dormir
+	# (el despertar por el UART ya esta desactivado arriba, asi que s2idle no sale al instante); el chip sigue consumiendo, los dispositivos LE pueden seguir conectados.
+	[ -e "$ROOT/etc/uke/bt-keep-on" ] && { say "pre: /etc/uke/bt-keep-on: adaptador ENCENDIDO durante la suspension (solo sin despertar por el UART)"; exit 0; }
+	# estado del adaptador ANTES de nada mas: con el chip mudo (sin controlador) o apagado `power off` se queda esperando todo el timeout (5 s medidos el 18-oct)
+	SHOW=$(timeout "$TMO" bluetoothctl show 2>&1); rc=$?
+	[ "$rc" = 124 ] && { say "pre: bluetoothctl no responde: no toco el adaptador"; exit 0; }
+	case "$SHOW" in *"No default controller"*) say "pre: sin controlador (chip mudo o descargado): nada que apagar"; exit 0 ;; esac
+	printf '%s\n' "$SHOW" | grep -q 'Powered: yes' || { say "pre: adaptador ya apagado: nada que apagar"; exit 0; }
+	# solo se guardan los dispositivos de AUDIO (A2DP/HSP/HFP): los LE/HID (lapiz, teclados) se reconectan solos al anunciarse y reintentarlos desperdicia radio y tiempo
+	tot=0; aud=0
+	for mac in $(timeout "$TMO" bluetoothctl devices Connected 2>/dev/null | awk '/^Device /{print $2}'); do
+		tot=$((tot + 1))
+		if timeout "$TMO" bluetoothctl info "$mac" 2>/dev/null | grep -qE 'UUID: (Audio Sink|Headset|Handsfree)'; then echo "$mac" >> "$LAST"; aud=$((aud + 1)); fi
+	done
+	say "pre: conectados=$tot, de audio guardados=$aud (los demas se reconectan solos); apago el adaptador"
+	timeout "$TMO" bluetoothctl power off >/dev/null 2>&1 || say "pre: power off no respondio (se sigue)"
+	;;
+post/suspend|post/suspend-then-hibernate)
+	[ -e "$ROOT/etc/uke/no-bt" ] && exit 0
+	if [ -s "$UARTSAVE" ]; then
+		while read -r f v; do
+			[ -n "$f" ] && [ -e "$f" ] && echo "${v:-enabled}" > "$f" 2>/dev/null && say "post: despertar por el UART del BT restaurado a '${v:-enabled}'"
+		done < "$UARTSAVE"
+		rm -f "$UARTSAVE" 2>/dev/null
+	fi
+	[ -x "$RESUME" ] || { say "post: falta $RESUME"; exit 0; }
+	# unidad transitoria: un proceso suelto muere con el cgroup de systemd-suspend.service (medido el 18-oct); sin systemd-run, plan B desacoplado
+	if command -v systemd-run >/dev/null 2>&1 && systemd-run --no-block --collect --unit="uke-bt-resume-$(date +%s)" "$RESUME" >/dev/null 2>&1; then
+		say "post: reanudacion lanzada (systemd-run)"
+	else
+		( setsid "$RESUME" >/dev/null 2>&1 < /dev/null & )
+		say "post: reanudacion lanzada (desacoplada, sin systemd-run)"
+	fi
+	;;
+esac
+exit 0

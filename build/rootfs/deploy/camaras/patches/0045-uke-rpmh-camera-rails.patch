@@ -1,0 +1,37 @@
+# 0045-uke-rpmh-camera-rails.patch — omarchy-uke (19-oct-2026)
+#
+# Delta PROPIO del proyecto sobre el arbol «senemos» (MCC45TR): admite los rails de
+# camara (ldob20 = cam_vio 1.8 V, ldoe6 = rear cam_vdig 1.2 V, ldoc3 = front cam_vdig 1.2 V)
+# en el regulador RPMH de la uke. Informe: build/gates/revision/CAMARAS-PLAN-20261019.md.
+#
+# Se aplica sobre un fichero GPL-2.0-only del kernel, asi que hereda esa licencia.
+# SPDX-License-Identifier: GPL-2.0-only
+#
+--- a/drivers/regulator/qcom-rpmh-regulator-uke.c	2026-10-19 17:17:47.074590608 +0200
++++ b/drivers/regulator/qcom-rpmh-regulator-uke.c	2026-10-19 17:17:47.098978191 +0200
+@@ -1991,7 +1991,12 @@
+ 		return rc;
+ 	}
+ 
+-	/* Reviewed OEM Uke supplies, including native display MMCX and panel IO. */
++	/*
++	 * Reviewed OEM Uke supplies, including native display MMCX and panel IO.
++	 * Camera rails (19-oct-2026, CAMARAS-PLAN C3): ldob20 = cam_vio 1.8 V (both sensors, DOVDD), ldoe6 = pmr735a_l6 =
++	 * rear cam_vdig 1.2 V (DVDD), ldoc3 = pm_v6c_l3 = front cam_vdig 1.2 V. Not admitted on purpose: bobb1 (the display
++	 * already runs on it; the camera only lists it as a parent) and ldob14 (VCM supply, autofocus is a later stage).
++	 */
+ 	if (strcmp(aggr_vreg->resource_name, "cx.lvl") &&
+ 	    strcmp(aggr_vreg->resource_name, "mx.lvl") &&
+ 	    strcmp(aggr_vreg->resource_name, "lcx.lvl") &&
+@@ -2009,7 +2014,10 @@
+ 	    strcmp(aggr_vreg->resource_name, "ldob5") &&
+ 	    strcmp(aggr_vreg->resource_name, "ldob12") &&
+ 	    strcmp(aggr_vreg->resource_name, "ldob8") &&
+-	    strcmp(aggr_vreg->resource_name, "ldod3"))
++	    strcmp(aggr_vreg->resource_name, "ldod3") &&
++	    strcmp(aggr_vreg->resource_name, "ldob20") &&
++	    strcmp(aggr_vreg->resource_name, "ldoe6") &&
++	    strcmp(aggr_vreg->resource_name, "ldoc3"))
+ 		return -ENODEV;
+ 
+ 	aggr_vreg->addr = cmd_db_read_addr(aggr_vreg->resource_name);

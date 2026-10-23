@@ -1,0 +1,10 @@
+[Unit]
+Description=uke: modo carga - decidir (no escritorio si el arranque lo provoco el cargador)
+Before=sddm.service
+After=local-fs.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/uke-modo-carga decide
+[Install]
+WantedBy=multi-user.target

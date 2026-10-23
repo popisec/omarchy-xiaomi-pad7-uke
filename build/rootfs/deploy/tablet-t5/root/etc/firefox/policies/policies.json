@@ -1,0 +1,29 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisableFirefoxStudies": true,
+    "DisableFeedbackCommands": true,
+    "DisablePocket": true,
+    "DisableFirefoxAccounts": false,
+    "DontCheckDefaultBrowser": true,
+    "OverrideFirstRunPage": "",
+    "OverridePostUpdatePage": "",
+    "NoDefaultBookmarks": true,
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Cryptomining": true,
+      "Fingerprinting": true,
+      "EmailTracking": true,
+      "Category": "strict"
+    },
+    "Cookies": { "Behavior": "reject-foreign" },
+    "FirefoxSuggest": { "WebSuggestions": false, "SponsoredSuggestions": false, "ImproveSuggest": false },
+    "UserMessaging": { "ExtensionRecommendations": false, "FeatureRecommendations": false, "SkipOnboarding": true, "MoreFromMozilla": false },
+    "Preferences": {
+      "browser.newtabpage.activity-stream.showSponsored": { "Value": false, "Status": "default" },
+      "browser.newtabpage.activity-stream.showSponsoredTopSites": { "Value": false, "Status": "default" },
+      "browser.newtabpage.activity-stream.feeds.telemetry": { "Value": false, "Status": "default" },
+      "browser.ping-centre.telemetry": { "Value": false, "Status": "default" }
+    }
+  }
+}

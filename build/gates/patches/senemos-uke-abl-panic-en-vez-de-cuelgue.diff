@@ -1,0 +1,46 @@
+--- a/arch/arm64/kernel/uke-abl.c
++++ b/arch/arm64/kernel/uke-abl.c
+@@ -813,6 +813,25 @@
+ #include "uke-abl-native.h"
+ #include "uke-native-display.h"
+ 
++/*
++ * omarchy-uke (17-oct-2026): a rejected or foreign graph used to spin forever in
++ * cpu_relax() before any console existed (mute hang, physical reset required).
++ * Keep the bootloader FDT untouched, record the verdict and panic from an early
++ * initcall instead: by then PSCI reset and the "panic=" command line are live, so
++ * the board reboots (and the slot retry counter records the failure).
++ */
++static int uke_abl_verdict __initdata;
++
++static int __init uke_abl_verdict_check(void)
++{
++	if (uke_abl_verdict)
++		panic("UKE-SENEMOS: Uke ABL DT adaptation %s (%d); stock vendor_boot DTB + stock dtbo required\n",
++		      uke_abl_verdict == 1 ? "found a foreign graph" : "rejected the graph",
++		      uke_abl_verdict);
++	return 0;
++}
++early_initcall(uke_abl_verdict_check);
++
+ void *__init uke_abl_prepare_fdt(void *input, int size, phys_addr_t *physical)
+ {
+ 	int ret;
+@@ -833,11 +852,14 @@
+ 	}
+ 	if (ret < 0) {
+ 		pr_crit("Uke ABL DT adaptation rejected (%d); refusing incomplete board graph\n", ret);
+-		while (true)
+-			cpu_relax();
++		uke_abl_verdict = ret;
++		return input;
+ 	}
+-	if (!ret)
++	if (!ret) {
++		pr_crit("Uke ABL DT: foreign graph (model mismatch); this build only boots Uke\n");
++		uke_abl_verdict = 1;
+ 		return input;
++	}
+ 	*physical = __pa_symbol(uke_fdt);
+ 	pr_info("Uke ABL DT: selected RAM preserved; isolated native display graph prepared\n");
+ 	return uke_fdt;

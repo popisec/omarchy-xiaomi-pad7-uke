@@ -1,0 +1,79 @@
+--- a/uke_pen.py
++++ b/uke_pen.py
+@@ -111,6 +111,7 @@
+         self._pos = None
+         self._pending_jump = None
+         self.last_activity = None   # ultimo instante con presion BLE > 0 o frame de lapiz presente
++        self.press_since = None     # instante (reloj del demonio) en que la presion BLE paso de 0 a >0; None con presion 0
+         self.stats = {"frames": 0, "present": 0, "noise": 0, "bad": 0, "jumps": 0, "hall_ignored": 0, "hall_healed": 0}
+ 
+     def _want(self):
+@@ -176,6 +177,10 @@
+         p = msg.get("pressure")
+         if isinstance(p, (int, float)) and not isinstance(p, bool):
+             self.pressure = max(0, min(PRESSURE_MAX, int(p)))
++            if self.pressure == 0:
++                self.press_since = None
++            elif self.press_since is None:
++                self.press_since = now
+             if self.pressure > 0:
+                 self.last_activity = now
+                 ev += self._heal_hall(now)
+@@ -185,6 +190,7 @@
+             ev.append(("btn", b, bool(msg.get("down", True))))
+         if was_conn and not self.connected:
+             self.pressure = 0
++            self.press_since = None
+             ev += self.release()
+         return self._enable_events() + ev
+ 
+@@ -348,6 +354,9 @@
+     MAX_TRIES = 20
+     REARM_S = 1.0           # presion BLE (la punta toca) sin frames del chip: volver a mandar stylus_enable+pen_switch como mucho cada REARM_S
+     REARM_AFTER = 0.3       # sin frames de lapiz durante tanto tiempo
++    REARM_PRESS_S = 1.0     # ...y con la presion BLE sostenida (>0 sin cortes) y el chip recien activado/rearmado hace al menos tanto: 20-oct, los 8 rearmes
++                            # observados eran el 1.er informe de una rafaga (4 de ellos un volcado atrasado de BLE tras 17-80 s de parón del cliente, con el
++                            # lapiz ya pegado 0,1-2 s despues) o llegaron <0,7 s tras el enable; ver analisis-rearmes/REARMES.md
+     MAX_REARMS = 200
+     OPMODE = os.environ.get("LAPIZ_OPMODE", "0") == "1"   # opcional: tras activar, op_mode=2 + idle_baseline (como Android). NO hace falta: el 20-oct hubo frames de lapiz sin ello
+ 
+@@ -480,7 +489,9 @@
+             # si el lapiz presiona (BLE) y el chip no manda frames, se re-arma
+             if (self.ready and self.chip.enabled and self.sess.pressure > 0 and self.sess.want_enable
+                     and now - (self.sess.last_pen if self.sess.last_pen is not None else -1e9) > self.REARM_AFTER
+-                    and now - self.last_rearm > self.REARM_S and self.rearms < self.MAX_REARMS):
++                    and now - self.last_rearm > self.REARM_S and self.rearms < self.MAX_REARMS
++                    and self.sess.press_since is not None
++                    and now - max(self.sess.press_since, self.last_try, self.last_rearm) >= self.REARM_PRESS_S):
+                 self.last_rearm = now
+                 self.rearms += 1
+                 ok = self.chip.enable()
+--- a/test_uke_pen.py
++++ b/test_uke_pen.py
+@@ -329,6 +329,26 @@
+         self.assertGreater(len(spi.writes), n)
+         self.assertEqual(rt.rearms, 2)
+ 
++    def test_no_rearm_for_stale_backlog_or_fresh_enable(self):
++        # 20-oct: tras un parón del cliente BLE llega de golpe un volcado de presion que acaba en 0 (y luego «pegado»); y el 1.er informe de una rafaga
++        # llega <1 s despues del enable, antes de que el chip pueda dar frames. Ninguno debe re-armar.
++        rt, spi, ui = self.make()
++        self.send(rt, {"connected": True, "attached": False}); rt.on_socket(10.0)        # enable en 10.0
++        for p in (500, 900, 700, 0):
++            self.send(rt, {"pressure": p})
++        rt.on_socket(30.0)                                                               # volcado atrasado que termina en 0
++        spi.writes.clear()
++        rt.tick(30.1); rt.tick(31.5)
++        self.assertEqual((spi.writes, rt.rearms), ([], 0))
++        self.send(rt, {"pressure": 300}); rt.on_socket(40.0)                             # presion nueva...
++        rt.tick(40.5)
++        self.assertEqual(rt.rearms, 0)                                                   # ...aun no sostenida 1 s
++        self.send(rt, {"pressure": 0}); rt.on_socket(40.8)                               # se acaba la rafaga: nunca se rearma
++        rt.tick(42.0)
++        self.assertEqual(rt.rearms, 0)
++        self.send(rt, {"pressure": 400}); rt.on_socket(50.0); rt.tick(51.2)              # presion sostenida >1 s sin frames: si se rearma
++        self.assertEqual(rt.rearms, 1)
++
+     def test_no_rearm_when_frames_flow_or_no_pressure(self):
+         rt, spi, ui = self.make()
+         self.send(rt, {"connected": True, "attached": False}); rt.on_socket(1.0)

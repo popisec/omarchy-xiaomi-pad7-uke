@@ -1,0 +1,15 @@
+# sha256 de los ficheros que fija ACUMULADO-palawan-d1c7ef2e0-a-k24.diff (destino = build/kernel-pokes/k18-tree)
+# Para reconstruir: checkout de d1c7ef2e0 + este diff, y comprobar con
+#   sha256sum -c SHA-ARBOL-K24.txt  (desde la raiz del arbol)
+5b1bddc439510ca061a7da544aa4fc970f4a63c9232eebbf64ba073c5cbc3897  arch/arm64/boot/dts/qcom/palawan.dtsi
+8fdf1bdce4dc7b5383049615c3715c2221cabd8e0a739a2021b7ab747683ced3  drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+06a9443377be7875bee531087ba18f1e78435141c8fb3c404b6c3b8f5d01de38  drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+1716a129986d9571d3bf2300f9275377232a46d1eb46c07909b33651d63b9887  drivers/gpu/drm/msm/adreno/adreno_gpu.c
+6a84d0286c0cf0029277217fdab0053d8910520c34ed8ef89d3a015072ae611d  drivers/gpu/drm/msm/adreno/adreno_gpu.h
+ca6850057f854fb43825dc214f417e9ad35c36d326fd5dfbad8d26f2a59a60ca  drivers/gpu/drm/msm/msm_iommu.c
+7804f35ef836d49ca93b57f744705850972f62f67730517b44d80bad7a6764f1  drivers/gpu/drm/msm/msm_kms.c
+7efa5430266d7fb0aceff2c414601ecd28ba69dcbbefad29b5513216eeaeee37  drivers/gpu/drm/panel/panel-xiaomi-o82-dualdsi.c
+480063ed2a035cdcf5440b1f4e6fb322fa0495bfc200c14a9e4dd8aaeac12095  drivers/iommu/arm/arm-smmu/arm-smmu-impl.c
+152a5b3e150ad1739512b060f282b80d39a977105dd62a0227d0ddd8ec1d5b8e  drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+5cbb0db7f69b0933c0d20e25ab8b41aa9e35d239f6af72b08a0e9eea7b6bf80d  drivers/iommu/arm/arm-smmu/arm-smmu.c
+6a91d9336fc3e46b0703b7a984a3d170991bb1b7732f65e4b0306b9f59cbcc9f  drivers/iommu/arm/arm-smmu/arm-smmu.h

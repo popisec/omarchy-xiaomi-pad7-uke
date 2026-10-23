@@ -1,0 +1,2 @@
+uke-ovl.h y uke-ovl-patch.h: copiados SIN modificar de build/rootfs/deploy/bt/module/ (sesion BT, 18-oct-2026), cargador generico
+de un overlay de DT embebido (of_overlay_fdt_apply en init, of_overlay_remove en exit). Se copian para no depender de su arbol.

@@ -1,0 +1,27 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-cam-vcm.dtso -- VCM (autofoco) de la trasera: CN3927V en CCI0 master 1 (mismo bus que el OV13B10). 22-oct-2026, ciclo 18.
+ * Se aplica DESPUES de uke-cam-rear (que crea i2c-bus@1). Origen (DT de Android, qcom,actuator0): cci-master 1, cam_vaf = pmxr2230_l14
+ * 2,8 V (rgltr 0x2ab980), cam_vio = pmxr2230_l20 1,8 V (pull-ups del bus). La DIRECCION I2C no esta cosechada: 0x0c es la hipotesis
+ * (DW9714 y clones); el driver uke_vcm escanea el bus por LECTURA de 1 byte antes de escribir nada. Requiere uke_rpmh_ldob14 (l14).
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/qcom,cci0@ac15000/i2c-bus@1";
+
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			lens@c {
+				compatible = "uke,cn3927v-vcm";
+				reg = <0x0c>;
+				vdd-supply = <&pmxr2230_l14>;
+				vio-supply = <&pmxr2230_l20>;
+			};
+		};
+	};
+};

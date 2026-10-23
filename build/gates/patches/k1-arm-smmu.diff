@@ -1,0 +1,215 @@
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu.c
+@@ -25,6 +25,7 @@
+ #include <linux/err.h>
+ #include <linux/interrupt.h>
+ #include <linux/io.h>
++#include <linux/init.h>
+ #include <linux/iopoll.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
+@@ -69,6 +70,23 @@
+ 
+ static bool using_legacy_binding, using_generic_binding;
+ 
++/*
++ * UKE-SMMU-CLK (K1): ARMING por token.
++ *
++ * El probe de apps-smmu (base 0x15000000) se difiere SIEMPRE (bloque UKE-POKE de
++ * arm_smmu_device_probe). Solo con "uke_smmu_probe=1" en la cmdline el reintento
++ * procede. Sin token este kernel arranca igual que el s244 (el SMMU del vendor se
++ * queda sin bindear, como hasta ahora) y la consola demuestra que el Image es
++ * sano antes de gastar el intento de riesgo del SMMU.
++ */
++static bool uke_smmu_armado __ro_after_init;
++static int __init uke_smmu_armado_setup(char *s)
++{
++	uke_smmu_armado = (s && (s[0] == '1' || s[0] == 'y'));
++	return 0;
++}
++early_param("uke_smmu_probe", uke_smmu_armado_setup);
++
+ static inline int arm_smmu_rpm_get(struct arm_smmu_device *smmu)
+ {
+ 	if (pm_runtime_enabled(smmu->dev))
+@@ -1664,6 +1682,7 @@
+ 	u32 reg;
+ 
+ 	/* clear global FSR */
++	pr_info("UKE-POKE: reset fase1 sGFSR\n");
+ 	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sGFSR);
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sGFSR, reg);
+ 
+@@ -1671,19 +1690,23 @@
+ 	 * Reset stream mapping groups: Initial values mark all SMRn as
+ 	 * invalid and all S2CRn as bypass unless overridden.
+ 	 */
++	pr_info("UKE-POKE: reset fase2 SMR/S2CR x%u\n", smmu->num_mapping_groups);
+ 	for (i = 0; i < smmu->num_mapping_groups; ++i)
+ 		arm_smmu_write_sme(smmu, i);
+ 
+ 	/* Make sure all context banks are disabled and clear CB_FSR  */
++	pr_info("UKE-POKE: reset fase3 CBAR/SCTLR/FSR x%u\n", smmu->num_context_banks);
+ 	for (i = 0; i < smmu->num_context_banks; ++i) {
+ 		arm_smmu_write_context_bank(smmu, i);
+ 		arm_smmu_cb_write(smmu, i, ARM_SMMU_CB_FSR, ARM_SMMU_CB_FSR_FAULT);
+ 	}
+ 
+ 	/* Invalidate the TLB, just in case */
++	pr_info("UKE-POKE: reset fase4 TLBIALLH/TLBIALLNSNH\n");
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLH, QCOM_DUMMY_VAL);
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_TLBIALLNSNH, QCOM_DUMMY_VAL);
+ 
++	pr_info("UKE-POKE: reset fase5 RMW de sCR0\n");
+ 	reg = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_sCR0);
+ 
+ 	/* Enable fault reporting */
+@@ -1712,10 +1735,12 @@
+ 	if (smmu->features & ARM_SMMU_FEAT_EXIDS)
+ 		reg |= ARM_SMMU_sCR0_EXIDENABLE;
+ 
++	pr_info("UKE-POKE: reset fase6 impl->reset (arm_mmu500_reset)\n");
+ 	if (smmu->impl && smmu->impl->reset)
+ 		smmu->impl->reset(smmu);
+ 
+ 	/* Push the button */
++	pr_info("UKE-POKE: reset fase7 tlb_sync_global + write sCR0\n");
+ 	arm_smmu_tlb_sync_global(smmu);
+ 	arm_smmu_gr0_write(smmu, ARM_SMMU_GR0_sCR0, reg);
+ }
+@@ -1752,6 +1777,8 @@
+ 
+ 	/* ID0 */
+ 	id = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_ID0);
++	pr_info("UKE-POKE: cfg_probe ID0=0x%08x (SMS=%u groups)\n", id,
++		(unsigned int)FIELD_GET(ARM_SMMU_ID0_NUMSMRG, id));
+ 
+ 	/* Restrict available stages based on module parameter */
+ 	if (force_stage == 1)
+@@ -1848,6 +1875,12 @@
+ 	/* ID1 */
+ 	id = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_ID1);
+ 	smmu->pgshift = (id & ARM_SMMU_ID1_PAGESIZE) ? 16 : 12;
++	pr_info("UKE-POKE: cfg_probe ID1=0x%08x pgshift=%u NUMPAGENDXB=%u CBs=%u; "
++		"CB base=0x%llx (mmio=%u B)\n", id, smmu->pgshift,
++		(unsigned int)FIELD_GET(ARM_SMMU_ID1_NUMPAGENDXB, id),
++		(unsigned int)FIELD_GET(ARM_SMMU_ID1_NUMCB, id),
++		(u64)(1u << (FIELD_GET(ARM_SMMU_ID1_NUMPAGENDXB, id) + 1)) << smmu->pgshift,
++		smmu->numpage);
+ 
+ 	/* Check for size mismatch of SMMU address space from mapped region */
+ 	size = 1 << (FIELD_GET(ARM_SMMU_ID1_NUMPAGENDXB, id) + 1);
+@@ -1873,6 +1906,7 @@
+ 
+ 	/* ID2 */
+ 	id = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_ID2);
++	pr_info("UKE-POKE: cfg_probe ID2=0x%08x\n", id);
+ 	size = arm_smmu_id_size_to_bits(FIELD_GET(ARM_SMMU_ID2_IAS, id));
+ 	smmu->ipa_size = size;
+ 
+@@ -1963,6 +1997,16 @@
+ 	{ .compatible = "cavium,smmu-v2", .data = &cavium_smmuv2 },
+ 	{ .compatible = "nvidia,smmu-500", .data = &arm_mmu500 },
+ 	{ .compatible = "qcom,smmu-v2", .data = &qcom_smmuv2 },
++	/*
++	 * UKE-SMMU-CLK: el DT VENDOR de este aparato declara apps-smmu como
++	 * "qcom,qsmmu-v500" (unico compatible del nodo). Es el mismo silicio que
++	 * mainline llama "qcom,sm8550-smmu-500" (SMMU-500 clase v2 con tablas de
++	 * 3 niveles). Sin esta entrada mainline jamas bindea el nodo y el mdss muere
++	 * con -ENODEV (no IOMMU, bailing out). K1 no toca el DT: solo acepta el
++	 * nombre del vendor. El kgsl-smmu del mismo DT ya trae "arm,mmu-500" y por
++	 * eso hoy SI se probea; no cambia con esto.
++	 */
++	{ .compatible = "qcom,qsmmu-v500", .data = &arm_mmu500 },
+ 	{ },
+ };
+ MODULE_DEVICE_TABLE(of, arm_smmu_of_match);
+@@ -2155,7 +2199,8 @@
+ 		 */
+ 		if (np && of_property_read_u32(np, "reg", &base) == 0 &&
+ 		    of_property_read_u32_index(np, "reg", 1, &size) == 0 &&
+-		    (u32)base == 0x15000000 && (u32)size == 0x100000) {
++		    (u32)base == 0x15000000 &&
++		    ((u32)size == 0x100000 || (u32)size == 0x200000)) {   /* vendor y A' */
+ 			static bool ya_diferido;
+ 
+ 			if (!ya_diferido) {
+@@ -2165,6 +2210,18 @@
+ 					dev, (unsigned int)base);
+ 				return -EPROBE_DEFER;
+ 			}
++			/*
++			 * UKE-SMMU-CLK (K1): ARMING por token. Sin el token el bloque no se
++			 * toca NUNCA: el gate 0 (kernel nuevo con el dtbo bueno) tiene que
++			 * arrancar sano y dejar que la consola demuestre que el Image
++			 * arranca. Con uke_smmu_probe=1 en la cmdline el reintento procede y
++			 * todo lo que imprima antes del cuelgue es el diagnostico.
++			 */
++			if (!uke_smmu_armado) {
++				pr_info("UKE-POKE: apps-smmu: desarmado (falta uke_smmu_probe=1); "
++					"no se toca el bloque. Arranque sano.\n");
++				return -EPROBE_DEFER;
++			}
+ 			pr_info("UKE-POKE: apps-smmu: REINTENTO del probe, consola ya viva. "
+ 				"Lo que viene a continuación es el probe de verdad.\n");
+ 		}
+--- a/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
++++ b/drivers/iommu/arm/arm-smmu/arm-smmu-qcom.c
+@@ -454,6 +454,7 @@
+ 	u32 reg;
+ 	u32 smr;
+ 	int i;
++	unsigned int n_validos = 0;
+ 
+ 	/*
+ 	 * MSM8998 LPASS SMMU reports 13 context banks, but accessing
+@@ -494,8 +495,13 @@
+ 	reg = FIELD_PREP(ARM_SMMU_S2CR_TYPE, S2CR_TYPE_BYPASS) |
+ 	      FIELD_PREP(ARM_SMMU_S2CR_CBNDX, 0xff) |
+ 	      FIELD_PREP(ARM_SMMU_S2CR_PRIVCFG, S2CR_PRIVCFG_DEFAULT);
++	pr_info("UKE-POKE: qcom_cfg_probe: VOY a ESCRIBIR S2CR(0x%x) reg=0x%08x\n",
++		last_s2cr, reg);
+ 	arm_smmu_gr0_write(smmu, last_s2cr, reg);
+ 	reg = arm_smmu_gr0_read(smmu, last_s2cr);
++	pr_info("UKE-POKE: qcom_cfg_probe: relectura=0x%08x (TYPE=%u; quirk=%s)\n", reg,
++		(unsigned int)FIELD_GET(ARM_SMMU_S2CR_TYPE, reg),
++		FIELD_GET(ARM_SMMU_S2CR_TYPE, reg) != S2CR_TYPE_BYPASS ? "SI" : "no");
+ 	if (FIELD_GET(ARM_SMMU_S2CR_TYPE, reg) != S2CR_TYPE_BYPASS) {
+ 		qsmmu->bypass_quirk = true;
+ 		qsmmu->bypass_cbndx = smmu->num_context_banks - 1;
+@@ -513,10 +519,13 @@
+ 		}
+ 	}
+ 
++	pr_info("UKE-POKE: qcom_cfg_probe: leyendo SMR(0..%u)\n",
++		smmu->num_mapping_groups - 1);
+ 	for (i = 0; i < smmu->num_mapping_groups; i++) {
+ 		smr = arm_smmu_gr0_read(smmu, ARM_SMMU_GR0_SMR(i));
+ 
+ 		if (FIELD_GET(ARM_SMMU_SMR_VALID, smr)) {
++			n_validos++;
+ 			/* Ignore valid bit for SMR mask extraction. */
+ 			smr &= ~ARM_SMMU_SMR_VALID;
+ 			smmu->smrs[i].id = FIELD_GET(ARM_SMMU_SMR_ID, smr);
+@@ -528,6 +537,7 @@
+ 			smmu->s2crs[i].cbndx = 0xff;
+ 		}
+ 	}
++	pr_info("UKE-POKE: qcom_cfg_probe: SMR loop OK (validos=%u)\n", n_validos);
+ 
+ 	return 0;
+ }
+@@ -798,6 +808,13 @@
+ 	{ .compatible = "qcom,sm8350-smmu-500", .data = &qcom_smmu_500_impl0_data },
+ 	{ .compatible = "qcom,sm8450-smmu-500", .data = &qcom_smmu_500_impl0_data },
+ 	{ .compatible = "qcom,smmu-500", .data = &qcom_smmu_500_impl0_data },
++	/*
++	 * UKE-SMMU-CLK: el nombre del vendor (unico compatible del apps-smmu de este
++	 * aparato) tambien entra por impl0 (cfg_probe + reset). La rama adreno se elige
++	 * ANTES (qcom_smmu_impl_init: of_device_is_compatible "qcom,adreno-smmu"), asi
++	 * que kgsl no cambia de comportamiento con esta entrada.
++	 */
++	{ .compatible = "qcom,qsmmu-v500", .data = &qcom_smmu_500_impl0_data },
+ 	{ }
+ };
+ 

@@ -1,0 +1,174 @@
+--- a/kernel
++++ b/kernel	2026-10-11 02:33:50.721517357 +0200
+@@ -362,6 +362,22 @@
+ MODULE_PARM_DESC(uke_smmu_dump,
+ 	"UKE (K25): 0 (defecto)= NO volcar el SMMU en el resume (test H2: el volcado en el camino caliente puede ser el wedge); 1=volcar (discriminador del CB, pero con riesgo de wedge).");
+ 
++/* UKE-r3d (11-oct-2026): conmutador de la telemetria L6/L7 (los
++ * discriminadores de resume: k44b/c/d/e, k25ok, pre-rst, post-rst y las
++ * entradas de gmu_resume/pm_resume). Por defecto APAGADA: los
++ * poke/pr_err/pr_flush condicionados NO se ejecutan en el camino caliente,
++ * pero las CADENAS de marcadores permanecen en el binario (los gates del
++ * repack cuentan POKE/UKE-L6/UKE-L7: se envuelven llamadas, no literales).
++ * msm.uke_gmu_trace=1 (sysfs/cmdline, modulo msm) los reactiva sin
++ * recompilar. NOTA L20: el diseño literal decía module_param_named(
++ * "gmu_trace", ...) — eso exponía el token msm.gmu_trace, contradiciendo
++ * el propio diseño ("el nombre de cmdline será msm.uke_gmu_trace"); se
++ * aplica module_param(uke_gmu_trace, ...) para cumplir el contrato
++ * documentado y la convención uke_* del resto de params del fichero. */
++static int uke_gmu_trace;
++module_param(uke_gmu_trace, int, 0444);
++MODULE_PARM_DESC(uke_gmu_trace,
++	"UKE (r3d): 0 (defecto)= NO imprimir la telemetria L6/L7 de resume (cadenas intactas para los gates); 1= imprimir las trazas L6/L7.");
+ 
+ /* UKE-K24 (1-oct-2026, sesion #455): camina la tabla de paginas hasta el descriptor
+  * que cubre un IOVA objetivo. Sustituye al volcado plano de 8 entradas, que leia
+@@ -711,33 +727,41 @@
+ 		gmu_read(gmu, REG_A6XX_GMU_CM3_ITCM_START),
+ 		gmu_read(gmu, REG_A6XX_GMU_CM3_ITCM_START + 1));
+ 	/* UKE-L7 (10-oct-2026): tras K44-B con flush (si B cuelga, A ya salio). */
+-	uke_poke("L7-k44b");
+-	pr_err("UKE-L7: k44b-ok\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L7-k44b");
++		pr_err("UKE-L7: k44b-ok\n");
++		pr_flush(120, false);
++	}
+ 	pr_err("UKE-K44 C: icache=%08x dcache=%08x sysbus=%08x (esp 1/1/1)\n",
+ 		gmu_read(gmu, REG_A6XX_GMU_ICACHE_CONFIG),
+ 		gmu_read(gmu, REG_A6XX_GMU_DCACHE_CONFIG),
+ 		gmu_read(gmu, REG_A6XX_GMU_SYS_BUS_CONFIG));
+ 	/* UKE-L7 (10-oct-2026): tras K44-C con flush. */
+-	uke_poke("L7-k44c");
+-	pr_err("UKE-L7: k44c-ok\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L7-k44c");
++		pr_err("UKE-L7: k44c-ok\n");
++		pr_flush(120, false);
++	}
+ 	pr_err("UKE-K44 D: hfi_info=%08x hfi_addr=%08x (esp 1/%08llx)\n",
+ 		gmu_read(gmu, REG_A6XX_GMU_HFI_QTBL_INFO),
+ 		gmu_read(gmu, REG_A6XX_GMU_HFI_QTBL_ADDR),
+ 		gmu->hfi.iova);
+ 	/* UKE-L7 (10-oct-2026): tras K44-D con flush. */
+-	uke_poke("L7-k44d");
+-	pr_err("UKE-L7: k44d-ok\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L7-k44d");
++		pr_err("UKE-L7: k44d-ok\n");
++		pr_flush(120, false);
++	}
+ 	pr_err("UKE-K44 E: fence=%08x fence_r0=%08x (esp 0/8c8008a0)\n",
+ 		gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_STATUS),
+ 		gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_RANGE_0));
+ 	pr_flush(120, false);
+ 	/* UKE-L7 (10-oct-2026): tras K44-E con flush (si E cuelga, D ya salio). */
+-	uke_poke("L7-k44e");
+-	pr_err("UKE-L7: k44e-ok\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L7-k44e");
++		pr_err("UKE-L7: k44e-ok\n");
++		pr_flush(120, false);
++	}
+ 
+ 	/* UKE-K25 (1-oct-2026, sesion #458) — TEST H2.
+ 	 *
+@@ -761,9 +785,11 @@
+ 			"test H2: NO se lee el SMMU en este resume\n");
+ 	uke_poke("K19-dumpOK");
+ 	/* UKE-L7 (10-oct-2026): tras el bloque K25 con flush. */
+-	uke_poke("L7-k25ok");
+-	pr_err("UKE-L7: k25-ok\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L7-k25ok");
++		pr_err("UKE-L7: k25-ok\n");
++		pr_flush(120, false);
++	}
+ 
+ 	/* UKE-L10 (10-oct-2026): fix vendor C1+C2 (§3 CRITICA-HW-20261010),
+ 	 * entre S1 y el release. C1: sanear el GBIF halted (el vendor lo
+@@ -794,9 +820,11 @@
+ 
+ 	/* UKE-L7 (10-oct-2026): ANTES del write SYSRESET=0 (si el write mata,
+ 	 * pre-rst sale y post-rst no). */
+-	uke_poke("L7-pre-rst");
+-	pr_err("UKE-L7: pre-rst\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L7-pre-rst");
++		pr_err("UKE-L7: pre-rst\n");
++		pr_flush(120, false);
++	}
+ 	/* UKE-L10 (10-oct-2026): write RESTAURADO (L9 lo comento y #573 cerro el
+ 	 * veredicto: el write mata sin el fix) + wmb() vendor tras el release
+ 	 * (C7, gratis: adreno_gen7_gmu.c device_start hace SYSRESET=0 + wmb).
+@@ -811,9 +839,11 @@
+ 	pr_flush(120, false);
+ 	/* UKE-L7 (10-oct-2026): ENTRE el write y S3 (si el poll mata, post-rst
+ 	 * sale y S4 no; si el write mata, ni post-rst sale). */
+-	uke_poke("L7-post-rst");
+-	pr_err("UKE-L7: post-rst\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L7-post-rst");
++		pr_err("UKE-L7: post-rst\n");
++		pr_flush(120, false);
++	}
+ 	uke_poke("S3-rst0");
+ 	/* UKE-K23b: uke_poke() solo escribe en el framebuffer y hace pr_info SIN
+ 	 * pr_flush (uke-panic-fb.c:250). Si el write de arriba deja la CPU en
+@@ -853,8 +883,14 @@
+ 			gmu_read(gmu, REG_A6XX_GMU_AHB_FENCE_STATUS));
+ 	}
+ 
+-	if (ret)
++	if (ret) {
+ 		DRM_DEV_ERROR(gmu->dev, "GMU firmware initialization timed out\n");
++		/* UKE-r3c (11-oct-2026): propagar el fallo del poll vendor.
++		 * ANTES se tragaba (ret=0 incondicional en el epilogo) y
++		 * fw_start seguia al HFI, que daba su -110 sin contexto.
++		 * Sale SIN set_bit(GMU_STATUS_FW_START). */
++		return ret;
++	}
+ 
+ uke_l8_nopoll_done:
+ 	/* UKE-L8 (10-oct-2026): etiqueta del bypass (L8/L10: el `goto` de
+@@ -862,14 +898,13 @@
+ 	 * la etiqueta queda como EPILOGO COMUN post-poll (FW_START): en
+ 	 * traza L11, `nopoll-ok` significa "se llego al epilogo tras el
+ 	 * poll VENDOR", NO "poll saltado" — el discriminador real es
+-	 * S4-pollOK/S4-pollFAIL + L11-pollok. Se conserva el `ret = 0`
+-	 * para DEJAR SEGUIR al camino HFI existente (fw_start ->
+-	 * hfi_start): si el poll fallo, HFI dara su propio veredicto
+-	 * (-110 "Unable to start the HFI queues" => fw no responde). */
++	 * S4-pollOK/S4-pollFAIL + L11-pollok. UKE-r3c: el `ret = 0`
++	 * incondicional ha DESAPARECIDO (el fallo del poll retorna en el
++	 * if de arriba); en el exito ret ya vale 0, asi que el camino HFI
++	 * existente (fw_start -> hfi_start) queda IDENTICO al de antes. */
+ 	uke_poke("L8-nopoll-ok");
+ 	pr_err("UKE-L8: nopoll-ok\n");
+ 	pr_flush(120, false);
+-	ret = 0;
+ 
+ 	set_bit(GMU_STATUS_FW_START, &gmu->status);
+ 
+@@ -1890,9 +1925,11 @@
+ 
+ 	/* UKE-L6 (10-oct-2026): entrada de a6xx_gmu_resume ANTES del WARN de
+ 	 * initialized y del primer pm_runtime_get_sync (H1-rpm nunca salio). */
+-	uke_poke("L6-gmures");
+-	pr_err("UKE-L6: gmu-resume-enter\n");
+-	pr_flush(120, false);
++	if (uke_gmu_trace) {
++		uke_poke("L6-gmures");
++		pr_err("UKE-L6: gmu-resume-enter\n");
++		pr_flush(120, false);
++	}
+ 
+ 	if (WARN(!gmu->initialized, "The GMU is not set up yet\n"))
+ 		return -EINVAL;

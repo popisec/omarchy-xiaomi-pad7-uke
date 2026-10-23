@@ -1,0 +1,25 @@
+# uke-wifi-fw.sha256 - firmware WCN6750 que uke-wifi-up.sh exige antes de arrancar el WPSS.
+# Verificable en la tablet con:  cd / && sha256sum -c usr/lib/firmware/uke-wifi-fw.sha256
+# Origen (todos medidos == a /vendor/firmware_mnt/image/qca6750 del Android VIVO, 17-oct-2026,
+# build/android/sistema-20261017/firmware-sha.txt):
+#   board.bin  = qca6750/bd_o82gl.elf COMPLETO (ELF, 59928 B). ath11k lo manda como BDF_TYPE_ELF (=1)
+#                y NO pide caldata (qmi.c); el payload crudo da424c03 (BDF_TYPE_BIN) exigiria
+#                cal-ahb-*.bin/caldata.bin y el kernel senemos NO lleva el poke que lo perdona.
+#   regdb.bin  = qca6750/regdb_xiaomi.bin (el que pide el icnss2 vivo).
+#   wpss.*     = set COMPLETO del WPSS del vendor (mdt + b00..b10 + b12; el b11 no existe: filesz=0).
+#                Coherente por construccion: cada segmento (sha384) esta en la tabla de hashes de b12.
+dc4a46400832e730f3aa6adf0137931f1d450e543279fffae977bd86046ad300  usr/lib/firmware/ath11k/WCN6750/hw1.0/board.bin
+fca5bbfaf5a9d490d9214ac6397fe7c42412af33f8f600dde518639376255c3f  usr/lib/firmware/ath11k/WCN6750/hw1.0/regdb.bin
+b3451c51cd58e1afd6f172e46b78fefb236cb7efdd02bd4991a3ab2794be6560  usr/lib/firmware/qca6750/wpss.mdt
+2f0b37ad814da7e612bdd420c411a323367936efea2eea32f19c9b796244b0d4  usr/lib/firmware/qca6750/wpss.b00
+3dd190536edda87cda85b69fcc7d03174e948daa3618ca5b9a5e902f4dd2d7d4  usr/lib/firmware/qca6750/wpss.b01
+bcaff73b3436be65aa26cf06b5e5f3e4eef3b8b5a625cc78e9169e7c9b3f5dc0  usr/lib/firmware/qca6750/wpss.b02
+b7a3b1f97ef810824c8660222d4deb8689de77ea809c6c9ed8d779ec48dfea1d  usr/lib/firmware/qca6750/wpss.b03
+41870cea04a11339ed8e99324e33ff2119c8de23cb77d0ad3fc7b52de059f8c9  usr/lib/firmware/qca6750/wpss.b04
+aae176b232881e8b9258e1844a9b946a4e4690b9bb5463b281cd1ba2b3ee1f14  usr/lib/firmware/qca6750/wpss.b05
+2b9d868e0d776659f3741d9cce75f7239f4693596181657e420c5693979473a3  usr/lib/firmware/qca6750/wpss.b06
+d7846f851ef64896a307db5b0e08249cfd9319f0769ec91988156d92833de9fa  usr/lib/firmware/qca6750/wpss.b07
+0de7c47d174666be7f6a820951225ce0d50c97007aa186191e9ef25356efcb34  usr/lib/firmware/qca6750/wpss.b08
+57464f648ec1a089770e642b7c35717bf9b925e65996ba5d7671e9c77321de13  usr/lib/firmware/qca6750/wpss.b09
+26d0fc62bd7983c7c95c03079e751e8a3188a5965b7e0c4a101ad26331819a0c  usr/lib/firmware/qca6750/wpss.b10
+a1f14ed3aeb4d122a78d5fea665e1364589c89991d8de16757d06ebccc700374  usr/lib/firmware/qca6750/wpss.b12

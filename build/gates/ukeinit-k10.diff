@@ -1,0 +1,35 @@
+--- a/ukeinit (s181 built-in del kernel K9, extraido del Image.gz 03ed849b…)
++++ b/ukeinit-k10 (ramdisk externo de boot-ukek10.img)
+@@ -177,6 +177,32 @@
+ done
+ [ -e /dev/ttyGS0 ] || kmsg "S118 ACMFALLO: sin ttyGS0 tras 60 s"
+ 
++# ============ K10 (#P28): ARMING del probe del apps-smmu CON CONSOLA VIVA ============
++# La cmdline K10 NO lleva arm_smmu.uke_smmu_probe=1: el probe del apps-smmu queda
++# diferido y DESARMADO (igual que un boot sano). Aqui, en la ventana 3,6-13 s
++# (ttyGS0 vivo a 3,57 s; UFS sin probear hasta 13,8 s), se arma por sysfs: el .set
++# del param dispara driver_deferred_probe_trigger() y el probe ARMADO corre a ~5 s
++# CON consola viva y SIN DMA de UFS -> las migas UKE-POKE son visibles pase lo que
++# pase (#P23/#P27/#P28 murieron mudas a 0,44 s sin dato).
++#
++# Desenlace del echo en BACKGROUND (decision documentada, req. c): el arming se
++# lanza desprendido tras `sync`, asi PID1 jamas bloquea en el nodo del param y el
++# flujo S123 (fsck/mount/switch_root) sigue su curso. El probe en si corre en el
++# workqueue del deferred (async): si se cuelga, se cuelga un kworker; si el kernel
++# muere entero, las migas ya salieron (kmsg + ttyGS0). La ausencia del miga
++# "UKE-K10: armado rc=" localiza la muerte DENTRO del propio arming.
++UKEP=/sys/module/arm_smmu/parameters/uke_smmu_probe
++if [ -w "$UKEP" ]; then
++  kmsg "UKE-K10: param presente (valor=$(cat "$UKEP" 2>/dev/null)) a $(cut -d. -f1 /proc/uptime)s"
++  sync
++  kmsg "UKE-K10: armando probe a $(cut -d. -f1 /proc/uptime)s (ttyGS0: $([ -e /dev/ttyGS0 ] && echo si || echo NO))"
++  echo "uke: UKE-K10 armando probe por sysfs" > /dev/ttyGS0 2>/dev/null
++  ( sync; echo 1 > "$UKEP" 2>/dev/null; kmsg "UKE-K10: armado rc=$? a $(cut -d. -f1 /proc/uptime)s" ) &
++else
++  kmsg "UKE-K10: param AUSENTE o RO (kernel sin uke_smmu_probe) - SIN arming, boot desarmado intacto"
++fi
++
++
+ # ============ S123: switch_root a Ubuntu (fase 2) ============
+ # Orden estricto de ESTADO.md: /proc/partitions -> candidata (particion UFS de MAYOR
+ # tamano = userdata 113 GB) -> mount SOLO LECTURA con noload (sin replay del journal)

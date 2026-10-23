@@ -1,0 +1,13 @@
+#!/bin/bash
+# uke-carga-captura [segundos=120] — en LINUX (tablet), como root, con el CARGADOR DE PARED puesto. Solo lectura.
+# Equivalente al android-captura.sh: lo que ve qcom_battmgr (bat y usb), typec/PD si hay ucsi_glink, y dmesg.
+# Salida: /var/log/uke-bateria/carga-captura-<fecha>.txt   (copiar al PC para comparar)
+T=${1:-120}; B=/sys/class/power_supply; F=/var/log/uke-bateria/carga-captura-$(date +%Y%m%d-%H%M%S).txt; mkdir -p /var/log/uke-bateria
+{ echo "# linux $(date) T=$T kernel=$(uname -r)"; lsmod | grep -i -E "ucsi|pmic_glink|battmgr|typec|altmode|q6v5|fastrpc"
+  i=0; while [ $i -lt $T ]; do
+    echo "$(date +%T) cap=$(cat $B/qcom-battmgr-bat/capacity) cc=$(cat $B/qcom-battmgr-bat/charge_counter) bat_I=$(cat $B/qcom-battmgr-bat/current_now) bat_V=$(cat $B/qcom-battmgr-bat/voltage_now) type=$(cat $B/qcom-battmgr-bat/charge_type) usb_online=$(cat $B/qcom-battmgr-usb/online) usb_V=$(cat $B/qcom-battmgr-usb/voltage_now) usb_I=$(cat $B/qcom-battmgr-usb/current_now) usb_Imax=$(cat $B/qcom-battmgr-usb/current_max 2>/dev/null) usb_type=$(cat $B/qcom-battmgr-usb/usb_type | grep -o '\[[^]]*\]')"
+    i=$((i+5)); sleep 5; done
+  echo "## usb psy"; cat $B/qcom-battmgr-usb/uevent; echo "## todos los power_supply"; ls $B
+  echo "## typec"; ls /sys/class/typec /sys/class/usb_power_delivery 2>&1; for d in /sys/class/typec/*; do [ -d "$d" ] && for f in $d/*; do [ -f $f ] && echo "  $(basename $f)=$(cat $f 2>/dev/null)"; done; done
+  echo "## dmesg"; dmesg | grep -i -E "ucsi|typec|pdo|pps|battmgr|pmic_glink|charger" | tail -60
+} > "$F" 2>&1; echo "guardado: $F"; grep -E "bat_I" "$F" | tail -3

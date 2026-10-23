@@ -1,0 +1,149 @@
+BORRADOR DE E0 (18-oct-2026) — NO APLICADO a ningun arbol. Parche 1/3 de la serie de audio.
+
+arm64: uke-abl: admitir el bus I2C de los amplificadores (i2c@88c000) en uke_abl_transform()
+
+Hoy uke_scope_qup_buses() deja en QUP1 solo i2c@890000/ktz8866@11 y pone status="disabled" al resto, por
+lo que el bus i2c-4 de Android (QUP1 SE3, 4x FourSemi FS19xx en 0x34-0x37) llega al kernel apagado.
+
+Cambios (solo uke-abl.c):
+  - uke_amp_bus(): validador "fail closed" nuevo, al estilo de uke_backlight_bus(): compat qcom,i2c-geni,
+    reg 0x88c000/0x4000, interconnects IGUALES byte a byte a los del bus KTZ (mismo QUP1), interrupcion SPI 585,
+    ruta DMA OEM {0,3,3,64,2},{1,3,3,64,2} hacia gpi-dma@800000 (la 5a celda vale 2 aqui y 0 en el KTZ;
+    gpi_of_dma_xlate() solo lee las tres primeras), y exactamente cuatro hijos fs19xx_smartpa@34..37 con
+    compat foursemi,fs16xx. Cualquier desviacion rechaza el arranque como las demas comprobaciones.
+  - uke_scope_qup_buses(): admite i2c@88c000 y sus cuatro hijos (tabla admitted[][5], 4 padres).
+  - uke_board_pins(): valida los pines del bus (gpio44 qup1_se3_l0, gpio45 qup1_se3_l1, reposo gpio) y las
+    lineas reset-gpio (30/149/124/123) e irq-gpio (47/69/31/129, flags 0x2008) de los cuatro amplificadores.
+  - No se admite ningun SMMU nuevo: el bus usa el wrapper QUP1 (0x423) y GPI1 (0x436) ya admitidos.
+
+Verificado en el PC (kernel/harness + live-android-os3.dtb, ver AUDIO-E0-20261018.md §3): con el parche, la salida
+de uke_abl_transform() difiere de la original en UNA linea (status del i2c@88c000: "disabled" -> "ok"); 14
+mutaciones del DT de entrada (dmas, interconnects, interrupts, reg, reg/compat/gpio de amplificadores, pines,
+hijo extra) son rechazadas (-15) y la original las aceptaba. NO probado en la tablet ni compilado como kernel.
+Pendiente aguas abajo: que el driver i2c-qcom-geni sondee ese bus (hace falta DMA GPI en SE3) y el driver FS19xx.
+
+--- a/arch/arm64/kernel/uke-abl.c
++++ b/arch/arm64/kernel/uke-abl.c
+@@ -311,22 +311,84 @@
+ 	return 0;
+ }
+ 
++/*
++ * Smart-amplifier bus. QUP1 SE3 is the OEM i2c-4 (i2c@88c000) with four FourSemi FS19xx
++ * (DEVID 0x2900) at 0x34-0x37. It shares the QUP1 wrapper, GPI1 and NoC route of the KTZ8866
++ * bus above, so no new SMMU stream is admitted. The OEM DMA route carries a fifth cell of 2
++ * (the KTZ bus has 0); gpi_of_dma_xlate() only reads the first three. Fail closed like the
++ * other graph checks: any deviation rejects the Uke boot.
++ */
++static int UKE_INIT uke_amp_bus(const void *fdt)
++{
++	static const char bus[] = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@88c000";
++	static const char ktz_bus[] = "/soc/qcom,qupv3_1_geni_se@8c0000/i2c@890000";
++	static const unsigned int route[] = { 0, 3, 3, 64, 2, 1, 3, 3, 64, 2 };
++	int node = fdt_path_offset(fdt, bus), ktz = fdt_path_offset(fdt, ktz_bus);
++	int dma = fdt_path_offset(fdt, "/soc/qcom,gpi-dma@800000");
++	int size, other, i, j, amp;
++	unsigned int phandle, seen = 0;
++	const fdt32_t *value, *ktz_icc;
++
++	if (node < 0 || ktz < 0 || dma < 0 || !(phandle = fdt_get_phandle(fdt, dma)) ||
++	    fdt_node_check_compatible(fdt, node, "qcom,i2c-geni") ||
++	    uke_path_reg(fdt, bus, 0x88c000, 0x4000))
++		return -FDT_ERR_BADVALUE;
++	/* Same QUP1 core/config/memory interconnect path as the verified KTZ8866 bus. */
++	value = fdt_getprop(fdt, node, "interconnects", &size);
++	ktz_icc = fdt_getprop(fdt, ktz, "interconnects", &other);
++	if (!value || !ktz_icc || size != other || size != (int)(12 * sizeof(*value)) ||
++	    memcmp(value, ktz_icc, size))
++		return -FDT_ERR_BADVALUE;
++	value = fdt_getprop(fdt, node, "interrupts", &size);
++	if (!value || size != (int)(3 * sizeof(*value)) || fdt32_to_cpu(value[0]) ||
++	    fdt32_to_cpu(value[1]) != 585 || fdt32_to_cpu(value[2]) != 4)
++		return -FDT_ERR_BADVALUE;
++	value = fdt_getprop(fdt, node, "dmas", &size);
++	if (!value || size != (int)(12 * sizeof(*value)))
++		return -FDT_ERR_BADVALUE;
++	for (i = 0; i < 2; i++) {
++		if (fdt32_to_cpu(value[i * 6]) != phandle)
++			return -FDT_ERR_BADVALUE;
++		for (j = 0; j < 5; j++)
++			if (fdt32_to_cpu(value[i * 6 + j + 1]) != route[i * 5 + j])
++				return -FDT_ERR_BADVALUE;
++	}
++	fdt_for_each_subnode(amp, fdt, node) {
++		unsigned int address;
++
++		if (strncmp(fdt_get_name(fdt, amp, NULL), "fs19xx_smartpa@", 15) ||
++		    fdt_node_check_compatible(fdt, amp, "foursemi,fs16xx"))
++			return -FDT_ERR_BADVALUE;
++		value = fdt_getprop(fdt, amp, "reg", &size);
++		if (!value || size != 4)
++			return -FDT_ERR_BADVALUE;
++		address = fdt32_to_cpu(*value);
++		if (address < 0x34 || address > 0x37 || (seen & (1U << (address - 0x34))))
++			return -FDT_ERR_BADVALUE;
++		seen |= 1U << (address - 0x34);
++	}
++	return seen == 0xf ? 0 : -FDT_ERR_BADVALUE;
++}
++
+ static int UKE_INIT uke_scope_qup_buses(void *fdt)
+ {
+ 	static const char * const parents[] = {
+ 		"/soc/qcom,qupv3_1_geni_se@8c0000",
+ 		"/soc/qcom,qupv3_1_geni_se@8c0000/i2c@890000",
++		"/soc/qcom,qupv3_1_geni_se@8c0000/i2c@88c000",
+ 		"/soc/qcom,qupv3_0_geni_se@ac0000",
+ 	};
+-	static const char * const admitted[][3] = {
+-		{ "i2c@890000", NULL, NULL },
+-		{ "ktz8866@11", NULL, NULL },
++	static const char * const admitted[][5] = {
++		{ "i2c@890000", "i2c@88c000", NULL },
++		{ "ktz8866@11", NULL },
++		{ "fs19xx_smartpa@34", "fs19xx_smartpa@35", "fs19xx_smartpa@36",
++		  "fs19xx_smartpa@37", NULL },
+ 		{ "i2c@a80000", "spi@a90000", NULL },
+ 	};
+ 	int i, j, parent, child, ret;
+ 
+ 	/* Other OEM serial engines retain five-cell vendor DMA routes. */
+-	for (i = 0; i < 3; i++) {
++	for (i = 0; i < 4; i++) {
+ 		parent = fdt_path_offset(fdt, parents[i]);
+ 		if (parent < 0)
+ 			return parent;
+@@ -544,6 +606,9 @@
+ 		UKE_ROUTE(UKE_QUP1 "i2c@890000", "pinctrl-0", 0, 2, "gpio176", "qup1_se4_l0", 2),
+ 		UKE_ROUTE(UKE_QUP1 "i2c@890000", "pinctrl-0", 1, 2, "gpio177", "qup1_se4_l1", 2),
+ 		UKE_ROUTE(UKE_QUP1 "i2c@890000", "pinctrl-1", 0, 1, "gpio176\0gpio177", "gpio", 2),
++		UKE_ROUTE(UKE_QUP1 "i2c@88c000", "pinctrl-0", 0, 2, "gpio44", "qup1_se3_l0", 2),
++		UKE_ROUTE(UKE_QUP1 "i2c@88c000", "pinctrl-0", 1, 2, "gpio45", "qup1_se3_l1", 2),
++		UKE_ROUTE(UKE_QUP1 "i2c@88c000", "pinctrl-1", 0, 1, "gpio44\0gpio45", "gpio", 2),
+ 		UKE_ROUTE(UKE_QUP0 "spi@a90000", "pinctrl-0", 0, 3, "gpio17", "qup0_se4_l1", 6),
+ 		UKE_ROUTE(UKE_QUP0 "spi@a90000", "pinctrl-0", 1, 3, "gpio16", "qup0_se4_l0", 6),
+ 		UKE_ROUTE(UKE_QUP0 "spi@a90000", "pinctrl-0", 2, 3, "gpio18", "qup0_se4_l2", 6),
+@@ -563,6 +628,14 @@
+ 		{ UKE_QUP0 "spi@a90000/novatek@0", "novatek,irq-gpio", 54, 0x2001 },
+ 		{ UKE_QUP0 "spi@a90000/novatek@0", "novatek,lcd_id-gpio", 26, 0 },
+ 		{ UKE_QUP0 "i2c@a80000/wcd939x_i2c@e", "reset-gpios", 119, 0 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@34", "reset-gpio", 30, 0 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@35", "reset-gpio", 149, 0 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@36", "reset-gpio", 124, 0 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@37", "reset-gpio", 123, 0 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@34", "irq-gpio", 47, 0x2008 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@35", "irq-gpio", 69, 0x2008 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@36", "irq-gpio", 31, 0x2008 },
++		{ UKE_QUP1 "i2c@88c000/fs19xx_smartpa@37", "irq-gpio", 129, 0x2008 },
+ 	};
+ 	int tlmm = fdt_path_offset(fdt, tlmm_path), i, size;
+ 	const fdt32_t *cells;
+@@ -737,7 +810,7 @@
+ 	    uke_path_reg(input, "/soc/ufshc@1d84000", 0x1d84000, 0x3000) ||
+ 	    uke_path_reg(input, "/soc/ufsphy_mem@1d80000", 0x1d80000, 0x2000) ||
+ 	    uke_reboot_cell(input) || uke_wifi_graph(input) || uke_legacy_layout(input) || uke_gpu_opps(input) ||
+-	    uke_backlight_bus(input) || uke_spi_graph(input) || uke_board_pins(input) ||
++	    uke_backlight_bus(input) || uke_amp_bus(input) || uke_spi_graph(input) || uke_board_pins(input) ||
+ 	    !ufs_overlay || !usb_overlay ||
+ 	    ufs_bytes < sizeof(struct fdt_header) || usb_bytes < sizeof(struct fdt_header) ||
+ 	    fdt_check_full(ufs_overlay, ufs_bytes) ||

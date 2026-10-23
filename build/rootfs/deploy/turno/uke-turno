@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# uke-turno: turnos de la tablet entre sesiones, sin gestora.
+# Hay DOS recursos, cada uno con su cerrojo (un directorio en /run de la tablet: mkdir es atómico
+# y el cerrojo desaparece al reiniciar):
+#   pantalla : toques sintéticos, capturas, abrir/cerrar apps en la sesión gráfica, reiniciar la shell.
+#   sistema  : pacman, insmod/rmmod, servicios del sistema, suspender, medidas de batería.
+# Dos sesiones pueden trabajar a la vez si usan recursos distintos.
+#   uke-turno pedir  [--forzar] [--recurso pantalla|sistema|ambos] <sesion> "<qué>" [espera_s]
+#   uke-turno soltar [--recurso ...] <sesion>
+#   uke-turno estado
+# Sin --recurso se piden AMBOS (compatibilidad con el uso anterior: turno exclusivo).
+# Leer (cat, journalctl, ps) no necesita turno. Un turno de más de 45 min se da por abandonado
+# y «pedir --forzar» lo rompe.
+set -u
+KEY=${UKE_KEY:-~/proyectos/omarchy-uke/build/rootfs/uke-arch-root}
+HOST=${UKE_HOST:-root@uke}
+SSH=(ssh -i "$KEY" -o BatchMode=yes -o ConnectTimeout=8 "$HOST")
+cmd=${1:-estado}; shift || true
+forzar=0; recurso=ambos
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --forzar) forzar=1; shift ;;
+    --recurso) recurso=${2:?}; shift 2 ;;
+    *) break ;;
+  esac
+done
+case "$recurso" in
+  pantalla) RS=(pantalla) ;; sistema) RS=(sistema) ;; ambos) RS=(pantalla sistema) ;;
+  *) echo "recurso desconocido: $recurso" >&2; exit 2 ;;
+esac
+dir() { echo "/run/uke-turno-$1.d"; }
+
+tomar() {   # tomar <recurso> <quien> <que> -> OK | OCUPADA <edad> <dueño> | <que>
+  local L; L=$(dir "$1")
+  "${SSH[@]}" "if [ -d /run/uke-turno.d ]; then age=\$(( \$(date +%s) - \$(sed -n 2p /run/uke-turno.d/dueno 2>/dev/null || echo 0) )); echo \"OCUPADA \$age \$(head -1 /run/uke-turno.d/dueno 2>/dev/null) | (cerrojo antiguo) \$(sed -n 3p /run/uke-turno.d/dueno 2>/dev/null)\"; elif mkdir $L 2>/dev/null; then printf '%s\n%s\n%s\n' \"$2\" \"\$(date +%s)\" \"$3\" > $L/dueno; echo OK; else age=\$(( \$(date +%s) - \$(sed -n 2p $L/dueno 2>/dev/null || echo 0) )); echo \"OCUPADA \$age \$(head -1 $L/dueno 2>/dev/null) | \$(sed -n 3p $L/dueno 2>/dev/null)\"; fi" 2>&1
+}
+soltar1() { local L; L=$(dir "$1"); "${SSH[@]}" "if [ \"\$(head -1 $L/dueno 2>/dev/null)\" = \"$2\" ]; then rm -rf $L && echo 'soltado $1'; else echo \"$1: no es tuyo (\$(head -1 $L/dueno 2>/dev/null || echo libre))\"; fi"; }
+
+case "$cmd" in
+  pedir)
+    quien=${1:?sesion}; que=${2:?descripcion}; espera=${3:-1800}
+    fin=$(( $(date +%s) + espera )); tengo=()
+    for r in "${RS[@]}"; do
+      while :; do
+        out=$(tomar "$r" "$quien" "$que")
+        case "$out" in
+          OK) tengo+=("$r"); break ;;
+          OCUPADA*)
+            set -- $out
+            if [ "$forzar" = 1 ] && [ "$2" -gt 2700 ]; then "${SSH[@]}" "rm -rf $(dir "$r")"; echo "turno $r abandonado (${2}s) roto por $quien"; continue; fi
+            echo "$(date +%T) $r $out" >&2 ;;
+          *) echo "sin conexión con la tablet: $out" >&2 ;;
+        esac
+        if [ "$(date +%s)" -ge "$fin" ]; then
+          for t in "${tengo[@]}"; do soltar1 "$t" "$quien" >/dev/null; done
+          echo "no conseguí el turno ($r) en ${espera}s" >&2; exit 1
+        fi
+        sleep 30
+      done
+    done
+    echo "turno concedido a $quien: ${RS[*]}"; exit 0 ;;
+  soltar)
+    quien=${1:?sesion}; rc=0
+    for r in "${RS[@]}"; do soltar1 "$r" "$quien" || rc=1; done
+    # transición: suelta también el cerrojo antiguo (/run/uke-turno.d) si es de esta sesión
+    "${SSH[@]}" "[ \"\$(head -1 /run/uke-turno.d/dueno 2>/dev/null)\" = \"$quien\" ] && rm -rf /run/uke-turno.d && echo 'soltado cerrojo antiguo'"
+    exit $rc ;;
+  estado)
+    for r in pantalla sistema; do
+      L=$(dir "$r")
+      "${SSH[@]}" "if [ -d $L ]; then echo \"$r: ocupada por \$(head -1 $L/dueno) desde hace \$(( \$(date +%s) - \$(sed -n 2p $L/dueno) ))s: \$(sed -n 3p $L/dueno)\"; else echo '$r: libre'; fi"
+    done
+    "${SSH[@]}" "[ -d /run/uke-turno.d ] && echo \"(cerrojo antiguo: \$(head -1 /run/uke-turno.d/dueno) — \$(sed -n 3p /run/uke-turno.d/dueno))\"" ;;
+  *) echo "uso: uke-turno pedir [--forzar] [--recurso pantalla|sistema|ambos] <sesion> <qué> [espera_s] | soltar [--recurso …] <sesion> | estado" >&2; exit 2 ;;
+esac

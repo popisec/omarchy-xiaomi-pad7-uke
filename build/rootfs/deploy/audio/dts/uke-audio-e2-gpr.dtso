@@ -1,0 +1,62 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e2-gpr.dtso — ETAPA E2 del plan de audio (AUDIO-SENEMOS-20261018.md §6).
+ * ESBOZO DE E0 (18-oct-2026): compila y se aplica con fdtoverlay sobre el DT vivo, NO probado en la tablet.
+ *
+ * Que anade: SOLO los tres servicios AudioReach de mainline bajo el `qcom,gpr` que el DT vendor ya
+ * tiene en /soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr:
+ *     service@1  qcom,q6apm              (APM_CMD_GET_SPF_STATE, igual que el primer comando de Android)
+ *     service@2  qcom,q6prm              (peticiones de reloj/recurso al ADSP; sondea tras q6apm_is_adsp_ready())
+ *       └─ clock-controller qcom,q6prm-lpass-clocks   (el "q6prmcc" que consumiran macros/pinctrl)
+ * Ambos con `qcom,protection-domain` = "avs/audio" + "msm/adsp/audio_pd": asi `apr` NO registra los
+ * dispositivos hasta que PDR vea el audio_pd UP (pd-mapper del parche 0028 ya sirve esa instancia 74).
+ *
+ * Que NO anade (a proposito): ni `bedais` ni `dais` (el segundo lleva `iommus` hacia el SMMU y el kernel
+ * actual lo rechaza, ver README §SMMU), ni macros, ni pines, ni tarjeta. Sin DMA y sin votos de reloj.
+ *
+ * Convenciones de este DT (medidas en res-live-final.dtb, que es lo que ve el kernel tras uke-abl.c):
+ *   - /soc tiene #address-cells=1 #size-cells=1 (estilo vendor), NO los 2/2 de sm8650.dtsi.
+ *   - el GIC tiene #interrupt-cells=3 (no 4).
+ *   - el nodo gpr vendor no declara #address-cells/#size-cells (efectivos por herencia desde /soc: 1/1). NO se anaden
+ *     aqui: of_overlay_fdt_apply() imprime un "WARNING: memory leak ..." por cada propiedad nueva en un nodo ya
+ *     existente y apr.c solo lee `reg` como u32. (En /soc, en cambio, los #cells con el MISMO valor son un no-op.)
+ *   - los hijos vendor (spf_core reg=3, q6prm reg=7 `qcom,audio_prm`, audio-pkt reg=0x17) quedan intactos;
+ *     `reg` = id de servicio GPR (puerto de origen para enrutar respuestas), no choca con 1 y 2.
+ *   - el dominio ADSP lo toma apr.c del `reg=<2>` del propio gpr (parche 0027, solo `xiaomi,uke`); por eso
+ *     NO se anade `qcom,domain` (cambiar un nodo vendor mas de lo necesario).
+ * Las etiquetas llevan prefijo `uke_` porque el vendor ya usa `swr1`, `rx_macro`, `lpi_tlmm`... en
+ * /__symbols__ y un -@ con etiquetas repetidas pisaria (libfdt) o rechazaria (kernel) el simbolo.
+ *
+ * Se aplica en caliente con el modulo cargador de overlays (of_overlay_fdt_apply, por escribir en E0-f)
+ * ANTES de `modprobe apr` (apr_probe recorre los hijos al sondear). NO es para la particion dtbo.
+ */
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/soc/qcom,gpr.h>
+
+/ {
+	fragment@0 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,gpr";
+
+		__overlay__ {
+			uke_q6apm: service@1 {
+				compatible = "qcom,q6apm";
+				reg = <GPR_APM_MODULE_IID>;
+				#sound-dai-cells = <0>;
+				qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+			};
+
+			uke_q6prm: service@2 {
+				compatible = "qcom,q6prm";
+				reg = <GPR_PRM_MODULE_IID>;
+				qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+
+				uke_q6prmcc: clock-controller {
+					compatible = "qcom,q6prm-lpass-clocks";
+					#clock-cells = <2>;
+				};
+			};
+		};
+	};
+};

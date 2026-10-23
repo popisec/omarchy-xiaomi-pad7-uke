@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * uke-audio-e2c-fastrpc-heap.dtso — ETAPA E2b, CICLO 3 (AUDIO-E2b-RESULTADO-20261018.md). = e2b + heap protegido del audiopd:
+ *   memory-region = <&adsp_mem_heap>   /reserved-memory/adsp_heap_region (12 MiB, shared-dma-pool, `reusable`; el mismo que usa Android)
+ *   qcom,vmids = <22 37>               qcom,adsp-remoteheap-vmid del DT Android (fastrpc.c:1385 reasigna el heap a esos VMID con qcom_scm_assign_mem)
+ * Por que memory-region AQUI: fastrpc_remote_heap_alloc() (fastrpc.c:481) asigna el heap del PD estatico desde el **rpmsg device** (rdev), y
+ * fastrpc_rpmsg_probe() hace of_reserved_mem_device_init_by_idx(rdev, of_node, 0): ese pool es el heap. (En el ciclo 2 sin vmids pageslen=0 y no se paso heap.)
+ * RIESGO: qcom_scm_assign_mem a VMIDs seguros. Un error => violacion XPU/cuelgue de la carga => reset fisico. Solo con autorizacion expresa del dueño.
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/soc/remoteproc-adsp@03000000/glink-edge/qcom,msm_fastrpc_rpmsg";
+
+		__overlay__ {
+			compatible = "qcom,fastrpc";
+			label = "adsp";
+			qcom,non-secure-domain;
+			memory-region = <&adsp_mem_heap>;
+			qcom,vmids = <22 37>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			compute-cb@3 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <3>;
+				iommus = <&apps_smmu 0x1003 0x80>,
+					 <&apps_smmu 0x1043 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@4 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <4>;
+				iommus = <&apps_smmu 0x1004 0x80>,
+					 <&apps_smmu 0x1044 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@5 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <5>;
+				iommus = <&apps_smmu 0x1005 0x80>,
+					 <&apps_smmu 0x1045 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@6 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <6>;
+				iommus = <&apps_smmu 0x1006 0x80>,
+					 <&apps_smmu 0x1046 0x20>;
+				dma-coherent;
+			};
+
+			compute-cb@7 {
+				compatible = "qcom,fastrpc-compute-cb";
+				reg = <7>;
+				iommus = <&apps_smmu 0x1007 0x40>,
+					 <&apps_smmu 0x1067 0x0>,
+					 <&apps_smmu 0x1087 0x0>;
+				dma-coherent;
+			};
+		};
+	};
+};

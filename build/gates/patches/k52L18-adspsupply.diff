@@ -1,0 +1,15 @@
+--- a/drivers/remoteproc/qcom_q6v5_pas.c
++++ b/drivers/remoteproc/qcom_q6v5_pas.c
+@@ -547,7 +547,11 @@
+ {
+ 	pas->cx_supply = devm_regulator_get_optional(pas->dev, "cx");
+ 	if (IS_ERR(pas->cx_supply)) {
+-		if (PTR_ERR(pas->cx_supply) == -ENODEV)
++		/* uke L18: los ARC vendor (lcx.lvl/lmx.lvl) no tendran driver mainline
++		 * nunca (rails por AOP, esquema validado en la era Ubuntu con
++		 * status=Charging) -> tratar el -EPROBE_DEFER como -ENODEV y seguir. */
++		if (PTR_ERR(pas->cx_supply) == -ENODEV ||
++		    PTR_ERR(pas->cx_supply) == -EPROBE_DEFER)
+ 			pas->cx_supply = NULL;
+ 		else
+ 			return PTR_ERR(pas->cx_supply);

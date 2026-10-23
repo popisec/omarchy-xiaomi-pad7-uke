@@ -1,0 +1,50 @@
+[Unit]
+Description=uke: Bluetooth WCN6750 (overlay de DT en caliente + hci_uart) al arranque
+Documentation=file:///etc/uke/LEEME file:///usr/local/sbin/uke-bt-up.sh file:///usr/local/sbin/uke-bootguard
+# SERVICIO DE LA ETAPA B7 (build/gates/revision/BT-SENEMOS-20261018.md). NO VERIFICADO EN LA TABLET: se instala con
+# `deploy.sh --service` y NO se habilita hasta `deploy.sh --arm` (que exige haber probado antes B2-B4 a mano).
+# Mismas protecciones que uke-wifi.service:
+#  1) INTERRUPTORES manuales, sin reflashear:  touch /etc/uke/no-bt   (o /etc/uke/safe-mode: ni WiFi ni BT ni escritorio)
+#  2) GUARDA automatica (uke-bootguard, ExecCondition): si el intento anterior no llego a 'ok' (el guion de arranque
+#     no volvio: cuelgue + reset fisico) cuenta un fallo; con 2 seguidos se omite solo hasta `uke-bootguard reset bt`.
+# La blacklist de hci_uart (/etc/modprobe.d/uke-senemos-guard.conf) SE QUEDA: es lo que impide que udev cargue hci_uart
+# (y con el el encendido del chip) por modalias, fuera de este orden y de esta guarda. El guion hace modprobe por nombre.
+ConditionPathExists=!/etc/uke/no-bt
+ConditionPathExists=!/etc/uke/safe-mode
+ConditionPathExists=/usr/lib/firmware/uke-bt-fw.sha256
+ConditionPathExists=/usr/local/sbin/uke-bootguard
+ConditionKernelVersion=*senemos*
+# DESPUES del WiFi (el BT comparte rails con el WPSS: encenderlo con el WiFi arriba solo suma usuarios al refcount; con el
+# WiFi apagado el orden de rails seria el del bulk de hci_qca, no el OEM de WLAN: escenario no medido, informe §3).
+After=local-fs.target systemd-udevd.service uke-carga.service uke-wifi.service
+Wants=systemd-udevd.service
+Before=bluetooth.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=150
+# Colchon tras uke-wifi (HIPOTESIS, informe BT-B0 §9): en el primer arranque en frio el chip no respondio a los 2 primeros intentos, encendido
+# 0,3 s despues de que uke-wifi terminara; el driver reintento solo y el tercero fue bien. uke-bt-up.sh espera hasta que uke-wifi lleve este
+# numero de segundos activo (0 = sin colchon; sin uke-wifi activo no espera). Para comparar arranques: drop-in con Environment=UKE_BT_SETTLE=0.
+Environment=UKE_BT_SETTLE=8
+# Reintento por ciclos completos del encendido (BT-MUDO-20261019.md): si el driver se rinde (4 intentos con `0xfc00 tx timeout`; ~30 % de los
+# arranques), uke-bt-up.sh hace --down y vuelve a encender, hasta 3 ciclos (~20 s cada uno). Peor caso: 8 s de colchon + 3 x ~20 s + pausas ~ 70 s
+# < TimeoutStartSec=150. uke-bt-wait espera (hasta 70 s) mientras este servicio siga `activating`. UKE_BT_CYCLES=1 = sin reintento (comparar).
+Environment=UKE_BT_CYCLES=3
+# 2 = AMARILLO (hci0 existe pero no se vio 'QCA setup on UART is completed' a tiempo): no es un fallo del servicio
+SuccessExitStatus=2
+# exit 1 = omitir sin fallo (interruptor/guarda); 0 = adelante
+ExecCondition=/usr/local/sbin/uke-bootguard begin bt
+ExecStart=/usr/local/sbin/uke-bt-up.sh --service
+# el guion volvio: el encendido del chip/UART no colgo la tablet -> limpia el 'pending' YA (no a los 180 s)
+ExecStartPost=/usr/local/sbin/uke-bootguard ok bt
+# idem si el guion fallo sin colgar (exit 3) y en el apagado ordenado
+ExecStopPost=/usr/local/sbin/uke-bootguard ok bt
+# Sin ExecStop a proposito: `systemctl stop` no descarga nada (descargar el overlay en cada apagado es un camino sin probar).
+# Descarga a mano: /usr/local/sbin/uke-bt-up.sh --down
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

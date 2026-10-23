@@ -1,0 +1,64 @@
+BORRADOR DE E0 (18-oct-2026) — NO APLICADO a ningun arbol. Parche 3/3 de la serie de audio. OPCIONAL.
+Se aplica DESPUES del 0001 (esta generado contra uke-abl.c ya con el 0001).
+
+arm64: uke-abl: no deshabilitar el cliente SMMU q6apm-dais si el overlay de audio va horneado en el DT de arranque
+
+SOLO hace falta si se decide hornear el overlay de audio (dts/uke-audio-e4-dais.dtso) en el DT de arranque en lugar de
+aplicarlo en caliente. Con el overlay en caliente el transform nunca ve el nodo y este parche sobra.
+
+Hoy uke_scope_smmu_clients() pone status="disabled" a todo nodo con `iommus` hacia apps-smmu que no sea uno de los
+siete clientes revisados. Medido con el arnes: con el overlay E2+E4 aplicado sobre el DT de entrada, la transform
+original deja .../qcom,gpr/service@1/dais con status="disabled".
+
+Cambio: uke_audio_iommus() acepta ese unico nodo si su `iommus` es EXACTAMENTE <&apps_smmu 0x1001 0x80>,
+<&apps_smmu 0x1061 0>; con otros SIDs queda deshabilitado (falla cerrado, sin rechazar el arranque). El nodo se
+resuelve por ruta en cada vuelta: los offsets de libfdt se mueven al anadir propiedades "status" (el primer intento
+guardaba el offset una vez y la prueba lo delato: el nodo seguia disabled).
+El msm-audio-ion vendor sigue deshabilitado. Requiere el 0002 en el kernel (misma lista de SIDs).
+
+Verificado en el PC con el arnes: DT sin audio horneado => salida identica a la del 0001; con E2+E4 horneados =>
+dais sin status (habilitado); con SID 0x1002 en el nodo => dais "disabled" y arranque aceptado. NO probado en tablet.
+
+--- a/arch/arm64/kernel/uke-abl.c
++++ b/arch/arm64/kernel/uke-abl.c
+@@ -184,6 +184,21 @@
+ 	return 0;
+ }
+ 
++/*
++ * LPASS audio DMA client (qcom,q6apm-dais). Only present when the audio overlay was baked into the
++ * boot DT; with the overlay applied after boot this transform never sees the node. The streams
++ * are the OEM msm-audio-ion ones and sm8650.dtsi's q6apmdai: <&apps_smmu 0x1001 0x80>,
++ * <&apps_smmu 0x1061 0>. The kernel must admit the same IDs in qcom_uke_smmu_alloc_context_bank()
++ * (arm-smmu-qcom.c). Anything else on that node stays disabled like every other foreign client.
++ */
++static int UKE_INIT uke_audio_iommus(const fdt32_t *spec, int size, unsigned int smmu)
++{
++	return size == (int)(6 * sizeof(*spec)) &&
++	       fdt32_to_cpu(spec[0]) == smmu && fdt32_to_cpu(spec[1]) == 0x1001 &&
++	       fdt32_to_cpu(spec[2]) == 0x80 && fdt32_to_cpu(spec[3]) == smmu &&
++	       fdt32_to_cpu(spec[4]) == 0x1061 && !fdt32_to_cpu(spec[5]);
++}
++
+ static int UKE_INIT uke_scope_smmu_clients(void *fdt)
+ {
+ 	static const char * const paths[] = {
+@@ -197,6 +212,8 @@
+ 	static const unsigned int sids[] = { 0x60, 0x40, 0xb6, 0xa3, 0x423, 0x436, 0x1400 };
+ 	static const unsigned int masks[] = { 0, 0, 0, 0, 0, 0, 1 };
+ 	int smmu = fdt_path_offset(fdt, "/soc/apps-smmu@15000000");
++	static const char audio_dais[] = "/soc/remoteproc-adsp@03000000/glink-edge/"
++					 "qcom,gpr/service@1/dais";
+ 	unsigned int phandle;
+ 	int node, size, ret;
+ 	unsigned int i;
+@@ -246,6 +263,9 @@
+ 		for (i = 0; i < sizeof(paths) / sizeof(paths[0]); i++)
+ 			if (node == fdt_path_offset(fdt, paths[i]))
+ 				admitted = 1;
++		/* Offsets move as "status" properties are added: resolve the path every time. */
++		if (!admitted && node == fdt_path_offset(fdt, audio_dais))
++			admitted = uke_audio_iommus(spec, size, phandle);
+ 		/* Disabled clients cannot reclaim firmware display streams or DMA
+ 		 * through this provider outside its seven reviewed consumers.
+ 		 */
